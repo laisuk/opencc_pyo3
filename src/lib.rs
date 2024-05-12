@@ -4,15 +4,15 @@ use opencc_fmmseg::OpenCC as _OpenCC;
 use pyo3::prelude::*;
 
 const CONFIG_LIST: [&str; 16] = [
-"s2t", "t2s", "s2tw", "tw2s", "s2twp", "tw2sp", "s2hk", "hk2s", "t2tw", "tw2t", "t2twp", "tw2tp",
-"t2hk", "hk2t", "t2jp", "jp2t"
+    "s2t", "t2s", "s2tw", "tw2s", "s2twp", "tw2sp", "s2hk", "hk2s", "t2tw", "tw2t", "t2twp",
+    "tw2tp", "t2hk", "hk2t", "t2jp", "jp2t",
 ];
 // Wrap the OpenCC struct in PyO3
 #[pyclass(subclass)]
 struct OpenCC {
     opencc: _OpenCC,
     #[pyo3(get, set)]
-    config: String
+    config: String,
 }
 // Implement methods for the OpenCCWrapper struct
 #[pymethods]
@@ -26,7 +26,7 @@ impl OpenCC {
         };
         OpenCC {
             opencc,
-            config: config_str.to_string()
+            config: config_str.to_string(),
         }
     }
 

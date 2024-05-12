@@ -3,7 +3,10 @@ opencc_pyo3-1.0.0.dist-info/METADATA,sha256=tCXIFFcJNrve7WqEnmVKaXyh0MjCAO8PyNDH
 opencc_pyo3-1.0.0.dist-info/RECORD,,
 opencc_pyo3-1.0.0.dist-info/REQUESTED,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
 opencc_pyo3-1.0.0.dist-info/WHEEL,sha256=2DMsMEuToPssnNZjzCLc-JDvpJNvE9njw6VIV5f_RP4,95
-opencc_pyo3-1.0.0.dist-info/direct_url.json,sha256=ag6C32lw3w2ozB-7_OtKiUfqfxVAqXAa8AQvVH4km3I,271
-opencc_pyo3/__init__.py,sha256=ZLx0Oj3ZlRNOmZjTX23WdWMvtwLBHp2vx0Zd3K6urmU,127
+opencc_pyo3-1.0.0.dist-info/direct_url.json,sha256=vJ0YJWOjS1EOe6Va7kHMKx4R4SZonFc1ZI-45HqgLW8,299
+opencc_pyo3/__init__.py,sha256=t_Tw71y7XMtv7YPNK0cPLYEfeGMU-81ZvihoS6qaOG4,625
 opencc_pyo3/__pycache__/__init__.cpython-312.pyc,,
-opencc_pyo3/opencc_pyo3.cp312-win_amd64.pyd,sha256=RKVAc4uMpuHsIIBTE4V9JrubbuVrXzlc8JORWBB5PJM,3573760
+opencc_pyo3/__pycache__/__init__.cpython-312.pyc,sha256=Vl-cB1TKP6CBYPqrm-aWyVXho3_6L408fvv-GvKU3VE,1300
+opencc_pyo3/opencc_pyo3.cp312-win_amd64.pyd,sha256=_x6hpnDp-4__-0aKjiot97R0ynJdqWB9JrlSjFpCpvE,3573760
+opencc_pyo3/opencc_pyo3.cp312-win_amd64.pyd,sha256=_x6hpnDp-4__-0aKjiot97R0ynJdqWB9JrlSjFpCpvE,3573760
+opencc_pyo3/opencc_pyo3.pyi,sha256=IjX1th_UC1YcHgQmWQasgrVQ8S6Kvtq5jjEKLNeCB1M,241

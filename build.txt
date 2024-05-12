@@ -1,0 +1,15 @@
+create module folder in project root /opencc_pyo3 same name as sated in cargo.toml:
+[lib]
+name = "opencc_pyo3"
+
+create pyproject.toml
+
+prepare files in modele folder: 
+__init__.py
+opencc_pyo3.pyi
+
+prepare venv if needed
+
+maturin develop -r
+maturin build -r
+pip install ./target/wheels/opencc_pyo3-1.0.0-cp312-none-win_amd64.whl
