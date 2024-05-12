@@ -9,6 +9,7 @@ CONFIG_LIST = [
     "t2hk", "hk2t", "t2jp", "jp2t"
 ]
 
+
 class OpenCC(opencc_pyo3.OpenCC):
     def __init__(self, config="s2t"):
         self.config = config if config in CONFIG_LIST else "s2t"
