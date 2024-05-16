@@ -4,11 +4,11 @@ name = "opencc_pyo3"
 
 create pyproject.toml
 
-prepare files in modele folder: 
+prepare files in module folder:
 __init__.py
 opencc_pyo3.pyi
 
-prepare venv if needed
+prepare .venv if needed
 
 maturin develop -r
 maturin build -r

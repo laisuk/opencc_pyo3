@@ -1,8 +1,8 @@
 from opencc_pyo3 import OpenCC
 
-text = "“春眠不觉晓，处处闻啼鸟”"
+text = "“春眠不觉晓，处处闻啼鸟。夜来风雨声，花落知多少”"
 opencc = OpenCC("s2twp")
-converted = opencc.convert(text)
+converted = opencc.convert(text, True)
 print(f"Original text: {text}")
 print(f"Text code: {opencc.zho_check(text)}")
 print(opencc.config)

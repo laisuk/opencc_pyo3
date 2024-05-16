@@ -1,9 +1,5 @@
 from .opencc_pyo3 import *
 
-__doc__ = opencc_pyo3.__doc__
-if hasattr(opencc_pyo3, "__all__"):
-    __all__ = opencc_pyo3.__all__
-
 CONFIG_LIST = [
     "s2t", "t2s", "s2tw", "tw2s", "s2twp", "tw2sp", "s2hk", "hk2s", "t2tw", "tw2t", "t2twp", "tw2t", "tw2tp",
     "t2hk", "hk2t", "t2jp", "jp2t"
