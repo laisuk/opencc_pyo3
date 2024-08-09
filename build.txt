@@ -10,6 +10,6 @@ opencc_pyo3.pyi
 
 prepare .venv if needed
 
-maturin develop -r
+maturin develop -r (Create pyd to opencc_pyo3 folder, need venv)
 maturin build -r
-pip install ./target/wheels/opencc_pyo3-1.0.0-cp312-none-win_amd64.whl
+pip install ./target/wheels/opencc_pyo3-1.0.0-cp312-none-win_amd64.whl --force-reinstall

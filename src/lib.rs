@@ -18,6 +18,7 @@ struct OpenCC {
 #[pymethods]
 impl OpenCC {
     #[new]
+    #[pyo3(signature = (config=None))]
     fn new(config: Option<&str>) -> Self {
         let opencc = _OpenCC::new();
         let config_str = match config {

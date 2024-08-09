@@ -1,4 +1,4 @@
-from opencc_pyo3 import OpenCC
+from python.opencc_pyo3 import OpenCC
 
 text = "“春眠不觉晓，处处闻啼鸟。夜来风雨声，花落知多少”"
 opencc = OpenCC("s2twp")
