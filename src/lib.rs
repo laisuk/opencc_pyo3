@@ -9,7 +9,7 @@ const CONFIG_LIST: [&str; 16] = [
 ];
 // Wrap the OpenCC struct in PyO3
 #[pyclass(subclass)]
-struct OpenCC{
+struct OpenCC {
     opencc: _OpenCC,
     #[pyo3(get, set)]
     config: String,
@@ -27,7 +27,7 @@ impl OpenCC {
         };
         OpenCC {
             opencc,
-            config: config_str.to_string(),
+            config: config_str,
         }
     }
 

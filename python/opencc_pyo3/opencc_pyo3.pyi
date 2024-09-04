@@ -8,3 +8,4 @@ class OpenCC:
 
     def zho_check(self, input: str) -> int:
         ...
+
