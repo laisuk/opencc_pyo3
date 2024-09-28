@@ -8,7 +8,8 @@ const CONFIG_LIST: [&str; 16] = [
     "tw2tp", "t2hk", "hk2t", "t2jp", "jp2t",
 ];
 // Wrap the OpenCC struct in PyO3
-#[pyclass(subclass)]
+#[pyclass]
+#[pyo3(subclass)]
 struct OpenCC {
     opencc: _OpenCC,
     #[pyo3(get, set)]
@@ -41,7 +42,7 @@ impl OpenCC {
 }
 
 #[pymodule]
-fn opencc_pyo3(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
+fn opencc_pyo3(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<OpenCC>()?;
 
     Ok(())
