@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 opencc-fmmseg = {path = "../opencc-fmmseg"}
-pyo3 = { version = "0.22.3", features = ["extension-module"]}
+pyo3 = { version = "0.22.5", features = ["extension-module"]}
 
 [lib]
 name = "opencc_pyo3"
