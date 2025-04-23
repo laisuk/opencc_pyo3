@@ -15,5 +15,7 @@ maturin build -r
 
 Windows:
 pip install ./target/wheels/opencc_pyo3-1.0.0-cp312-none-win_amd64.whl --force-reinstall
+pip install .\target\wheels\opencc_pyo3-1.0.0-cp313-cp313-win_amd64.whl --force-reinstall
+
 Linux:
 pip install ./target/wheels/opencc_pyo3-1.0.0-cp312-cp312-manylinux_2_34_x86_64.whl --break-system-packages --force-reinstall
