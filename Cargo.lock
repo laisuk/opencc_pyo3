@@ -135,7 +135,7 @@ dependencies = [
 
 [[package]]
 name = "opencc-pyo3"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "opencc-fmmseg",
  "pyo3",
