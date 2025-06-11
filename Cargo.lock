@@ -122,6 +122,7 @@ checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 [[package]]
 name = "opencc-fmmseg"
 version = "0.6.0"
+source = "git+https://github.com/laisuk/opencc-fmmseg.git?branch=master#95889d284675933cce44987c09e4b5c7427aaf6e"
 dependencies = [
  "once_cell",
  "rayon",
