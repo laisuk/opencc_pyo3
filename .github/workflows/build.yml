@@ -13,8 +13,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -30,10 +29,12 @@ jobs:
     - name: Install maturin
       run: pip install maturin
 
-    - name: Clean previous builds
+    - name: Clean previous build artifacts
+      shell: python
       run: |
-        python -c "import shutil; shutil.rmtree('target', ignore_errors=True)"
-        python -c "import shutil; shutil.rmtree('dist', ignore_errors=True)"
+        import shutil
+        shutil.rmtree("target", ignore_errors=True)
+        shutil.rmtree("dist", ignore_errors=True)
 
     - name: Build wheels
       run: maturin build --release --interpreter python
@@ -49,15 +50,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
     - name: Download artifacts
       uses: actions/download-artifact@v4
       with:
         path: dist
 
-    - name: Merge wheels
+    - name: Merge wheels into final_dist
       run: |
         mkdir -p final_dist
         find dist -name '*.whl' -exec mv {} final_dist/ \;
