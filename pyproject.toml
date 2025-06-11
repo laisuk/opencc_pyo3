@@ -21,3 +21,6 @@ license = "MIT"
 [project.urls]
 Homepage = "https://github.com/laisuk/opencc_pyo3"
 Issues = "https://github.com/laisuk/opencc_pyo3/issues"
+
+[tool.setuptools]
+license-files = []
