@@ -26,8 +26,12 @@ jobs:
         toolchain: stable
         override: true
 
-    - name: Install maturin
-      run: pip install maturin
+    - name: Install maturin (pinned version)
+      run: pip install maturin==1.8.7
+
+    - name: Clean previous builds
+      run: |
+        rm -rf target/ dist/
 
     - name: Build wheels
       run: maturin build --release --interpreter python
@@ -55,10 +59,14 @@ jobs:
         mkdir -p final_dist
         find dist -name '*.whl' -exec mv {} final_dist/ \;
 
+    - name: Install twine
+      run: pip install twine
+
+    - name: Check wheels metadata
+      run: twine check final_dist/*.whl
+
     - name: Publish to PyPI
-      run: |
-        pip install twine
-        twine upload final_dist/*.whl
+      run: twine upload final_dist/*.whl
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
