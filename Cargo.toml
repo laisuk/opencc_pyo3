@@ -1,5 +1,5 @@
 [package]
-name = "opencc-pyo3"
+name = "opencc_pyo3"
 version = "0.6.0"
 edition = "2021"
 

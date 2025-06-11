@@ -13,56 +13,50 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
 
-    - name: Install maturin
-      run: pip install maturin
+      - name: Install maturin
+        run: pip install maturin
 
-    - name: Clean previous build artifacts
-      shell: python
-      run: |
-        import shutil
-        shutil.rmtree("target", ignore_errors=True)
-        shutil.rmtree("dist", ignore_errors=True)
+      - name: Build wheels
+        run: maturin build --release --interpreter python
 
-    - name: Build wheels
-      run: maturin build --release --interpreter python
-
-    - name: Upload wheel artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: wheels-${{ matrix.os }}
-        path: target/wheels/*.whl
+      - name: Upload wheel artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: target/wheels/*.whl
 
   publish:
     needs: build
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Download artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: dist
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
 
-    - name: Merge wheels into final_dist
-      run: |
-        mkdir -p final_dist
-        find dist -name '*.whl' -exec mv {} final_dist/ \;
+      - name: Merge wheels
+        run: |
+          mkdir -p final_dist
+          find dist -name '*.whl' -exec mv {} final_dist/ \;
 
-    - name: Publish with maturin
-      run: |
-        pip install maturin
-        maturin upload --username __token__ --password ${{ secrets.PYPI_API_TOKEN }} final_dist/*.whl
+      - name: Install maturin
+        run: pip install maturin
+
+      - name: Publish to PyPI using maturin
+        run: maturin upload final_dist/*.whl --non-interactive -u __token__ -p ${{ secrets.PYPI_API_TOKEN }}
