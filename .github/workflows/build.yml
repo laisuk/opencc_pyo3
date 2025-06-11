@@ -1,0 +1,75 @@
+name: Build and publish wheels
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger only when pushing tags like v0.6.0
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel
+
+      - name: Build wheels
+        run: cibuildwheel --output-dir wheelhouse
+
+      - name: Upload wheels as artifact (for debugging / backup)
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels-${{ matrix.os }}
+          path: wheelhouse
+
+  publish:
+    name: Publish to PyPI
+    needs: build_wheels
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download built wheels
+        uses: actions/download-artifact@v3
+        with:
+          name: wheels-ubuntu-latest
+          path: dist/linux
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: wheels-windows-latest
+          path: dist/windows
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: wheels-macos-latest
+          path: dist/macos
+
+      - name: Merge wheel folders
+        run: |
+          mkdir -p final_dist
+          cp dist/linux/* final_dist/ || true
+          cp dist/windows/* final_dist/ || true
+          cp dist/macos/* final_dist/ || true
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.8.8
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
