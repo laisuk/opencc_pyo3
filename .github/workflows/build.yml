@@ -30,7 +30,7 @@ jobs:
       run: pip install maturin
 
     - name: Build wheels
-      run: maturin build --release --interpreter python
+      run: maturin build --release --interpreter python --no-isolation
 
     - name: Upload wheel artifacts
       uses: actions/upload-artifact@v4
