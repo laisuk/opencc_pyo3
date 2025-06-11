@@ -17,7 +17,6 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 license = "MIT"
-license-files = ["LICENSE"]
 
 [project.urls]
 Homepage = "https://github.com/laisuk/opencc_pyo3"
