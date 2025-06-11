@@ -67,8 +67,7 @@ jobs:
         pip install twine
         twine check --strict target/wheels/*.whl
 
-    - name: Publish to PyPI
-      run: twine upload final_dist/*.whl
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+    - name: Publish with maturin
+      run: |
+        pip install maturin
+        maturin upload --username __token__ --password ${{ secrets.PYPI_API_TOKEN }} final_dist/*.whl
