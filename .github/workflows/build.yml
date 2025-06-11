@@ -62,8 +62,10 @@ jobs:
         mkdir -p final_dist
         find dist -name '*.whl' -exec mv {} final_dist/ \;
 
-    - name: Install twine
-      run: pip install twine
+    - name: Validate wheel metadata
+      run: |
+        pip install twine
+        twine check --strict target/wheels/*.whl
 
     - name: Publish to PyPI
       run: twine upload final_dist/*.whl
