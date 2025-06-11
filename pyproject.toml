@@ -4,10 +4,21 @@ build-backend = "maturin"
 
 [project]
 name = "opencc_pyo3"
+dynamic = ["version"]
+authors = [
+    { name="laisuk", email="laisuk@yahoo.com" },
+]
+description = "A Python extension module powered by Rust and PyO3, providing fast and accurate Chinese text conversion."
 requires-python = ">=3.7"
+readme = "README.md"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dynamic = ["version"]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/laisuk/opencc-fmmseg-pyo3"
+Issues = "https://github.com/laisuk/opencc-fmmseg-pyo3/issues"
