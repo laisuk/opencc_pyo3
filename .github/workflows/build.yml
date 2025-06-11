@@ -29,8 +29,11 @@ jobs:
     - name: Install maturin
       run: pip install maturin
 
+    - name: Pre-fetch Cargo dependencies
+      run: cargo fetch
+
     - name: Build wheels
-      run: maturin build --release --interpreter python --no-isolation
+      run: maturin build --release --interpreter python
 
     - name: Upload wheel artifacts
       uses: actions/upload-artifact@v4
