@@ -29,9 +29,6 @@ jobs:
     - name: Install maturin
       run: pip install maturin
 
-    - name: Pre-fetch Cargo dependencies
-      run: cargo fetch
-
     - name: Build wheels
       run: maturin build --release --interpreter python
 
