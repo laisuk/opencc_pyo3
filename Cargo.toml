@@ -6,9 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-opencc-fmmseg = {path = "../opencc-fmmseg"}
+# opencc-fmmseg = {path = "../opencc-fmmseg"}
+opencc-fmmseg = { git = "https://github.com/laisuk/opencc-fmmseg.git", branch = "main" }
 pyo3 = { version = "0.25.0", features = ["extension-module", "abi3-py38"]}
 
 [lib]
 name = "opencc_pyo3"
 crate-type = ["cdylib"]
+
+[patch.crates-io]
+opencc-fmmseg = { path = "../opencc-fmmseg" }
