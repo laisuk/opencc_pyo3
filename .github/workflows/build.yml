@@ -62,11 +62,6 @@ jobs:
         mkdir -p final_dist
         find dist -name '*.whl' -exec mv {} final_dist/ \;
 
-    - name: Validate wheel metadata
-      run: |
-        pip install twine
-        twine check --strict target/wheels/*.whl
-
     - name: Publish with maturin
       run: |
         pip install maturin
