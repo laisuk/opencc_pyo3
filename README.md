@@ -73,7 +73,7 @@ python -m opencc_pyo3 -i input.txt -o output.txt -c s2t --punct
 
 ## License
 
-[MIT](./LICENSE)
+[MIT](https://github.com/laisuk/opencc_pyo3/blob/master/LICENSE)
 
 ---
 
