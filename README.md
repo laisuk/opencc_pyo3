@@ -31,7 +31,7 @@ Or for development:
 maturin develop -r
 ```
 
-See [build.txt](build.txt) for detailed build and install instructions.
+See [build.txt](https://github.com/laisuk/opencc_pyo3/blob/master/build.txt) for detailed build and install instructions.
 
 ## Usage
 
@@ -67,9 +67,9 @@ python -m opencc_pyo3 -i input.txt -o output.txt -c s2t --punct
 
 ## Development
 
-- Rust source: [src/lib.rs](src/lib.rs)
-- Python bindings: [opencc_pyo3/__init__.py](opencc_pyo3/__init__.py), [opencc_pyo3/opencc_pyo3.pyi](opencc_pyo3/opencc_pyo3.pyi)
-- CLI: [opencc_pyo3/__main__.py](opencc_pyo3/__main__.py)
+- Rust source: [src/lib.rs](https://github.com/laisuk/opencc_pyo3/blob/master/src/lib.rs)
+- Python bindings: [opencc_pyo3/__init__.py](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/__init__.py), [opencc_pyo3/opencc_pyo3.pyi](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/opencc_pyo3.pyi)
+- CLI: [opencc_pyo3/__main__.py](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/__main__.py)
 
 ## License
 
