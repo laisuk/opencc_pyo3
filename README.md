@@ -98,7 +98,7 @@ Processor: Intel64 Family 6 Model 191 Stepping 2, GenuineIntel
 
 ### Throughput vs Size
 
-![throughput_vs_size](./assets/throughput_vs_size.png)
+![ThroughputVsSizeChart](https://github.com/laisuk/opencc_pyo3/blob/master/assets/throughput_vs_size.png)
 
 ## License
 
