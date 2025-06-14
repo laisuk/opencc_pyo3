@@ -1,4 +1,4 @@
-create module folder in project root /opencc_pyo3 same name as sated in cargo.toml:
+create module folder in project root /opencc_pyo3 same name as stated in cargo.toml:
 [lib]
 name = "opencc_pyo3"
 
@@ -9,12 +9,14 @@ __init__.py
 opencc_pyo3.pyi
 
 prepare .venv if needed
-(Create pyd to opencc_pyo3 folder, need venv, if any old pyd in the folder, delete it first)
 maturin develop -r
+(This create pyd into opencc_pyo3 folder, need venv, if any old pyd in the folder, delete it first)
+
 Exit .venv to Windows system Python env (Deactivate)
 maturin build -r
 (whl created in ./target/wheels/
 
+Install Package (WHL file name may vary)
 Windows:
 pip install ./target/wheels/opencc_pyo3-1.5.0-cp312-cp312-win_amd64.whl --force-reinstall
 pip install .\target\wheels\opencc_pyo3-1.0.0-cp313-cp313-win_amd64.whl --force-reinstall

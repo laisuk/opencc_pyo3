@@ -3,6 +3,7 @@ from __future__ import print_function
 import argparse
 import sys
 import io
+
 from opencc_pyo3 import OpenCC
 
 
@@ -32,6 +33,7 @@ def main():
         with io.open(args.input, encoding=args.in_enc) as f:
             input_str = f.read()
     else:
+        print("Input text to convert, <Ctrl+Z> (Windows) or <Ctrl+D> (Unix) then Enter to submit:", file=sys.stderr)
         input_str = sys.stdin.read()
 
     output_str = opencc.convert(input_str, args.punct)

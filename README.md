@@ -28,7 +28,7 @@ maturin build --release
 pip install ./target/wheels/opencc_pyo3-<version>-cp<pyver>-abi3-<platform>.whl
 ```
 
-Or for development:
+Or for development (May require venv):
 
 ```sh
 maturin develop -r
@@ -43,10 +43,10 @@ See [build.txt](https://github.com/laisuk/opencc_pyo3/blob/master/build.txt) for
 ```python
 from opencc_pyo3 import OpenCC
 
-text = "春眠不觉晓，处处闻啼鸟。"
+text = "“春眠不觉晓，处处闻啼鸟。”"
 opencc = OpenCC("s2t")
 converted = opencc.convert(text, punctuation=True)
-print(converted)
+print(converted)  # 「春眠不覺曉，處處聞啼鳥。」
 ```
 
 ### CLI
@@ -67,6 +67,7 @@ python -m opencc_pyo3 -i input.txt -o output.txt -c s2t --punct
     - Convert text with optional punctuation conversion.
 - `zho_check(input: str) -> int`
     - Detects the code of the input text.
+    - 1 - Traditional, 2 - Simplified, 0 - others
 
 ## Development
 
@@ -109,4 +110,4 @@ Processor: Intel64 Family 6 Model 191 Stepping 2, GenuineIntel
 
 ---
 
-Powered by Rust, PyO3, and OpenCC.
+Powered by Rust, PyO3, OpenCC and opencc-fmmseg.
