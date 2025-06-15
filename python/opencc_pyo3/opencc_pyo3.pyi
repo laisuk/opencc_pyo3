@@ -3,9 +3,9 @@ class OpenCC:
         self.config = config
         ...
 
-    def convert(self, input: str, punctuation: bool) -> str:
+    def convert(self, input_text: str, punctuation: bool) -> str:
         ...
 
-    def zho_check(self, input: str) -> int:
+    def zho_check(self, input_text: str) -> int:
         ...
 

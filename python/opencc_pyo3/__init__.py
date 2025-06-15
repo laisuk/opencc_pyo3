@@ -1,7 +1,7 @@
-from .opencc_pyo3 import *
+from .opencc_pyo3 import OpenCC as _OpenCC
 
 
-class OpenCC(opencc_pyo3.OpenCC):
+class OpenCC(_OpenCC):
     def __init__(self, config="s2t"):
         config_list = [
             "s2t", "t2s", "s2tw", "tw2s", "s2twp", "tw2sp", "s2hk", "hk2s", "t2tw", "tw2t", "t2twp", "tw2t", "tw2tp",

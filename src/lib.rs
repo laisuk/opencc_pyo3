@@ -60,8 +60,8 @@ impl OpenCC {
     ///
     /// # Returns
     /// The converted string.
-    fn convert(&self, input: &str, punctuation: bool) -> String {
-        self.opencc.convert(input, &self.config, punctuation)
+    fn convert(&self, input_text: &str, punctuation: bool) -> String {
+        self.opencc.convert(input_text, &self.config, punctuation)
     }
 
     /// Detect the code of the input text.
@@ -71,8 +71,8 @@ impl OpenCC {
     ///
     /// # Returns
     /// An integer code representing the detected text type.
-    fn zho_check(&self, input: &str) -> i32 {
-        self.opencc.zho_check(input)
+    fn zho_check(&self, input_text: &str) -> i32 {
+        self.opencc.zho_check(input_text)
     }
 }
 
