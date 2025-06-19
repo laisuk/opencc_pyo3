@@ -2,6 +2,8 @@
 use opencc_fmmseg;
 use opencc_fmmseg::OpenCC as _OpenCC;
 use pyo3::prelude::*;
+use std::collections::HashSet;
+use once_cell::sync::Lazy;
 
 /// List of supported OpenCC conversion configurations.
 /// These correspond to different Chinese conversion schemes, e.g.:
@@ -9,10 +11,12 @@ use pyo3::prelude::*;
 /// - "t2s": Traditional to Simplified
 /// - "s2tw": Simplified to Traditional (Taiwan Standard)
 /// - ...and others (see README for full list)
-const CONFIG_LIST: [&str; 16] = [
-    "s2t", "t2s", "s2tw", "tw2s", "s2twp", "tw2sp", "s2hk", "hk2s", "t2tw", "tw2t", "t2twp",
-    "tw2tp", "t2hk", "hk2t", "t2jp", "jp2t",
-];
+pub static CONFIG_SET: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    [
+        "s2t", "t2s", "s2tw", "tw2s", "s2twp", "tw2sp", "s2hk", "hk2s",
+        "t2tw", "tw2t", "t2twp", "tw2tp", "t2hk", "hk2t", "t2jp", "jp2t"
+    ].iter().copied().collect()
+});
 
 /// Python class wrapping the Rust OpenCC struct.
 /// 
@@ -43,7 +47,7 @@ impl OpenCC {
     fn new(config: Option<&str>) -> Self {
         let opencc = _OpenCC::new();
         let config_str = match config {
-            Some(c) if CONFIG_LIST.contains(&c) => c.to_string(),
+            Some(c) if CONFIG_SET.contains(&c) => c.to_string(),
             _ => "s2t".to_string(),
         };
         OpenCC {
