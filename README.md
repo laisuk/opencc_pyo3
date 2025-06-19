@@ -87,23 +87,22 @@ Processor: Intel64 Family 6 Model 191 Stepping 2, GenuineIntel
 
 ---
 
-| Method            | Config  |  TextSize |      Mean |    StdDev |       Min |       Max |   Ops/sec | Chars/sec |
-|:------------------|:--------|----------:|----------:|----------:|----------:|----------:|----------:|----------:|
-| Convert_Small     | s2t     |       100 |  0.118 ms |  0.097 ms |  0.049 ms |  0.811 ms |      8499 |    849910 |
-| Convert_Medium    | s2t     |      1000 |  0.250 ms |  0.036 ms |  0.211 ms |  0.509 ms |      4004 |   4003531 |
-| Convert_Large     | s2t     |     10000 |  0.845 ms |  0.060 ms |  0.775 ms |  1.420 ms |      1184 |  11835419 |
-| Convert_XLarge    | s2t     |    100000 |  4.755 ms |  0.152 ms |  4.515 ms |  5.680 ms |       210 |  21030543 |
-| Convert_Small     | s2tw    |       100 |  0.141 ms |  0.027 ms |  0.096 ms |  0.321 ms |      7111 |    711093 |
-| Convert_Medium    | s2tw    |      1000 |  0.392 ms |  0.030 ms |  0.355 ms |  0.623 ms |      2552 |   2552127 |
-| Convert_Large     | s2tw    |     10000 |  1.271 ms |  0.044 ms |  1.191 ms |  1.474 ms |       787 |   7869452 |
-| Convert_XLarge    | s2tw    |    100000 |  6.317 ms |  0.139 ms |  6.004 ms |  7.250 ms |       158 |  15831322 |
-| Convert_Small     | s2twp   |       100 |  0.204 ms |  0.028 ms |  0.132 ms |  0.380 ms |      4911 |    491118 |
-| Convert_Medium    | s2twp   |      1000 |  0.598 ms |  0.039 ms |  0.527 ms |  0.747 ms |      1671 |   1671296 |
-| Convert_Large     | s2twp   |     10000 |  1.942 ms |  0.061 ms |  1.823 ms |  2.223 ms |       515 |   5149357 |
-| Convert_XLarge    | s2twp   |    100000 |  9.937 ms |  0.173 ms |  9.542 ms | 10.707 ms |       101 |  10063174 |
+| Method            | Config  | TextSize |      Mean |    StdDev |       Min |       Max | Ops/sec |  Chars/sec |
+|:------------------|:--------|---------:|----------:|----------:|----------:|----------:|--------:|-----------:|
+| Convert_Small     | s2t     |      100 |  0.118 ms |  0.097 ms |  0.049 ms |  0.811 ms |   8,499 |    849,910 |
+| Convert_Medium    | s2t     |    1,000 |  0.250 ms |  0.036 ms |  0.211 ms |  0.509 ms |   4,004 |  4,003,531 |
+| Convert_Large     | s2t     |   10,000 |  0.845 ms |  0.060 ms |  0.775 ms |  1.420 ms |   1,184 | 11,835,419 |
+| Convert_XLarge    | s2t     |  100,000 |  4.755 ms |  0.152 ms |  4.515 ms |  5.680 ms |     210 | 21,030,543 |
+| Convert_Small     | s2tw    |      100 |  0.141 ms |  0.027 ms |  0.096 ms |  0.321 ms |   7,111 |    711,093 |
+| Convert_Medium    | s2tw    |    1,000 |  0.392 ms |  0.030 ms |  0.355 ms |  0.623 ms |   2,552 |  2,552,127 |
+| Convert_Large     | s2tw    |   10,000 |  1.271 ms |  0.044 ms |  1.191 ms |  1.474 ms |     787 |  7,869,452 |
+| Convert_XLarge    | s2tw    |  100,000 |  6.317 ms |  0.139 ms |  6.004 ms |  7.250 ms |     158 | 15,831,322 |
+| Convert_Small     | s2twp   |      100 |  0.204 ms |  0.028 ms |  0.132 ms |  0.380 ms |   4,911 |    491,118 |
+| Convert_Medium    | s2twp   |    1,000 |  0.598 ms |  0.039 ms |  0.527 ms |  0.747 ms |   1,671 |  1,671,296 |
+| Convert_Large     | s2twp   |   10,000 |  1.942 ms |  0.061 ms |  1.823 ms |  2.223 ms |     515 |  5,149,357 |
+| Convert_XLarge    | s2twp   |  100,000 |  9.937 ms |  0.173 ms |  9.542 ms | 10.707 ms |     101 | 10,063,174 |
 
 ---
-
 
 ### Throughput vs Size
 
