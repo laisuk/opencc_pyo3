@@ -78,7 +78,8 @@ python -m opencc_pyo3 -i input.txt -o output.txt -c s2t --punct
 ## Benchmarks
 
 ```
-Python 3.13.4 (tags/v3.13.4:8a526ec, Jun  3 2025, 17:46:04) [MSC v.1943 64 bit (AMD64)]
+Package: opencc_pyo3
+Python 3.13.5 (tags/v3.13.5:6cb20a2, Jun 11 2025, 16:15:46) [MSC v.1943 64 bit (AMD64)]
 Platform: Windows-11-10.0.26100-SP0
 Processor: Intel64 Family 6 Model 191 Stepping 2, GenuineIntel
 ```
