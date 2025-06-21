@@ -12,35 +12,44 @@ class OpenCC(_OpenCC):
     def set_config(self, config):
         """
         Set the conversion configuration.
-
         :param config: One of OpenCC.CONFIG_LIST
         """
-        if config in self.CONFIG_LIST:
-            self.config = config
-        else:
-            self.config = "s2t"
+        super().apply_config(config)
 
     def get_config(self):
         """
         Get the current conversion config.
-
         :return: Current config string
         """
-        return self.config
+        return super().get_config()
 
     @classmethod
     def supported_configs(cls):
         """
         Return a list of supported conversion config strings.
-
         :return: List of config names
         """
-        return cls.CONFIG_LIST
+        return super().supported_configs()
+
+    @classmethod
+    def is_valid_config(cls, config):
+        """
+        Check validity of a conversion configuration string.
+        :param config: Conversion configuration string
+        :return: True if valid, False otherwise
+        """
+        return super().is_valid_config(config)
+
+    def get_last_error(self):
+        """
+        Get the last error message from the underlying OpenCC core.
+        :return: Error string or empty string if no error
+        """
+        return super().get_last_error()
 
     def zho_check(self, input_text):
         """
         Heuristically determine whether input text is Simplified or Traditional Chinese.
-
         :param input_text: Input string
         :return: 0 = unknown, 2 = simplified, 1 = traditional
         """
@@ -48,8 +57,7 @@ class OpenCC(_OpenCC):
 
     def convert(self, input_text, punctuation=False):
         """
-        Automatically dispatch to the appropriate conversion method based on `self.config`.
-
+        Automatically dispatch to the appropriate conversion method based on `self.config.
         :param input_text: The string to convert
         :param punctuation: Whether to apply punctuation conversion
         :return: Converted string or error message

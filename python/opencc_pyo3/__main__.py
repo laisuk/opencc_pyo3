@@ -47,7 +47,8 @@ def main():
         sys.stdout.write(output_str)
     in_from = args.input if args.input else "<stdin>"
     out_to = args.output if args.output else "stdout"
-    print(f"Conversion completed ({args.config}): {in_from} -> {out_to}", file=sys.stderr)
+    if sys.stderr.isatty():
+        print(f"Conversion completed ({args.config}): {in_from} -> {out_to}", file=sys.stderr)
 
     return 0
 
