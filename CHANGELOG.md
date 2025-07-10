@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ---
 
 ## [0.6.3] – 2025-06-
+
+### Changed
 - Code optimized.
 - Dictionary optimization from Rust opencc-fmmseg repository.
 - Optimized Chinese text code detection.
@@ -16,10 +18,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [0.6.2] – 2025-06-19
 
 ### Added
-- Code optimized.
-- Fixed type runtimes warnings in Python 3.8.
 - Add set_config(), get_config() and supported_configs().
 - Add opencc_py03 executable script.
+
+### Changed
+- Code optimized.
+- Fixed type runtimes warnings in Python 3.8.
 - Improved CLI argument parsing, help message formatting, and file encoding handling.
 
 ---
