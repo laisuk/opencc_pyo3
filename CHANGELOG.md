@@ -6,12 +6,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
-## [0.6.3] – 2025-06-
+## [0.7.0] – 2025-07-14
+
+### Added
+- Add Office and Epub documents support in Chinese text conversion to CLI.
 
 ### Changed
 - Code optimized.
 - Dictionary optimization from Rust opencc-fmmseg repository.
 - Optimized Chinese text code detection.
+- Update opencc-fmmseg to v0.7.0
+- Changed opencc-pyo3 CLI text conversion to subcommand convert.
 
 ---
 

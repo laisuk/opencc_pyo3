@@ -51,10 +51,53 @@ print(converted)  # 「春眠不覺曉，處處聞啼鳥。」
 
 ### CLI
 
-You can also use the CLI interface:
+You can also use the CLI interface via Python module or Python script:  
+Features are:
+- `convert`: Convert Chinese text using OpenCC + Jieba
+- `office`: Convert Office document Chinese text using OpenCC + Jieba
+
+#### convert
+
+```bash
+python -m opencc_pyo3 convert -h
+usage: opencc-pyo3 convert [-h] [-i <file>] [-o <file>] [-c <conversion>] [-p] [--in-enc <encoding>] [--out-enc <encoding>]
+
+options:
+  -h, --help            show this help message and exit
+  -i, --input <file>    Read original text from <file>.
+  -o, --output <file>   Write converted text to <file>.
+  -c, --config <conversion>
+                        Conversion configuration: s2t|s2tw|s2twp|s2hk|t2s|tw2s|tw2sp|hk2s|jp2t|t2jp
+  -p, --punct           Enable punctuation conversion. (Default: False)
+  --in-enc <encoding>   Encoding for input. (Default: UTF-8)
+  --out-enc <encoding>  Encoding for output. (Default: UTF-8)
+```
+
+#### office
+
+```bash
+python -m opencc_pyo3 office --help                                         
+usage: opencc-pyo3 office [-h] [-i <file>] [-o <file>] [-c <conversion>] [-p] [-f <format>] [--auto-ext] [--keep-font]
+
+options:
+  -h, --help            show this help message and exit
+  -i, --input <file>    Input Office document from <file>.
+  -o, --output <file>   Output Office document to <file>.
+  -c, --config <conversion>
+                        conversion: s2t|s2tw|s2twp|s2hk|t2s|tw2s|tw2sp|hk2s|jp2t|t2jp
+  -p, --punct           Enable punctuation conversion. (Default: False)
+  -f, --format <format>
+                        Target Office format (e.g., docx, xlsx, pptx, odt, ods, odp, epub)
+  --auto-ext            Auto-append extension to output file
+  --keep-font           Preserve font-family information in Office content
+```
 
 ```sh
-python -m opencc_pyo3 -i input.txt -o output.txt -c s2t --punct
+python -m opencc_pyo3 convert -i input.txt -o output.txt -c s2t --punct
+
+python -m opencc_pyo3 office -c s2t --punct -i input.docx -o output.docx --keep-font
+
+opencc-pyo3 office -c s2tw -p -i input.epub -o output.epub
 ```
 
 ## API
@@ -115,4 +158,4 @@ Processor: Intel64 Family 6 Model 191 Stepping 2, GenuineIntel
 
 ---
 
-Powered by Rust, PyO3, OpenCC and opencc-fmmseg.
+Powered by **Rust**, **PyO3**, **OpenCC** and **opencc-fmmseg**.
