@@ -52,7 +52,7 @@ print(converted)  # 「春眠不覺曉，處處聞啼鳥。」
 ### CLI
 
 You can also use the CLI interface via Python module or Python script:  
-Features are:
+Sub-Commands are:
 - `convert`: Convert Chinese text using OpenCC
 - `office`: Convert Office document Chinese text using OpenCC
 
