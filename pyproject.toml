@@ -32,6 +32,7 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/laisuk/opencc_pyo3"
 Issues = "https://github.com/laisuk/opencc_pyo3/issues"
+ChangeLog = "https://github.com/laisuk/opencc_pyo3/blob/master/CHANGELOG.md"
 
 [project.scripts]
 opencc-pyo3 = "opencc_pyo3.__main__:main"
