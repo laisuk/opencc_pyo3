@@ -59,7 +59,7 @@ Sub-Commands are:
 #### convert
 
 ```bash
-python -m opencc_pyo3 convert -h
+python -m opencc_pyo3 convert --help
 usage: opencc-pyo3 convert [-h] [-i <file>] [-o <file>] [-c <conversion>] [-p] [--in-enc <encoding>] [--out-enc <encoding>]
 
 options:
