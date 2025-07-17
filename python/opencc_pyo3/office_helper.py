@@ -10,12 +10,12 @@ Author
 ------
 Laisuk Lai (https://github.com/laisuk)
 """
-
 import os
 import re
 import shutil
 import tempfile
 import zipfile
+from pathlib import Path
 from typing import Tuple, List, Optional
 
 # Global list of supported Office document formats
@@ -53,31 +53,30 @@ def convert_office_doc(
     Returns:
         (success: bool, message: str)
     """
-    temp_dir = os.path.join(tempfile.gettempdir(), f"{office_format}_temp_{os.urandom(6).hex()}")
+    input_path = Path(input_path)
+    output_path = Path(output_path)
+    temp_dir = Path(tempfile.gettempdir()) / f"{office_format}_temp_{os.urandom(6).hex()}"
 
     try:
         with zipfile.ZipFile(input_path, 'r') as archive:
             archive.extractall(temp_dir)
 
         target_paths = _get_target_xml_paths(office_format, temp_dir)
-
         if not target_paths:
             return False, f"❌ Unsupported or invalid format: {office_format}"
 
         converted_count = 0
 
         for relative_path in target_paths:
-            full_path = os.path.join(temp_dir, relative_path)
-            if not os.path.isfile(full_path):
+            full_path = temp_dir / relative_path
+            if not full_path.is_file():
                 continue
 
-            with open(full_path, "r", encoding="utf-8") as f:
-                xml_content = f.read()
+            xml_content = full_path.read_text(encoding="utf-8")
 
             font_map = {}
             if keep_font:
                 pattern = _get_font_regex_pattern(office_format)
-                font_map = {}
                 font_counter = 0
 
                 if pattern:
@@ -98,37 +97,32 @@ def convert_office_doc(
                 for marker, original in font_map.items():
                     converted = converted.replace(marker, original)
 
-            with open(full_path, "w", encoding="utf-8") as f:
-                f.write(converted)
-
+            full_path.write_text(converted, encoding="utf-8")
             converted_count += 1
 
         if converted_count == 0:
             return False, f"⚠️ No valid XML fragments were found. Is the format '{office_format}' correct?"
 
-        if os.path.exists(output_path):
-            os.remove(output_path)
+        output_path.unlink(missing_ok=True)
 
         if office_format == "epub":
             return create_epub_zip_with_spec(temp_dir, output_path)
         else:
             with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-                for root, _, files in os.walk(temp_dir):
-                    for file in files:
-                        full_path = os.path.join(root, file)
-                        arc_name = os.path.relpath(full_path, temp_dir).replace("\\", "/")
-                        archive.write(full_path, arc_name)
+                for file in temp_dir.rglob("*"):
+                    if file.is_file():
+                        archive.write(file, file.relative_to(temp_dir).as_posix())
 
         return True, f"✅ Successfully converted {converted_count} fragment(s) in {office_format} document."
 
     except Exception as ex:
         return False, f"❌ Conversion failed: {ex}"
     finally:
-        if os.path.exists(temp_dir):
+        if temp_dir.exists():
             shutil.rmtree(temp_dir)
 
 
-def _get_target_xml_paths(office_format: str, base_dir: str) -> Optional[List[str]]:
+def _get_target_xml_paths(office_format: str, base_dir: Path) -> Optional[List[Path]]:
     """
     Returns a list of XML file paths within the extracted Office/EPUB directory
     that should be converted for the given format.
@@ -141,32 +135,28 @@ def _get_target_xml_paths(office_format: str, base_dir: str) -> Optional[List[st
         List of relative XML file paths to process, or None if unsupported.
     """
     if office_format == "docx":
-        return [os.path.join("word", "document.xml")]
+        return [Path("word/document.xml")]
     elif office_format == "xlsx":
-        return [os.path.join("xl", "sharedStrings.xml")]
+        return [Path("xl/sharedStrings.xml")]
     elif office_format == "pptx":
-        ppt_dir = os.path.join(base_dir, "ppt")
-        if os.path.isdir(ppt_dir):
+        ppt_dir = base_dir / "ppt"
+        if ppt_dir.is_dir():
             return [
-                os.path.relpath(os.path.join(root, file), base_dir)
-                for root, _, files in os.walk(ppt_dir)
-                for file in files
-                if file.endswith(".xml") and (
-                        file.startswith("slide")
-                        or "notesSlide" in file
-                        or "slideMaster" in file
-                        or "slideLayout" in file
-                        or "comment" in file
-                )
+                path.relative_to(base_dir)
+                for path in ppt_dir.rglob("*.xml")
+                if path.name.startswith("slide")
+                   or "notesSlide" in path.name
+                   or "slideMaster" in path.name
+                   or "slideLayout" in path.name
+                   or "comment" in path.name
             ]
     elif office_format in ("odt", "ods", "odp"):
-        return ["content.xml"]
+        return [Path("content.xml")]
     elif office_format == "epub":
         return [
-            os.path.relpath(os.path.join(root, file), base_dir)
-            for root, _, files in os.walk(base_dir)
-            for file in files
-            if file.lower().endswith((".xhtml", ".opf", ".ncx"))
+            path.relative_to(base_dir)
+            for path in base_dir.rglob("*")
+            if path.suffix.lower() in (".xhtml", ".opf", ".ncx")
         ]
     return None
 
@@ -192,7 +182,7 @@ def _get_font_regex_pattern(office_format: str) -> Optional[str]:
     }.get(office_format)
 
 
-def create_epub_zip_with_spec(source_dir: str, output_path: str) -> Tuple[bool, str]:
+def create_epub_zip_with_spec(source_dir: Path, output_path: Path) -> Tuple[bool, str]:
     """
     Creates a valid EPUB-compliant ZIP archive.
     Ensures `mimetype` is the first file and uncompressed.
@@ -204,22 +194,18 @@ def create_epub_zip_with_spec(source_dir: str, output_path: str) -> Tuple[bool, 
     Returns:
         Tuple of (success, message)
     """
-    mime_path = os.path.join(source_dir, "mimetype")
+    mime_path = source_dir / "mimetype"
 
     try:
         with zipfile.ZipFile(output_path, "w") as epub:
-            if os.path.isfile(mime_path):
+            if mime_path.is_file():
                 epub.write(mime_path, "mimetype", compress_type=zipfile.ZIP_STORED)
             else:
                 return False, "❌ 'mimetype' file is missing. EPUB requires it as the first entry."
 
-            for root, _, files in os.walk(source_dir):
-                for file in files:
-                    full_path = os.path.join(root, file)
-                    if os.path.samefile(full_path, mime_path):
-                        continue
-                    arc_name = os.path.relpath(full_path, source_dir).replace("\\", "/")
-                    epub.write(full_path, arc_name, compress_type=zipfile.ZIP_DEFLATED)
+            for file in source_dir.rglob("*"):
+                if file.is_file() and not file.samefile(mime_path):
+                    epub.write(file, file.relative_to(source_dir).as_posix(), compress_type=zipfile.ZIP_DEFLATED)
 
         return True, "✅ EPUB archive created successfully."
     except Exception as ex:
