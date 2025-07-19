@@ -1,5 +1,5 @@
 import unittest
-from opencc_pyo3 import OpenCC
+from python.opencc_pyo3 import OpenCC
 
 class TestOpenCC(unittest.TestCase):
 
