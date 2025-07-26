@@ -156,7 +156,7 @@ def _get_target_xml_paths(office_format: str, base_dir: Path) -> Optional[List[P
         return [
             path.relative_to(base_dir)
             for path in base_dir.rglob("*")
-            if path.suffix.lower() in (".xhtml", ".opf", ".ncx")
+            if path.suffix.lower() in (".html", ".xhtml", ".opf", ".ncx")
         ]
     return None
 
