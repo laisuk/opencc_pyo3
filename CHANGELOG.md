@@ -6,6 +6,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.8.0] - 2025-08-19
+
+### Changed
+- Update opencc-fmmseg to v0.8.0
+
+---
+
 ## [0.7.0] – 2025-07-14
 
 ### Added

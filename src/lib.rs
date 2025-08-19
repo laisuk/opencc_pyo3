@@ -102,7 +102,7 @@ impl OpenCC {
     ///
     /// # Arguments
     /// * `config` - A string slice representing the new configuration to set.
-    ///              If the value is not in the supported list, it will fallback
+    ///              If the value is not in the supported list, it will fall back
     ///              to `"s2t"` and set an error message.
     ///
     /// # Behavior
