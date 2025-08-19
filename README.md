@@ -114,6 +114,8 @@ opencc-pyo3 office -c s2tw -p -i input.epub -o output.epub
 
 - `OpenCC(config: str = "s2t")`
     - `config`: Conversion configuration (see above).
+- `set_config(config: str)`
+  - Set conversion config dynamically
 - `convert(input: str, punctuation: bool = False) -> str`
     - Convert text with optional punctuation conversion.
 - `zho_check(input: str) -> int`
