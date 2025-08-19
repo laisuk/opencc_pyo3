@@ -20,7 +20,13 @@
 
 ## Installation
 
-Build and install the Python wheel using [maturin](https://github.com/PyO3/maturin):
+### 1. Install from PyPI
+
+```bash
+pip install opencc-pyo3
+```
+
+### 2. Build and install the Python wheel using [maturin](https://github.com/PyO3/maturin):
 
 ```sh
 # In project root
