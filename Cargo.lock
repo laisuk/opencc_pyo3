@@ -141,7 +141,6 @@ dependencies = [
  "once_cell",
  "opencc-fmmseg",
  "pyo3",
- "rayon-core",
 ]
 
 [[package]]
