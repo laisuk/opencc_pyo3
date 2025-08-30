@@ -6,6 +6,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.8.1] - 2025-08-31
+
+### Changed
+- Update opencc-fmmseg to v0.8.1
+
+### Planed
+- Add artifacts for Windows 7 x86_64/x86_32
+
+---
+
 ## [0.8.0] - 2025-08-19
 
 ### Changed
