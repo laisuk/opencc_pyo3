@@ -2,16 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
-This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and uses the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
+This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and uses
+the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
+
+---
+
+## [0.8.2] - 2025-10-05
+
+- Update opencc-fmmseg to v0.8.2
 
 ---
 
 ## [0.8.1] - 2025-08-31
 
 ### Changed
+
 - Update opencc-fmmseg to v0.8.1
 
 ### Planed
+
 - Add artifacts for Windows 7 x86_64/x86_32
 
 ---
@@ -19,6 +28,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [0.8.0] - 2025-08-19
 
 ### Changed
+
 - Update opencc-fmmseg to v0.8.0
 
 ---
@@ -26,9 +36,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [0.7.0] – 2025-07-14
 
 ### Added
+
 - Add Office and Epub documents support in Chinese text conversion to CLI.
 
 ### Changed
+
 - Code optimized.
 - Dictionary optimization from Rust opencc-fmmseg repository.
 - Optimized Chinese text code detection.
@@ -40,10 +52,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [0.6.2] – 2025-06-19
 
 ### Added
+
 - Add set_config(), get_config() and supported_configs().
 - Add opencc_py03 executable script.
 
 ### Changed
+
 - Code optimized.
 - Fixed type runtimes warnings in Python 3.8.
 - Improved CLI argument parsing, help message formatting, and file encoding handling.
@@ -53,6 +67,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [0.6.1] – 2025-06-12
 
 ### Added
+
 - Initial release of `opencc-pyo3` on PyPI.
 - Python bindings for Rust-powered OpenCC conversion using PyO3.
 - Support for standard OpenCC conversion configs:
