@@ -12,14 +12,13 @@ prepare .venv if needed
 maturin develop -r
 (This create pyd into opencc_pyo3 folder, need venv, if any old pyd in the folder, delete it first)
 
-Exit .venv to Windows system Python env (Deactivate)
+Exit .venv to Windows system Python env (Deactivate) (Optional)
 maturin build -r
 (whl created in ./target/wheels/
 
 Install Package (WHL file name may vary)
 Windows:
-pip install ./target/wheels/opencc_pyo3-1.5.0-cp312-cp312-win_amd64.whl --force-reinstall
-pip install .\target\wheels\opencc_pyo3-1.0.0-cp313-cp313-win_amd64.whl --force-reinstall
+pip install .\target\wheels\opencc_pyo3-0.8.2-cp38-abi3-win_amd64.whl --force-reinstall
 
 Linux:
-pip install ./target/wheels/opencc_pyo3-1.0.0-cp312-cp312-manylinux_2_34_x86_64.whl --break-system-packages --force-reinstall
+pip install ./target/wheels/opencc_pyo3-0.8.2-cp312-cp312-manylinux_2_34_x86_64.whl --break-system-packages --force-reinstall
