@@ -18,7 +18,7 @@ def main():
     opencc.config = "t2s" if converted_code == 1 else "s2t"
     converted_2 = opencc.convert(converted, True)
     print("Reconvert " + opencc.config + ": " + converted_2)
-    print(f"Is \'invalid\' a valid config string? {OpenCC.is_valid_config("invalid")}")
+    print(f"Is \'invalid\' a valid config string? {OpenCC.is_valid_config('invalid')}")
     opencc.set_config("invalid")
     print("Last error: " + opencc.get_last_error())
     print("Current config: " + opencc.get_config())
