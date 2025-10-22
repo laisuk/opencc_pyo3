@@ -14,4 +14,6 @@ print(f"Converted text: {converted}")
 print(f"Converted text code: {converted_code}")
 opencc_dev.config = "t2s" if converted_code == 1 else "s2t"
 converted_2 = opencc_dev.convert(converted, True)
+converted_2_code = opencc_dev.zho_check(converted_2)
 print("Reconvert " + opencc_dev.config + ": " + converted_2)
+print(f"Reconverted text code: {converted_2_code}")
