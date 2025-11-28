@@ -1,4 +1,8 @@
-from .opencc_pyo3 import OpenCC as _OpenCC
+from .opencc_pyo3 import (
+    OpenCC as _OpenCC,
+    extract_pdf_text,
+    reflow_cjk_paragraphs,
+)
 
 
 class OpenCC(_OpenCC):

@@ -2,6 +2,7 @@
 use once_cell::sync::Lazy;
 use opencc_fmmseg;
 use opencc_fmmseg::OpenCC as _OpenCC;
+use pyo3::exceptions;
 use pyo3::prelude::*;
 use std::collections::HashSet;
 
@@ -150,11 +151,361 @@ impl OpenCC {
     }
 }
 
+/// Extracts plain text from a PDF file.
+///
+/// This uses the pure-Rust `pdf-extract` crate. It works well for many PDFs,
+/// but for tricky CJK encodings or missing ToUnicode maps you may want to
+/// switch to a PDFium-based backend later.
+///
+/// Parameters
+/// ----------
+/// path : str
+///     Path to the PDF file on disk.
+///
+/// Returns
+/// -------
+/// str
+///     Concatenated text of all pages.
+#[pyfunction]
+fn extract_pdf_text(path: &str) -> PyResult<String> {
+    let text = pdf_extract::extract_text(path).map_err(|e| {
+        exceptions::PyRuntimeError::new_err(format!(
+            "Failed to extract text from PDF '{}': {e}",
+            path
+        ))
+    })?;
+    Ok(text)
+}
+
+/// Reflow CJK paragraphs from PDF-extracted text.
+///
+/// This is a Rust/PyO3 port of `reflow_cjk_paragraphs_core()` from pdf_helper.py.
+/// It merges artificial line breaks while保留段落、标题、章节行等结构。
+///
+/// Parameters
+/// ----------
+/// text : str
+///     Raw text (usually from `extract_pdf_text()`).
+/// add_pdf_page_header : bool
+///     If `False`, try to skip page-break-like blank lines that are not
+///     preceded by CJK punctuation. If `True`, keep those gaps.
+/// compact : bool
+///     If `True`, paragraphs are joined with a single newline ("p1\\np2").
+///     If `False`, paragraphs are separated by a blank line ("p1\\n\\np2").
+///
+/// Returns
+/// -------
+/// str
+///     Reflowed text.
+#[pyfunction]
+fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -> PyResult<String> {
+    // If the whole text is whitespace, return as-is.
+    if text.chars().all(|c| c.is_whitespace()) {
+        return Ok(text.to_owned());
+    }
+
+    // Normalize line endings
+    let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
+    let lines = normalized.split('\n');
+
+    let mut segments: Vec<String> = Vec::new();
+    let mut buffer = String::new();
+
+    for raw_line in lines {
+        // Fully trim both ends (indentation from PDF is unreliable)
+        let stripped = raw_line.trim();
+
+        // 1) Empty line logic (page header / paragraph separator)
+        if stripped.is_empty() {
+            if !add_pdf_page_header && !buffer.is_empty() {
+                if let Some(last_char) = buffer.chars().rev().find(|c| !c.is_whitespace()) {
+                    // Page-break-like blank line without ending punctuation → skip
+                    if !CJK_PUNCT_END.contains(&last_char) {
+                        continue;
+                    }
+                }
+            }
+
+            // End of a paragraph → flush buffer, don't emit an empty segment
+            if !buffer.is_empty() {
+                segments.push(std::mem::take(&mut buffer));
+            }
+            continue;
+        }
+
+        // 2) Page markers like "=== [Page 1/20] ==="
+        if is_page_marker(stripped) {
+            if !buffer.is_empty() {
+                segments.push(std::mem::take(&mut buffer));
+            }
+            segments.push(stripped.to_owned());
+            continue;
+        }
+
+        // 3) Title heading (前言, 序章, 第xxx章, etc.)
+        let is_title_heading = is_title_heading_line(stripped);
+        let line_text = if is_title_heading {
+            collapse_repeated_segments(stripped)
+        } else {
+            stripped.to_owned()
+        };
+
+        if is_title_heading {
+            if !buffer.is_empty() {
+                segments.push(std::mem::take(&mut buffer));
+            }
+            segments.push(line_text.clone());
+            continue;
+        }
+
+        // 4) First line of a new paragraph
+        if buffer.is_empty() {
+            buffer.push_str(&line_text);
+            continue;
+        }
+
+        let buffer_text = &buffer;
+
+        // 5) Buffer ends with CJK punctuation → finalize paragraph, start new one
+        if buffer_ends_with_cjk_punct(buffer_text) {
+            segments.push(buffer.clone());
+            buffer.clear();
+            buffer.push_str(&line_text);
+            continue;
+        }
+
+        // 6) Previous buffer looks like a heading-like short title
+        if is_heading_like(buffer_text) {
+            segments.push(buffer.clone());
+            buffer.clear();
+            buffer.push_str(&line_text);
+            continue;
+        }
+
+        // 7) Chapter-like endings: 章 / 节 / 部 / 卷 (with trailing brackets)
+        if is_chapter_ending_line(buffer_text) {
+            segments.push(buffer.clone());
+            buffer.clear();
+            buffer.push_str(&line_text);
+            continue;
+        }
+
+        // 8) Default: merge as soft line break
+        buffer.push_str(&line_text);
+    }
+
+    // Flush last buffer
+    if !buffer.is_empty() {
+        segments.push(buffer);
+    }
+
+    let result = if compact {
+        segments.join("\n")
+    } else {
+        segments.join("\n\n")
+    };
+
+    Ok(result)
+}
+
+// ---------------------------------------------------------------------------
+// Pure-Rust helpers for ultra-fast CJK reflow (no regex).
+// ---------------------------------------------------------------------------
+
+const CJK_PUNCT_END: &[char] = &[
+    '。', '！', '？', '；', '：', '…', '—', '”', '」', '’', '』', '）', '】', '》', '〗', '〔',
+    '〕', '〉', '］', '｝', '》',
+];
+
+// Closing brackets that can trail after a chapter marker (章/节/部/卷/節)
+const CHAPTER_TRAIL_BRACKETS: &[char] = &['】', '》', '〗', '〕', '〉', '」', '』', '）'];
+
+// Keywords treated as headings even without "第…章"
+const HEADING_KEYWORDS: &[&str] = &[
+    "前言", "序章", "终章", "尾声", "后记", "番外", "尾聲", "後記",
+];
+
+const CHAPTER_MARKERS: &[char] = &['章', '节', '部', '卷', '節', '回'];
+
+fn is_cjk_char(ch: char) -> bool {
+    let u = ch as u32;
+    // Basic CJK + extensions + compatibility (rough but cheap)
+    (0x3400..=0x9FFF).contains(&u)    // CJK Unified Ideographs
+        || (0xF900..=0xFAFF).contains(&u) // CJK Compatibility Ideographs
+        || (0x20000..=0x2EBEF).contains(&u) // Ext-B..Ext-F-ish
+}
+
+fn has_any_cjk(s: &str) -> bool {
+    s.chars().any(is_cjk_char)
+}
+
+fn buffer_ends_with_cjk_punct(s: &str) -> bool {
+    if let Some(ch) = s.chars().rev().find(|c| !c.is_whitespace()) {
+        CJK_PUNCT_END.contains(&ch)
+    } else {
+        false
+    }
+}
+
+fn is_page_marker(s: &str) -> bool {
+    s.starts_with("=== ") && s.ends_with("===")
+}
+
+/// Heading detection (前言/序章/终章/尾声/后记/番外, or 第…章/节/部/卷).
+/// Length constraint (<= 60 chars) enforced here instead of via regex.
+fn is_title_heading_line(s: &str) -> bool {
+    let s = s.trim();
+    if s.is_empty() {
+        return false;
+    }
+
+    // Length ≤ 60 chars
+    if s.chars().count() > 60 {
+        return false;
+    }
+
+    // Direct keyword match at start: 前言, 序章, 终章, 尾声, 后记, 番外, 尾聲, 後記
+    for &kw in HEADING_KEYWORDS {
+        if s.starts_with(kw) {
+            return true;
+        }
+    }
+
+    // Pattern: 第 ... 章/节/部/卷/節/回 (within first ~12 chars)
+    if s.starts_with('第') {
+        for (i, ch) in s.chars().enumerate() {
+            if CHAPTER_MARKERS.contains(&ch) {
+                return i <= 12; // chapter marker must be early
+            }
+            if i > 12 {
+                return false; // too far, bail early
+            }
+        }
+        return false;
+    }
+
+    false
+}
+
+/// Chapter-like ending: line ≤ 15 chars and last non-bracket char is 章/节/部/卷/節.
+fn is_chapter_ending_line(s: &str) -> bool {
+    let s = s.trim();
+    if s.is_empty() {
+        return false;
+    }
+
+    if s.chars().count() > 15 {
+        return false;
+    }
+
+    // Strip trailing brackets like 】》〗〕〉」』）
+    let mut trimmed = s;
+    loop {
+        if let Some(last) = trimmed.chars().last() {
+            if CHAPTER_TRAIL_BRACKETS.contains(&last) {
+                // Drop last char
+                trimmed = &trimmed[..trimmed.len() - last.len_utf8()];
+                continue;
+            }
+        }
+        break;
+    }
+
+    // Now check final character using unified chapter marker list
+    if let Some(last) = trimmed.chars().last() {
+        CHAPTER_MARKERS.contains(&last)
+    } else {
+        false
+    }
+}
+
+/// Heading-like: short, mostly CJK, no CJK end punctuation, not page marker.
+fn is_heading_like(s: &str) -> bool {
+    let s = s.trim();
+    if s.is_empty() {
+        return false;
+    }
+
+    if is_page_marker(s) {
+        return false;
+    }
+
+    if buffer_ends_with_cjk_punct(s) {
+        return false;
+    }
+
+    let len = s.chars().count();
+    if len <= 8 && has_any_cjk(s) {
+        return true;
+    }
+
+    false
+}
+
+/// Collapse repeated tokens like "第一章第一章第一章" → "第一章".
+/// Port of collapse_repeated_token() idea, but without regex.
+fn collapse_repeated_token(token: &str) -> String {
+    let chars: Vec<char> = token.chars().collect();
+    let length = chars.len();
+
+    if length < 4 || length > 200 {
+        return token.to_owned();
+    }
+
+    for unit_len in 2..=20 {
+        if unit_len > length / 2 {
+            break;
+        }
+        if length % unit_len != 0 {
+            continue;
+        }
+
+        let unit = &chars[0..unit_len];
+        let repeat_count = length / unit_len;
+        let mut all_match = true;
+
+        for i in 1..repeat_count {
+            let start = i * unit_len;
+            let end = start + unit_len;
+            if &chars[start..end] != unit {
+                all_match = false;
+                break;
+            }
+        }
+
+        if all_match {
+            return unit.iter().collect();
+        }
+    }
+
+    token.to_owned()
+}
+
+/// Collapse repeated segments in a line (split+collapse tokens, join with single spaces).
+fn collapse_repeated_segments(line: &str) -> String {
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        return line.to_owned();
+    }
+
+    // split_whitespace() already collapses multiple spaces/tabs
+    let parts: Vec<&str> = trimmed.split_whitespace().collect();
+    if parts.is_empty() {
+        return line.to_owned();
+    }
+
+    let collapsed_parts: Vec<String> = parts.into_iter().map(collapse_repeated_token).collect();
+
+    collapsed_parts.join(" ")
+}
+
 /// Python module definition for opencc_pyo3.
 /// Exposes the OpenCC class to Python.
 #[pymodule]
 fn opencc_pyo3(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<OpenCC>()?;
+    m.add_function(wrap_pyfunction!(extract_pdf_text, m)?)?;
+    m.add_function(wrap_pyfunction!(reflow_cjk_paragraphs, m)?)?;
 
     Ok(())
 }
@@ -180,5 +531,55 @@ mod tests {
         let expected: HashSet<&str> = CONFIG_SET.iter().copied().collect();
         let actual: HashSet<&str> = configs.into_iter().collect();
         assert_eq!(actual, expected);
+    }
+
+    /// Test PDF text extraction using a known CJK PDF.
+    /// Saves *reflowed* text to `tests/简体字_output.txt` for manual inspection.
+    #[test]
+    fn test_extract_pdf_text() {
+        use std::fs;
+        use std::io::Write;
+        use std::path::Path;
+
+        // PDF input (relative to crate root)
+        let input_path = "tests/简体字.pdf";
+
+        assert!(
+            Path::new(input_path).exists(),
+            "Test PDF not found at: {}. Make sure the file exists.",
+            input_path
+        );
+
+        // Extract text
+        let text = extract_pdf_text(input_path).expect("Failed to extract text from test PDF");
+
+        // Sanity check: extracted text should not be empty
+        assert!(
+            !text.trim().is_empty(),
+            "PDF extraction returned empty text"
+        );
+
+        // Ensure some CJK characters appear (adjust if your sample PDF differs)
+        assert!(
+            text.contains("字") || text.contains("简") || text.contains("体"),
+            "Extracted text does not contain expected CJK characters.\nGot: {}",
+            text
+        );
+
+        // 🔹 Reflow CJK paragraphs before saving
+        // add_pdf_page_header = false, compact = false (blank line between paragraphs)
+        let reflowed =
+            reflow_cjk_paragraphs(&text, false, false).expect("Failed to reflow CJK paragraphs");
+
+        // Save output to file for manual review
+        let output_path = "tests/简体字_output.txt";
+        let mut file = fs::File::create(output_path).expect("Failed to create output .txt file");
+
+        file.write_all(reflowed.as_bytes())
+            .expect("Failed to write extracted text to output file");
+
+        // Optional: check output file exists and is non-empty
+        let out_meta = fs::metadata(output_path).expect("Failed to stat output file");
+        assert!(out_meta.len() > 0, "Output text file is empty");
     }
 }

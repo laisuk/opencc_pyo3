@@ -13,8 +13,8 @@ class OpenCC:
             "t2tw", "tw2t", "t2twp", "tw2tp", "t2hk", "hk2t", "t2jp", "jp2t".
 
     Attributes:
-        config (str): Current OpenCC config string.
-        last_error (str): Last error message, if any.
+        self.config (str): Current OpenCC config string.
+        self.last_error (str): Last error message, if any.
     """
 
     def __init__(self, config: str) -> None:
@@ -79,3 +79,40 @@ class OpenCC:
         :return str: Error message, or an empty string if no error occurred.
         """
         ...
+
+
+def extract_pdf_text(path: str) -> str:
+    """
+    Extract plain text from a PDF file.
+
+    This uses the Rust backend (pdf-extract or other implementation) to read the
+    PDF at the given path and return its textual content as a single string.
+
+    Args:
+        path: Path to the PDF file on disk.
+
+    Returns:
+        Concatenated text of all pages.
+    """
+    ...
+
+
+def reflow_cjk_paragraphs(text: str, add_pdf_page_header: bool, compact: bool) -> str:
+    """
+    Reflow CJK paragraphs in PDF-extracted text.
+
+    This function merges artificial line breaks while trying to preserve logical
+    paragraphs, titles, and chapter headings. It is especially useful for text
+    extracted from PDFs before passing it to OpenCC for conversion.
+
+    Args:
+        text: Raw text (typically from ``extract_pdf_text``).
+        add_pdf_page_header: If False, page-break-like blank lines that are not
+            preceded by CJK punctuation may be skipped; if True, such gaps are kept.
+        compact: If True, paragraphs are separated by a single newline;
+            if False, paragraphs are separated by a blank line.
+
+    Returns:
+        Reflowed text with normalized CJK paragraphs.
+    """
+    ...
