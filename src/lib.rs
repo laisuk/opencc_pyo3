@@ -314,7 +314,7 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
 
 const CJK_PUNCT_END: &[char] = &[
     '。', '！', '？', '；', '：', '…', '—', '”', '」', '’', '』', '）', '】', '》', '〗', '〔',
-    '〕', '〉', '］', '｝', '》',
+    '〕', '〉', '］', '｝', '》', '.', '?', '!',
 ];
 
 // Closing brackets that can trail after a chapter marker (章/节/部/卷/節)
@@ -435,7 +435,7 @@ fn is_heading_like(s: &str) -> bool {
     }
 
     let len = s.chars().count();
-    if len <= 8 && has_any_cjk(s) {
+    if len <= 8 && has_any_cjk(s) && !s.ends_with('，') && !s.ends_with(',') {
         return true;
     }
 
