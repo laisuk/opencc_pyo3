@@ -210,13 +210,19 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
 
     let mut segments: Vec<String> = Vec::new();
     let mut buffer = String::new();
+    let mut dialog_state = DialogState::new();
 
     for raw_line in lines {
-        // Fully trim both ends (indentation from PDF is unreliable)
-        let stripped = raw_line.trim();
+        // 1) normalize trailing whitespace, then strip only HALFwidth indent;
+        //    keep full-width indent (U+3000) for CJK paragraph styling.
+        let trimmed_end = raw_line.trim_end();
+        let stripped = strip_halfwidth_indent_keep_fullwidth(trimmed_end);
 
-        // 1) Empty line logic (page header / paragraph separator)
-        if stripped.is_empty() {
+        // For heading detection (前言 / 第X章...) we want a fully left-trimmed probe.
+        let heading_probe = stripped.trim_start_matches(|ch| ch == ' ' || ch == '\u{3000}');
+
+        // Treat lines that are effectively blank as paragraph separators
+        if heading_probe.trim().is_empty() {
             if !add_pdf_page_header && !buffer.is_empty() {
                 if let Some(last_char) = buffer.chars().rev().find(|c| !c.is_whitespace()) {
                     // Page-break-like blank line without ending punctuation → skip
@@ -229,21 +235,23 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
             // End of a paragraph → flush buffer, don't emit an empty segment
             if !buffer.is_empty() {
                 segments.push(std::mem::take(&mut buffer));
+                dialog_state.reset();
             }
             continue;
         }
 
         // 2) Page markers like "=== [Page 1/20] ==="
-        if is_page_marker(stripped) {
+        if is_page_marker(heading_probe) {
             if !buffer.is_empty() {
                 segments.push(std::mem::take(&mut buffer));
+                dialog_state.reset();
             }
             segments.push(stripped.to_owned());
             continue;
         }
 
         // 3) Title heading (前言, 序章, 第xxx章, etc.)
-        let is_title_heading = is_title_heading_line(stripped);
+        let is_title_heading = is_title_heading_line(heading_probe);
         let line_text = if is_title_heading {
             collapse_repeated_segments(stripped)
         } else {
@@ -253,6 +261,7 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
         if is_title_heading {
             if !buffer.is_empty() {
                 segments.push(std::mem::take(&mut buffer));
+                dialog_state.reset();
             }
             segments.push(line_text.clone());
             continue;
@@ -261,16 +270,38 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
         // 4) First line of a new paragraph
         if buffer.is_empty() {
             buffer.push_str(&line_text);
+            dialog_state.reset();
+            dialog_state.update(&line_text);
             continue;
         }
 
         let buffer_text = &buffer;
 
+        // --- NEW RULE: colon + dialog continuation ---
+        // e.g. "她寫了一行字：" + "「如果連自己都不相信，那就沒救了。」"
+        if let Some(last_char) = buffer_text.chars().rev().find(|c| !c.is_whitespace()) {
+            if last_char == '：' || last_char == ':' {
+                if let Some(first_ch) = line_text.chars().next() {
+                    if DIALOG_OPENERS.contains(&first_ch) {
+                        buffer.push_str(&line_text);
+                        dialog_state.update(&line_text);
+                        continue;
+                    }
+                }
+            }
+        }
+
+        // --- NEW: dialog state for current paragraph ---
+        let buffer_has_unclosed_dialog = dialog_state.is_unclosed();
+
         // 5) Buffer ends with CJK punctuation → finalize paragraph, start new one
-        if buffer_ends_with_cjk_punct(buffer_text) {
+        //    EXCEPT when still inside an unclosed dialog bracket.
+        if buffer_ends_with_cjk_punct(buffer_text) && !buffer_has_unclosed_dialog {
             segments.push(buffer.clone());
             buffer.clear();
             buffer.push_str(&line_text);
+            dialog_state.reset();
+            dialog_state.update(&line_text);
             continue;
         }
 
@@ -279,6 +310,8 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
             segments.push(buffer.clone());
             buffer.clear();
             buffer.push_str(&line_text);
+            dialog_state.reset();
+            dialog_state.update(&line_text);
             continue;
         }
 
@@ -287,11 +320,14 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
             segments.push(buffer.clone());
             buffer.clear();
             buffer.push_str(&line_text);
+            dialog_state.reset();
+            dialog_state.update(&line_text);
             continue;
         }
 
         // 8) Default: merge as soft line break
         buffer.push_str(&line_text);
+        dialog_state.update(&line_text);
     }
 
     // Flush last buffer
@@ -497,6 +533,88 @@ fn collapse_repeated_segments(line: &str) -> String {
     let collapsed_parts: Vec<String> = parts.into_iter().map(collapse_repeated_token).collect();
 
     collapsed_parts.join(" ")
+}
+
+// Dialog openers (Simplified / Traditional / JP-style)
+const DIALOG_OPENERS: &[char] = &['“', '‘', '「', '『'];
+
+/// Track unmatched dialog brackets for the current paragraph buffer.
+/// Incremental update → no need to rescan the whole buffer each time.
+struct DialogState {
+    double_quote: i32, // “ ”
+    single_quote: i32, // ‘ ’
+    corner: i32,       // 「 」
+    corner_bold: i32,  // 『 』
+}
+
+impl DialogState {
+    fn new() -> Self {
+        Self {
+            double_quote: 0,
+            single_quote: 0,
+            corner: 0,
+            corner_bold: 0,
+        }
+    }
+
+    fn reset(&mut self) {
+        self.double_quote = 0;
+        self.single_quote = 0;
+        self.corner = 0;
+        self.corner_bold = 0;
+    }
+
+    fn update(&mut self, s: &str) {
+        for ch in s.chars() {
+            match ch {
+                '“' => self.double_quote += 1,
+                '”' => {
+                    if self.double_quote > 0 {
+                        self.double_quote -= 1;
+                    }
+                }
+                '‘' => self.single_quote += 1,
+                '’' => {
+                    if self.single_quote > 0 {
+                        self.single_quote -= 1;
+                    }
+                }
+                '「' => self.corner += 1,
+                '」' => {
+                    if self.corner > 0 {
+                        self.corner -= 1;
+                    }
+                }
+                '『' => self.corner_bold += 1,
+                '』' => {
+                    if self.corner_bold > 0 {
+                        self.corner_bold -= 1;
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn is_unclosed(&self) -> bool {
+        self.double_quote > 0 || self.single_quote > 0 || self.corner > 0 || self.corner_bold > 0
+    }
+}
+
+/// Strip only *halfwidth* leading spaces, keep fullwidth `\u3000`
+/// (so CJK paragraph indentation survives, markdown stays clean).
+fn strip_halfwidth_indent_keep_fullwidth(s: &str) -> &str {
+    let mut start_byte = 0;
+    for (idx, ch) in s.char_indices() {
+        if ch == ' ' {
+            // skip halfwidth spaces
+            start_byte = idx + ch.len_utf8();
+            continue;
+        }
+        // stop on first non-halfwidth-space (including fullwidth indent)
+        break;
+    }
+    &s[start_byte..]
 }
 
 /// Python module definition for opencc_pyo3.
