@@ -304,11 +304,16 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
             }
         }
 
-        // NOTE: we no longer block splits just because dialog is "unclosed".
-        // Dialog paragraphs can still end normally on CJK punctuation.
-
-        // 5) Buffer ends with CJK punctuation → finalize paragraph, start new one
-        if buffer_ends_with_cjk_punct(buffer_text) {
+        // 5) Buffer ends with CJK punctuation → finalize paragraph, start new one,
+        //    but only if we are NOT inside an unclosed dialog.
+        //
+        //    This keeps multi-line dialog like:
+        //    “你好吗？
+        //    吃饱饭了没有？”
+        //
+        //    as one paragraph, while still allowing paragraphs to end once all
+        //    quotes are balanced.
+        if buffer_ends_with_cjk_punct(buffer_text) && !dialog_state.is_unclosed() {
             segments.push(buffer.clone());
             buffer.clear();
             buffer.push_str(&line_text);
@@ -647,7 +652,6 @@ impl DialogState {
         }
     }
 
-    #[allow(dead_code)]
     fn is_unclosed(&self) -> bool {
         self.double_quote > 0 || self.single_quote > 0 || self.corner > 0 || self.corner_bold > 0
     }
