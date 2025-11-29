@@ -213,7 +213,7 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
     let mut dialog_state = DialogState::new();
 
     for raw_line in lines {
-        // 1) normalize trailing whitespace, then strip only HALFwidth indent;
+        // 1) normalize trailing whitespace, then strip only HALF-width indent;
         //    keep full-width indent (U+3000) for CJK paragraph styling.
         let trimmed_end = raw_line.trim_end();
         let stripped = strip_halfwidth_indent_keep_fullwidth(trimmed_end);
@@ -267,6 +267,9 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
             continue;
         }
 
+        // --- NEW: dialog-start detection (like C#/Python) ---
+        let current_is_dialog_start = is_dialog_start(&line_text);
+
         // 4) First line of a new paragraph
         if buffer.is_empty() {
             buffer.push_str(&line_text);
@@ -277,7 +280,17 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
 
         let buffer_text = &buffer;
 
-        // --- NEW RULE: colon + dialog continuation ---
+        // If this line *starts* a dialog, always flush previous paragraph.
+        if current_is_dialog_start {
+            segments.push(buffer.clone());
+            buffer.clear();
+            buffer.push_str(&line_text);
+            dialog_state.reset();
+            dialog_state.update(&line_text);
+            continue;
+        }
+
+        // --- colon + dialog continuation ---
         // e.g. "她寫了一行字：" + "「如果連自己都不相信，那就沒救了。」"
         if let Some(last_char) = buffer_text.chars().rev().find(|c| !c.is_whitespace()) {
             if last_char == '：' || last_char == ':' {
@@ -291,12 +304,11 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
             }
         }
 
-        // --- NEW: dialog state for current paragraph ---
-        let buffer_has_unclosed_dialog = dialog_state.is_unclosed();
+        // NOTE: we no longer block splits just because dialog is "unclosed".
+        // Dialog paragraphs can still end normally on CJK punctuation.
 
         // 5) Buffer ends with CJK punctuation → finalize paragraph, start new one
-        //    EXCEPT when still inside an unclosed dialog bracket.
-        if buffer_ends_with_cjk_punct(buffer_text) && !buffer_has_unclosed_dialog {
+        if buffer_ends_with_cjk_punct(buffer_text) {
             segments.push(buffer.clone());
             buffer.clear();
             buffer.push_str(&line_text);
@@ -343,7 +355,6 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
 
     Ok(result)
 }
-
 // ---------------------------------------------------------------------------
 // Pure-Rust helpers for ultra-fast CJK reflow (no regex).
 // ---------------------------------------------------------------------------
@@ -363,6 +374,7 @@ const HEADING_KEYWORDS: &[&str] = &[
 
 const CHAPTER_MARKERS: &[char] = &['章', '节', '部', '卷', '節', '回'];
 
+#[allow(dead_code)]
 fn is_cjk_char(ch: char) -> bool {
     let u = ch as u32;
     // Basic CJK + extensions + compatibility (rough but cheap)
@@ -371,6 +383,7 @@ fn is_cjk_char(ch: char) -> bool {
         || (0x20000..=0x2EBEF).contains(&u) // Ext-B..Ext-F-ish
 }
 
+#[allow(dead_code)]
 fn has_any_cjk(s: &str) -> bool {
     s.chars().any(is_cjk_char)
 }
@@ -455,6 +468,16 @@ fn is_chapter_ending_line(s: &str) -> bool {
     }
 }
 
+fn is_dialog_start(s: &str) -> bool {
+    // ignore leading half/full-width spaces
+    let trimmed = s.trim_start_matches(|ch| ch == ' ' || ch == '\u{3000}');
+    if let Some(ch) = trimmed.chars().next() {
+        DIALOG_OPENERS.contains(&ch)
+    } else {
+        false
+    }
+}
+
 /// Heading-like: short, mostly CJK, no CJK end punctuation, not page marker.
 fn is_heading_like(s: &str) -> bool {
     let s = s.trim();
@@ -462,16 +485,40 @@ fn is_heading_like(s: &str) -> bool {
         return false;
     }
 
+    // page markers like "=== [Page 1/20] ===" are NOT headings
     if is_page_marker(s) {
         return false;
     }
 
-    if buffer_ends_with_cjk_punct(s) {
+    // If contains CJK end punctuation anywhere, not heading/emphasis
+    if s.chars().any(|ch| CJK_PUNCT_END.contains(&ch)) {
         return false;
     }
 
+    // If line has an opening bracket but no closing bracket,
+    // it's most likely a broken parenthetical, NOT a standalone heading.
+    let has_open = s.chars().any(|ch| OPEN_BRACKETS.contains(&ch));
+    let has_close = s.chars().any(|ch| CLOSE_BRACKETS.contains(&ch));
+    if has_open && !has_close {
+        return false;
+    }
+
+    // Count logical characters (not bytes)
     let len = s.chars().count();
-    if len <= 8 && has_any_cjk(s) && !s.ends_with('，') && !s.ends_with(',') {
+
+    // Rule A: short CJK or mixed lines (≤15)
+    if len <= 15
+        && s.chars().any(|ch| (ch as u32) > 0x7F)  // contains at least one CJK
+        && !matches!(s.chars().last(), Some('，' | ','))
+    {
+        return true;
+    }
+
+    // Rule B: short pure-Latin emphasis (≤15), must contain at least one letter
+    if len <= 15
+        && s.chars().all(|ch| (ch as u32) <= 0x7F) // pure ASCII
+        && s.chars().any(|ch| ch.is_ascii_alphabetic())
+    {
         return true;
     }
 
@@ -538,6 +585,10 @@ fn collapse_repeated_segments(line: &str) -> String {
 // Dialog openers (Simplified / Traditional / JP-style)
 const DIALOG_OPENERS: &[char] = &['“', '‘', '「', '『'];
 
+// Bracket sets for unmatched-bracket suppression in headings
+const OPEN_BRACKETS: &[char] = &['（', '(', '[', '【', '《'];
+const CLOSE_BRACKETS: &[char] = &['）', ')', ']', '】', '》'];
+
 /// Track unmatched dialog brackets for the current paragraph buffer.
 /// Incremental update → no need to rescan the whole buffer each time.
 struct DialogState {
@@ -596,6 +647,7 @@ impl DialogState {
         }
     }
 
+    #[allow(dead_code)]
     fn is_unclosed(&self) -> bool {
         self.double_quote > 0 || self.single_quote > 0 || self.corner > 0 || self.corner_bold > 0
     }
