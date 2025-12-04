@@ -213,26 +213,21 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
     let mut dialog_state = DialogState::new();
 
     for raw_line in lines {
-        // 1) normalize trailing whitespace, then strip only HALF-width indent;
-        //    keep full-width indent (U+3000) for CJK paragraph styling.
         let trimmed_end = raw_line.trim_end();
         let stripped = strip_halfwidth_indent_keep_fullwidth(trimmed_end);
 
-        // For heading detection (前言 / 第X章...) we want a fully left-trimmed probe.
         let heading_probe = stripped.trim_start_matches(|ch| ch == ' ' || ch == '\u{3000}');
 
-        // Treat lines that are effectively blank as paragraph separators
+        // --- Empty line ------------------------------------
         if heading_probe.trim().is_empty() {
             if !add_pdf_page_header && !buffer.is_empty() {
                 if let Some(last_char) = buffer.chars().rev().find(|c| !c.is_whitespace()) {
-                    // Page-break-like blank line without ending punctuation → skip
                     if !CJK_PUNCT_END.contains(&last_char) {
                         continue;
                     }
                 }
             }
 
-            // End of a paragraph → flush buffer, don't emit an empty segment
             if !buffer.is_empty() {
                 segments.push(std::mem::take(&mut buffer));
                 dialog_state.reset();
@@ -240,7 +235,7 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
             continue;
         }
 
-        // 2) Page markers like "=== [Page 1/20] ==="
+        // --- Page marker ------------------------------------
         if is_page_marker(heading_probe) {
             if !buffer.is_empty() {
                 segments.push(std::mem::take(&mut buffer));
@@ -250,7 +245,7 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
             continue;
         }
 
-        // 3) Title heading (前言, 序章, 第xxx章, etc.)
+        // --- Title heading ----------------------------------
         let is_title_heading = is_title_heading_line(heading_probe);
         let line_text = if is_title_heading {
             collapse_repeated_segments(stripped)
@@ -258,6 +253,10 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
             stripped.to_owned()
         };
 
+        let is_short_heading = is_heading_like(&line_text);
+
+        // Now also apply unified is_heading_like
+        // 3) Force TitleHeading
         if is_title_heading {
             if !buffer.is_empty() {
                 segments.push(std::mem::take(&mut buffer));
@@ -267,10 +266,35 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
             continue;
         }
 
-        // --- NEW: dialog-start detection (like C#/Python) ---
+        // 3b) Soft heading-like
+        if is_short_heading {
+            if !buffer.is_empty() {
+                let bt = buffer.trim_end();
+                if let Some(last) = bt.chars().last() {
+                    if last == '，' || last == ',' {
+                        // 逗號結尾 → 視作續句
+                    } else {
+                        segments.push(std::mem::take(&mut buffer));
+                        dialog_state.reset();
+                        segments.push(line_text.clone());
+                        continue;
+                    }
+                } else {
+                    // buffer 只有空白
+                    segments.push(line_text.clone());
+                    continue;
+                }
+            } else {
+                // 無前文
+                segments.push(line_text.clone());
+                continue;
+            }
+        }
+
+        // --- Dialog start detection -------------------------
         let current_is_dialog_start = is_dialog_start(&line_text);
 
-        // 4) First line of a new paragraph
+        // first line of new paragraph
         if buffer.is_empty() {
             buffer.push_str(&line_text);
             dialog_state.reset();
@@ -280,7 +304,7 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
 
         let buffer_text = &buffer;
 
-        // If this line *starts* a dialog, always flush previous paragraph.
+        // --- dialog starter → flush paragraph ---------------
         if current_is_dialog_start {
             segments.push(buffer.clone());
             buffer.clear();
@@ -290,11 +314,11 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
             continue;
         }
 
-        // --- colon + dialog continuation ---
-        // e.g. "她寫了一行字：" + "「如果連自己都不相信，那就沒救了。」"
+        // --- colon + dialog continuation ---------------------
         if let Some(last_char) = buffer_text.chars().rev().find(|c| !c.is_whitespace()) {
             if last_char == '：' || last_char == ':' {
-                if let Some(first_ch) = line_text.chars().next() {
+                let after_indent = line_text.trim_start_matches(|ch| ch == ' ' || ch == '\u{3000}');
+                if let Some(first_ch) = after_indent.chars().next() {
                     if DIALOG_OPENERS.contains(&first_ch) {
                         buffer.push_str(&line_text);
                         dialog_state.update(&line_text);
@@ -304,15 +328,7 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
             }
         }
 
-        // 5) Buffer ends with CJK punctuation → finalize paragraph, start new one,
-        //    but only if we are NOT inside an unclosed dialog.
-        //
-        //    This keeps multi-line dialog like:
-        //    “你好吗？
-        //    吃饱饭了没有？”
-        //
-        //    as one paragraph, while still allowing paragraphs to end once all
-        //    quotes are balanced.
+        // --- CJK punctuation → paragraph end -----------------
         if buffer_ends_with_cjk_punct(buffer_text) && !dialog_state.is_unclosed() {
             segments.push(buffer.clone());
             buffer.clear();
@@ -322,17 +338,7 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
             continue;
         }
 
-        // 6) Previous buffer looks like a heading-like short title
-        if is_heading_like(buffer_text) {
-            segments.push(buffer.clone());
-            buffer.clear();
-            buffer.push_str(&line_text);
-            dialog_state.reset();
-            dialog_state.update(&line_text);
-            continue;
-        }
-
-        // 7) Chapter-like endings: 章 / 节 / 部 / 卷 (with trailing brackets)
+        // --- Chapter-like short endings ----------------------
         if is_chapter_ending_line(buffer_text) {
             segments.push(buffer.clone());
             buffer.clear();
@@ -342,7 +348,7 @@ fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -
             continue;
         }
 
-        // 8) Default: merge as soft line break
+        // --- Default soft join -------------------------------
         buffer.push_str(&line_text);
         dialog_state.update(&line_text);
     }
@@ -490,41 +496,66 @@ fn is_heading_like(s: &str) -> bool {
         return false;
     }
 
-    // page markers like "=== [Page 1/20] ===" are NOT headings
-    if is_page_marker(s) {
+    // Page marker
+    if s.starts_with("=== ") && s.ends_with("===") {
         return false;
     }
 
-    // If contains CJK end punctuation anywhere, not heading/emphasis
-    if s.chars().any(|ch| CJK_PUNCT_END.contains(&ch)) {
-        return false;
+    // Reject if ends with CJK punctuation
+    if let Some(last) = s.chars().last() {
+        if CJK_PUNCT_END.contains(&last) {
+            return false;
+        }
     }
 
-    // If line has an opening bracket but no closing bracket,
-    // it's most likely a broken parenthetical, NOT a standalone heading.
+    // Reject unclosed brackets
     let has_open = s.chars().any(|ch| OPEN_BRACKETS.contains(&ch));
     let has_close = s.chars().any(|ch| CLOSE_BRACKETS.contains(&ch));
     if has_open && !has_close {
         return false;
     }
 
-    // Count logical characters (not bytes)
     let len = s.chars().count();
+    if len <= 15 {
+        let mut has_non_ascii = false;
+        let mut all_ascii = true;
+        let mut has_letter = false;
+        let mut all_ascii_digits = true;
 
-    // Rule A: short CJK or mixed lines (≤15)
-    if len <= 15
-        && s.chars().any(|ch| (ch as u32) > 0x7F)  // contains at least one CJK
-        && !matches!(s.chars().last(), Some('，' | ','))
-    {
-        return true;
-    }
+        for ch in s.chars() {
+            if ch as u32 > 0x7F {
+                has_non_ascii = true;
+                all_ascii = false;
+                all_ascii_digits = false;
+                continue;
+            }
 
-    // Rule B: short pure-Latin emphasis (≤15), must contain at least one letter
-    if len <= 15
-        && s.chars().all(|ch| (ch as u32) <= 0x7F) // pure ASCII
-        && s.chars().any(|ch| ch.is_ascii_alphabetic())
-    {
-        return true;
+            if !ch.is_ascii_digit() {
+                all_ascii_digits = false;
+            }
+
+            if ch.is_ascii_alphabetic() {
+                has_letter = true;
+            }
+        }
+
+        // Rule C: pure digits
+        if all_ascii_digits {
+            return true;
+        }
+
+        // Check last char again (safe)
+        let last = s.chars().last().unwrap();
+
+        // Rule A: short CJK/mixed + not ending with comma
+        if has_non_ascii && last != '，' && last != ',' {
+            return true;
+        }
+
+        // Rule B: short ASCII with at least one letter
+        if all_ascii && has_letter {
+            return true;
+        }
     }
 
     false
