@@ -4,8 +4,19 @@ import argparse
 import sys
 import io
 import os
-from opencc_pyo3 import OpenCC
+import time
+from pathlib import Path
+from typing import List
+
+from opencc_pyo3 import OpenCC, extract_pdf_text, reflow_cjk_paragraphs
 from .office_helper import OFFICE_FORMATS, convert_office_doc
+
+try:
+    # If there's PDFium backend，can import； otherwise fallback
+    from . import extract_pdf_pages_with_callback_pdfium
+except (RuntimeError, Exception):  # ImportError 或 RuntimeError 由 lazy loader 拋出都算
+    extract_pdf_pages_with_callback_pdfium = None  # type: ignore[assignment]
+
 
 def subcommand_convert(args):
     if args.config is None:
@@ -20,23 +31,31 @@ def subcommand_convert(args):
     else:
         # Prompt only if reading from stdin, and it's interactive (i.e., not piped or redirected)
         if args.input is None and sys.stdin.isatty():
-            print("Input text to convert, <Ctrl+Z> (Windows) or <Ctrl+D> (Unix) then Enter to submit:", file=sys.stderr)
+            print(
+                "Input text to convert, <Ctrl+Z> (Windows) or <Ctrl+D> (Unix) then Enter to submit:",
+                file=sys.stderr,
+            )
 
         input_str = sys.stdin.read()
 
     output_str = opencc.convert(input_str, args.punct)
 
     if args.output:
-        with io.open(args.output, 'w', encoding=args.out_enc) as f:
+        with io.open(args.output, "w", encoding=args.out_enc) as f:
             f.write(output_str)
     else:
         sys.stdout.write(output_str)
+
     in_from = args.input if args.input else "<stdin>"
     out_to = args.output if args.output else "stdout"
     if sys.stderr.isatty():
-        print(f"Conversion completed ({args.config}): {in_from} -> {out_to}", file=sys.stderr)
+        print(
+            f"Conversion completed ({args.config}): {in_from} -> {out_to}",
+            file=sys.stderr,
+        )
 
     return 0
+
 
 def subcommand_office(args):
     input_file = args.input
@@ -50,6 +69,7 @@ def subcommand_office(args):
     if args.config is None:
         print("ℹ️  Config not specified. Using default: s2t", file=sys.stderr)
         args.config = "s2t"
+        config = args.config
 
     # Check for missing input/output files
     if not input_file and not output_file:
@@ -64,8 +84,11 @@ def subcommand_office(args):
         input_name = os.path.splitext(os.path.basename(input_file))[0]
         input_ext = os.path.splitext(os.path.basename(input_file))[1]
         input_dir = os.path.dirname(input_file) or os.getcwd()
-        ext = f".{office_format}" if auto_ext and office_format and office_format in OFFICE_FORMATS else \
-            input_ext
+        ext = (
+            f".{office_format}"
+            if auto_ext and office_format and office_format in OFFICE_FORMATS
+            else input_ext
+        )
         output_file = os.path.join(input_dir, f"{input_name}_converted{ext}")
         print(f"ℹ️  Output file not specified. Using: {output_file}", file=sys.stderr)
 
@@ -74,12 +97,20 @@ def subcommand_office(args):
         file_ext = os.path.splitext(input_file)[1].lower()
         if file_ext[1:] not in OFFICE_FORMATS:
             print(f"❌  Invalid Office file extension: {file_ext}", file=sys.stderr)
-            print("   Valid extensions: .docx | .xlsx | .pptx | .odt | .ods | .odp | .epub", file=sys.stderr)
+            print(
+                "   Valid extensions: .docx | .xlsx | .pptx | .odt | .ods | .odp | .epub",
+                file=sys.stderr,
+            )
             return 1
         office_format = file_ext[1:]
 
     # Auto-append extension to output file if needed
-    if auto_ext and output_file and not os.path.splitext(output_file)[1] and office_format in OFFICE_FORMATS:
+    if (
+            auto_ext
+            and output_file
+            and not os.path.splitext(output_file)[1]
+            and office_format in OFFICE_FORMATS
+    ):
         output_file += f".{office_format}"
         print(f"ℹ️  Auto-extension applied: {output_file}", file=sys.stderr)
 
@@ -94,60 +125,351 @@ def subcommand_office(args):
             keep_font,
         )
         if success:
-            print(f"{message}\n📁  Output saved to: {os.path.abspath(output_file)}", file=sys.stderr)
+            print(
+                f"{message}\n📁  Output saved to: {os.path.abspath(output_file)}",
+                file=sys.stderr,
+            )
             return 0
         else:
-            print(f"❌  Office document conversion failed: {message}", file=sys.stderr)
+            print(
+                f"❌  Office document conversion failed: {message}", file=sys.stderr
+            )
             return 1
     except Exception as ex:
-        print(f"❌  Error during Office document conversion: {str(ex)}", file=sys.stderr)
+        print(
+            f"❌  Error during Office document conversion: {str(ex)}", file=sys.stderr
+        )
         return 1
+
+
+def subcommand_pdf(args) -> int:
+    t0_total = None
+    input_path = args.input
+    input_path_str = str(input_path)
+
+    # Determine output filename
+    if args.output:
+        output_path = args.output
+    else:
+        stem = str(Path(input_path).with_suffix(""))
+        output_path = f"{stem}_converted.txt"
+
+    engine = getattr(args, "engine", "auto")
+
+    if args.timing:
+        t0_total = time.perf_counter()
+
+    # text: str = ""
+
+    # ---------------------------------------------------------
+    # AUTO ENGINE SELECTION
+    # ---------------------------------------------------------
+    if engine == "auto":
+        pdfium_available = extract_pdf_pages_with_callback_pdfium is not None
+
+        if pdfium_available:
+            try:
+                pages: List[str] = []
+
+                def _on_page(page: int, total: int, chunk: str) -> None:
+                    msg = f"[{page}/{total}] Extracted {len(chunk)} chars"
+                    print(msg.ljust(80), end="\r", flush=True)
+                    pages.append(chunk)
+
+                extract_pdf_pages_with_callback_pdfium(input_path_str, _on_page)
+                print()
+                text = "".join(pages)
+
+                engine_used = "pdfium"
+
+            except Exception as exc:
+                print(
+                    f"⚠️  PDFium extraction failed ({exc}). "
+                    "Falling back to pure-Rust extractor.",
+                    file=sys.stderr,
+                )
+                text = extract_pdf_text(input_path_str)
+                engine_used = "rust"
+        else:
+            print("⚠️  PDFium backend is not available; using pure-Rust extractor.")
+            text = extract_pdf_text(input_path_str)
+            engine_used = "rust"
+
+    # ---------------------------------------------------------
+    # FORCE PDFIUM ENGINE
+    # ---------------------------------------------------------
+    elif engine == "pdfium":
+        if extract_pdf_pages_with_callback_pdfium is None:
+            print(
+                "⚠️  PDFium backend not available. Falling back to Rust.",
+                file=sys.stderr,
+            )
+            text = extract_pdf_text(input_path_str)
+            engine_used = "rust"
+        else:
+            try:
+                pages: List[str] = []
+
+                def _on_page(page: int, total: int, chunk: str) -> None:
+                    msg = f"[{page}/{total}] Extracted {len(chunk)} chars"
+                    print(msg.ljust(80), end="\r", flush=True)
+                    pages.append(chunk)
+
+                extract_pdf_pages_with_callback_pdfium(input_path_str, _on_page)
+                print()
+                text = "".join(pages)
+                engine_used = "pdfium"
+
+            except Exception as exc:
+                print(
+                    f"⚠️  PDFium extraction failed ({exc}). "
+                    "Falling back to Rust extractor.",
+                    file=sys.stderr,
+                )
+                text = extract_pdf_text(input_path_str)
+                engine_used = "rust"
+
+    # ---------------------------------------------------------
+    # FORCE RUST ENGINE
+    # ---------------------------------------------------------
+    else:  # engine == "rust"
+        text = extract_pdf_text(input_path_str)
+        engine_used = "rust"
+
+    # Timing
+    if args.timing:
+        t1_extract = time.perf_counter()
+        print(f"[timing] PDF extract: {(t1_extract - t0_total) * 1000:.1f} ms")
+
+    # ---------------------------------------------------------
+    # Reflow (optional)
+    # ---------------------------------------------------------
+    if args.reflow:
+        text = reflow_cjk_paragraphs(
+            text,
+            add_pdf_page_header=args.header,
+            compact=args.compact,
+        )
+
+    # ---------------------------------------------------------
+    # OpenCC Conversion (optional)
+    # ---------------------------------------------------------
+    if args.config:
+        opencc = OpenCC(args.config)
+        text = opencc.convert(text, args.punct)
+
+    # ---------------------------------------------------------
+    # Write Output
+    # ---------------------------------------------------------
+    with open(output_path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(text)
+
+    print(f"📄 Input : {input_path}")
+    print(f"📁 Output: {output_path}")
+    print(f"⚙️ Engine used: {engine_used}")
+
+    return 0
+
 
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="opencc_pyo3 an Rust-PyO3-based OpenCC CLI"
+        description="opencc_pyo3 – Rust/PyO3-based OpenCC CLI",
     )
 
-    subparsers = parser.add_subparsers(dest='command', required=True)
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # Convert subcommand
-    parser_convert = subparsers.add_parser('convert', help='Convert Chinese text using OpenCC')
-    parser_convert.add_argument('-i', '--input', metavar='<file>',
-                        help='Read original text from <file>.')
-    parser_convert.add_argument('-o', '--output', metavar='<file>',
-                        help='Write converted text to <file>.')
-    parser_convert.add_argument('-c', '--config', metavar='<conversion>',
-                        help='Conversion configuration: s2t|s2tw|s2twp|s2hk|t2s|tw2s|tw2sp|hk2s|jp2t|t2jp')
-    parser_convert.add_argument('-p', '--punct', action='store_true', default=False,
-                        help='Enable punctuation conversion. (Default: False)')
-    parser_convert.add_argument('--in-enc', metavar='<encoding>', default='UTF-8',
-                        help='Encoding for input. (Default: UTF-8)')
-    parser_convert.add_argument('--out-enc', metavar='<encoding>', default='UTF-8',
-                        help='Encoding for output. (Default: UTF-8)')
+    # -----------------
+    # convert subcommand
+    # -----------------
+    parser_convert = subparsers.add_parser(
+        "convert", help="Convert Chinese text using OpenCC"
+    )
+    parser_convert.add_argument(
+        "-i",
+        "--input",
+        metavar="<file>",
+        help="Read original text from <file>.",
+    )
+    parser_convert.add_argument(
+        "-o",
+        "--output",
+        metavar="<file>",
+        help="Write converted text to <file>.",
+    )
+    parser_convert.add_argument(
+        "-c",
+        "--config",
+        metavar="<conversion>",
+        help=(
+            "Conversion configuration: "
+            "s2t|s2tw|s2twp|s2hk|t2s|tw2s|tw2sp|hk2s|jp2t|t2jp"
+        ),
+    )
+    parser_convert.add_argument(
+        "-p",
+        "--punct",
+        action="store_true",
+        default=False,
+        help="Enable punctuation conversion. (Default: False)",
+    )
+    parser_convert.add_argument(
+        "--in-enc",
+        metavar="<encoding>",
+        default="UTF-8",
+        help="Encoding for input. (Default: UTF-8)",
+    )
+    parser_convert.add_argument(
+        "--out-enc",
+        metavar="<encoding>",
+        default="UTF-8",
+        help="Encoding for output. (Default: UTF-8)",
+    )
     parser_convert.set_defaults(func=subcommand_convert)
 
-    # Office subcommand
-    parser_office = subparsers.add_parser('office', help='Convert Office document and Epub Chinese text using OpenCC')
-    parser_office.add_argument('-i', '--input', metavar='<file>',
-                               help='Input Office document from <file>.')
-    parser_office.add_argument('-o', '--output', metavar='<file>',
-                               help='Output Office document to <file>.')
-    parser_office.add_argument('-c', '--config', metavar='<conversion>',
-                               help='conversion: s2t|s2tw|s2twp|s2hk|t2s|tw2s|tw2sp|hk2s|jp2t|t2jp')
-    parser_office.add_argument('-p', '--punct', action='store_true', default=False,
-                               help='Enable punctuation conversion. (Default: False)')
-    parser_office.add_argument('-f', '--format', metavar='<format>',
-                               help='Target Office format (e.g., docx, xlsx, pptx, odt, ods, odp, epub)')
-    parser_office.add_argument('--auto-ext', action='store_true', default=False,
-                               help='Auto-append extension to output file')
-    parser_office.add_argument('--keep-font', action='store_true', default=False,
-                               help='Preserve font-family information in Office content')
+    # -----------------
+    # office subcommand
+    # -----------------
+    parser_office = subparsers.add_parser(
+        "office",
+        help="Convert Office document and EPUB Chinese text using OpenCC",
+    )
+    parser_office.add_argument(
+        "-i",
+        "--input",
+        metavar="<file>",
+        help="Input Office document from <file>.",
+    )
+    parser_office.add_argument(
+        "-o",
+        "--output",
+        metavar="<file>",
+        help="Output Office document to <file>.",
+    )
+    parser_office.add_argument(
+        "-c",
+        "--config",
+        metavar="<conversion>",
+        help=(
+            "conversion: "
+            "s2t|s2tw|s2twp|s2hk|t2s|tw2s|tw2sp|hk2s|jp2t|t2jp"
+        ),
+    )
+    parser_office.add_argument(
+        "-p",
+        "--punct",
+        action="store_true",
+        default=False,
+        help="Enable punctuation conversion. (Default: False)",
+    )
+    parser_office.add_argument(
+        "-f",
+        "--format",
+        metavar="<format>",
+        help="Target Office format (e.g., docx, xlsx, pptx, odt, ods, odp, epub)",
+    )
+    parser_office.add_argument(
+        "--auto-ext",
+        action="store_true",
+        default=False,
+        help="Auto-append extension to output file",
+    )
+    parser_office.add_argument(
+        "--keep-font",
+        action="store_true",
+        default=False,
+        help="Preserve font-family information in Office content",
+    )
     parser_office.set_defaults(func=subcommand_office)
+
+    # -------------
+    # pdf subcommand
+    # -------------
+    parser_pdf = subparsers.add_parser(
+        "pdf",
+        help="Extract + convert Chinese text from a PDF using OpenCC",
+    )
+    parser_pdf.add_argument(
+        "-i",
+        "--input",
+        metavar="<file>",
+        required=True,
+        help="Input PDF file.",
+    )
+    parser_pdf.add_argument(
+        "-o",
+        "--output",
+        metavar="<file>",
+        help=(
+            "Output text file (UTF-8). "
+            'If omitted, defaults to "<input>_converted.txt".'
+        ),
+    )
+    parser_pdf.add_argument(
+        "-c",
+        "--config",
+        metavar="<conversion>",
+        help=(
+            "Conversion configuration: "
+            "s2t|s2tw|s2twp|s2hk|t2s|tw2s|tw2sp|hk2s|jp2t|t2jp"
+        ),
+    )
+    parser_pdf.add_argument(
+        "-p",
+        "--punct",
+        action="store_true",
+        default=False,
+        help="Enable punctuation conversion. (Default: False)",
+    )
+    parser_pdf.add_argument(
+        "-H",
+        "--header",
+        action="store_true",
+        default=False,
+        help=(
+            "Preserve page-break-like gaps when reflowing CJK paragraphs "
+            "(passed as add_pdf_page_header to reflow_cjk_paragraphs)."
+        ),
+    )
+    parser_pdf.add_argument(
+        "-r",
+        "--reflow",
+        action="store_true",
+        default=False,
+        help="Enable CJK-aware paragraph reflow before conversion.",
+    )
+    parser_pdf.add_argument(
+        "--compact",
+        action="store_true",
+        default=False,
+        help="Use compact paragraph mode (single newline between paragraphs).",
+    )
+    parser_pdf.add_argument(
+        "--timing",
+        action="store_true",
+        default=False,
+        help="Show time use for each process workflow.",
+    )
+    parser_pdf.add_argument(
+        "-e",
+        "--engine",
+        metavar="<engine>",
+        choices=["auto", "rust", "pdfium"],
+        default="auto",
+        help=(
+            "PDF extraction engine:\n"
+            "  auto   – Prefer PDFium; fallback to Rust if unavailable (recommended)\n"
+            "  rust   – Pure-Rust extractor (no page progress)\n"
+            "  pdfium – PDFium backend with per-page progress; fallback if it fails\n"
+            "(Default: auto)"
+        ),
+    )
+
+    parser_pdf.set_defaults(func=subcommand_pdf)
 
     args = parser.parse_args()
     return args.func(args)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

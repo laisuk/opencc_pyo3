@@ -1,4 +1,4 @@
-from typing import List
+from typing import Any, Callable, List
 
 
 class OpenCC:
@@ -114,5 +114,69 @@ def reflow_cjk_paragraphs(text: str, add_pdf_page_header: bool, compact: bool) -
 
     Returns:
         Reflowed text with normalized CJK paragraphs.
+    """
+    ...
+
+
+def extract_pdf_text_pages(path: str, /) -> List[str]:
+    """
+    Extracts plain text from a PDF file, split by pages.
+
+    This uses the pure-Rust `pdf-extract` backend. It returns one string per
+    page in reading order. This is useful when you want to process pages
+    individually or show a progress bar while iterating.
+    """
+    ...
+
+
+def extract_pdf_pages_with_callback(
+        path: str,
+        callback: Callable[[int, int, str], Any],
+        /,
+) -> None:
+    """
+    Incrementally extracts text from each page of a PDF and invokes a Python
+    callback for each page as:
+
+        callback(page_number, total_pages, text)
+
+    Parameters
+    ----------
+    path : str
+        Path to the PDF file on disk.
+    callback : Callable[[int, int, str], Any]
+        A function receiving (page_number, total_pages, text) for each page.
+
+    == Behavior ==
+    --------
+    • If the PDF has a valid page tree (most standard PDFs, especially
+      Word-exported PDFs), pages are extracted one-by-one and streamed to the
+      callback.
+
+    • If a page contains no text or extraction fails for a single page, that
+      page is returned as an empty string "" and processing continues.
+
+    • If *pdf-extract* cannot understand the PDF at all (common for complex
+      commercial e-books or PDFs requiring advanced CMap/ToUnicode handling),
+      a RuntimeError is raised. This is normal: these PDFs require a
+      PDFium-based backend.
+
+    Raises
+    ------
+    RuntimeError
+        If the pure-Rust PDF extractor (`pdf-extract`) cannot parse the PDF
+        structure or extract any text at all. This often happens with:
+            • commercial/DRM-like or publisher-grade novel PDFs
+            • PDFs without a standard /Pages tree
+            • PDFs with compressed object streams or complex CMap encodings
+
+        In these cases, use a PDFium-based extraction engine instead.
+
+    Notes
+    -----
+    This function does not use PDFium. It is intended as a lightweight,
+    pure-Rust fallback. For the highest compatibility with real-world
+    East-Asian text PDFs (HK/TW/CN/KR/JP novels, EPUB-converted PDFs,
+    commercial publishers), a PDFium backend is recommended.
     """
     ...

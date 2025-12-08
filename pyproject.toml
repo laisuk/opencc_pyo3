@@ -9,7 +9,7 @@ authors = [
     { name="laisuk", email="laisuk@yahoo.com" },
 ]
 description = "A Python extension module powered by Rust and PyO3, providing fast and accurate Chinese text conversion."
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 readme = "README.md"
 license = { text = "MIT" }
 

@@ -2,6 +2,7 @@
 use once_cell::sync::Lazy;
 use opencc_fmmseg;
 use opencc_fmmseg::OpenCC as _OpenCC;
+use pdf_extract::Document;
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use std::collections::HashSet;
@@ -175,6 +176,108 @@ fn extract_pdf_text(path: &str) -> PyResult<String> {
         ))
     })?;
     Ok(text)
+}
+
+/// Extracts plain text from a PDF file, split by pages.
+///
+/// This uses the pure-Rust `pdf-extract` crate. It returns one string per page,
+/// in reading order. This is useful if you want to show a progress bar while
+/// processing each page sequentially in Python.
+///
+/// Parameters
+/// ----------
+/// path : str
+///     Path to the PDF file on disk.
+///
+/// Returns
+/// -------
+/// List[str]
+///     A list of page texts. `result[i]` is the text of page `i + 1`.
+#[pyfunction]
+fn extract_pdf_text_pages(path: &str) -> PyResult<Vec<String>> {
+    let pages = pdf_extract::extract_text_by_pages(path).map_err(|e| {
+        exceptions::PyRuntimeError::new_err(format!(
+            "Failed to extract text by pages from PDF '{}': {e}",
+            path
+        ))
+    })?;
+    Ok(pages)
+}
+
+/// Extracts PDF text page-by-page and reports progress to a Python callback.
+///
+/// For PDFs where `pdf-extract` can see the page tree:
+///   - iterates real pages, including blank ones (blank → "").
+/// For PDFs where `get_pages()` returns empty:
+///   - falls back to `extract_text(path)` and calls the callback once as 1/1.
+///
+/// callback signature: callback(page_number, total_pages, text)
+#[pyfunction]
+fn extract_pdf_pages_with_callback(path: &str, callback: Py<PyAny>) -> PyResult<()> {
+    // Try to load the PDF
+    let doc = Document::load(path).map_err(|e| {
+        exceptions::PyRuntimeError::new_err(format!("Failed to open PDF '{}': {e}", path))
+    })?;
+
+    // BTreeMap<u32, ObjectId>
+    let pages = doc.get_pages();
+    let total_pages = pages.len();
+
+    // === Fallback path: pdf-extract can't see any pages ===
+    if total_pages == 0 {
+        eprintln!(
+            "Warning: pdf-extract reports 0 pages for '{}'; \
+         falling back to single-chunk extract_text().",
+            path
+        );
+
+        let text = pdf_extract::extract_text(path).map_err(|e| {
+            exceptions::PyRuntimeError::new_err(format!(
+                "Failed to extract text from PDF '{}': {e}",
+                path
+            ))
+        })?;
+
+        if text.trim().is_empty() {
+            return Err(exceptions::PyRuntimeError::new_err(format!(
+                "Pure-Rust pdf-extract could not extract any text from '{}'. \
+                 This PDF likely requires a PDFium-based engine.",
+                path
+            )));
+        }
+
+        return Python::attach(|py| {
+            callback.call1(py, (1usize, 1usize, text))?;
+            Ok(())
+        });
+    }
+
+    // === Normal path: we have a real page tree ===
+    let page_numbers: Vec<u32> = pages.keys().copied().collect();
+
+    // Move doc + page_numbers into the closure
+    Python::attach(move |py| -> PyResult<()> {
+        for page_number in page_numbers {
+            // Try to extract text for this page.
+            // If it fails (e.g. truly blank or unsupported), treat as "" and continue.
+            let text = match doc.extract_text(&[page_number]) {
+                Ok(t) => t,
+                Err(e) => {
+                    eprintln!(
+                        "Warning: failed to extract text from page {} of '{}': {} \
+                         — treating as blank page.",
+                        page_number, path, e
+                    );
+                    String::new()
+                }
+            };
+
+            // callback(page_number, total_pages, text)
+            callback.call1(py, (page_number as usize, total_pages, text))?;
+        }
+
+        Ok(())
+    })
 }
 
 /// Reflow CJK paragraphs from PDF-extracted text.
@@ -709,8 +812,10 @@ fn strip_halfwidth_indent_keep_fullwidth(s: &str) -> &str {
 #[pymodule]
 fn opencc_pyo3(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<OpenCC>()?;
-    m.add_function(wrap_pyfunction!(extract_pdf_text, m)?)?;
     m.add_function(wrap_pyfunction!(reflow_cjk_paragraphs, m)?)?;
+    m.add_function(wrap_pyfunction!(extract_pdf_text, m)?)?;
+    m.add_function(wrap_pyfunction!(extract_pdf_text_pages, m)?)?;
+    m.add_function(wrap_pyfunction!(extract_pdf_pages_with_callback, m)?)?;
 
     Ok(())
 }
