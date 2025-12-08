@@ -81,26 +81,16 @@ _pdfium.FPDFText_GetText.restype = ctypes.c_int
 
 
 # ==============================================================================
-#  Heuristics for detecting corrupted UTF-16 decode (Identity-H fallback)
+#  Compress multiple "\n" to Max = 2
 # ==============================================================================
-
-def _looks_broken_utf16(text: str) -> bool:
-    """
-    Detect whether the UTF-16 decoded string is actually UTF-8 bytes stuffed
-    into 16-bit units. Identity-H fonts without proper ToUnicode CMaps often
-    trigger this fallback behavior.
-    """
-    if not text:
-        return False
-
-    # Private-use area heuristic (commonly produced by mis-decoded UTF-16)
-    bad = sum(1 for ch in text if 0xE000 <= ord(ch) <= 0xF8FF)
-
-    # If 20%+ characters belong here, we assume PDFium handed us UTF-8 bytes.
-    return bad > (len(text) * 0.20)
-
-
 def _compress_newlines(text: str) -> str:
+    """
+    Reduce sequences of multiple newline characters to a maximum of two.
+    This ensures:
+      - Single '\n' = line break.
+      - Double '\n\n' = paragraph boundary.
+      - Prevents excessive blank-space inflation from Pdfium output.
+    """
     out = []
     seen = 0
 
@@ -116,42 +106,56 @@ def _compress_newlines(text: str) -> str:
     return "".join(out)
 
 
-def _decode_pdfium_buffer(buf, extracted: int) -> str:
+def _decode_pdfium_buffer(buf: ctypes.Array, extracted: int) -> str:
     """
-    Perform C#-equivalent decoding of a PDFium UTF-16 buffer, with automatic
-    fallback reconstruction of UTF-8 byte sequences when Identity-H fallback
-    occurs inside PDFium.
+    Decode a UTF-16LE text buffer returned by Pdfium.
 
-    Returns a clean Unicode string with all '\x00' (PDFium segmentation marks)
-    converted to '\n'.
+    Pdfium guarantees that:
+      - All text is provided as UTF-16LE units.
+      - The returned length (`extracted`) includes a trailing NUL terminator.
+      - Pages with no textual content (e.g., image-only pages) often produce
+        a buffer with a single NUL code unit.
+
+    This decoder normalizes the output into clean Python strings:
+      - Strips the trailing NUL (same behavior as C# implementation).
+      - Returns a single '\n' to represent an empty/blank page, so that
+        downstream reflow logic can treat it as an empty paragraph.
+      - Normalizes CR/LF variations to LF.
+      - Compresses runs of multiple newlines to at most two, preserving
+        paragraph boundaries.
     """
-    # 1) Attempt normal UTF-16LE decode (correct for most PDFs)
-    raw = ctypes.string_at(buf, extracted * 2)
-    text16 = raw.decode("utf-16le", errors="ignore")
 
-    # Good UTF-16 → done
-    if not _looks_broken_utf16(text16):
-        # Step 1: NUL → \n
-        text = text16.replace("\x00", "\n")
-        # Step 2: compress multiple \n into max 2 \n
-        text = _compress_newlines(text)
+    # No characters written → treat as no content.
+    if extracted <= 0:
+        return ""
 
-        return text
+    length = extracted
 
-    # 2) Reconstruct UTF-8 byte stream from 16-bit units
-    data = bytearray()
-    for i in range(extracted):
-        v = buf[i]
-        # PDFium stores fallback bytes in high-byte-first order.
-        data.append((v >> 8) & 0xFF)
-        data.append(v & 0xFF)
+    # Strip trailing NUL, if present.
+    if length > 0 and buf[length - 1] == 0:
+        length -= 1
 
-    try:
-        text8 = data.decode("utf-8")
-    except (RuntimeError, Exception):
-        text8 = data.decode("utf-8", errors="ignore")
+    # After removing the NUL, no text remains:
+    # This page is empty (image-only or blank).
+    # Represent it as a single '\n' so that the reflow layer
+    # can recognize it as an empty paragraph.
+    if length <= 0:
+        return "\n"
 
-    return text8.replace("\x00", "\n")
+    # Convert only the meaningful UTF-16 units to bytes.
+    raw = ctypes.string_at(buf, length * 2)
+
+    # Pdfium always produces valid UTF-16LE text.
+    text = raw.decode("utf-16le", errors="ignore")
+
+    # Normalize newline variants.
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+
+    # Compress sequences of 3+ newlines down to exactly 2,
+    # ensuring consistent paragraph boundaries.
+    text = _compress_newlines(text)
+
+    return text
 
 
 # ==============================================================================
@@ -222,9 +226,11 @@ def extract_pdf_pages_with_callback_pdfium(
                 if extracted > 0:
                     text = _decode_pdfium_buffer(buf, extracted)
                 else:
-                    text = ""
+                    # page exists but no text extracted → treat as blank paragraph
+                    text = "\n"
             else:
-                text = ""
+                # Blank page
+                text = "\n"
 
             # Cleanup
             _pdfium.FPDFText_ClosePage(textpage)
