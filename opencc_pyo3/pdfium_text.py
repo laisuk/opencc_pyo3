@@ -100,6 +100,22 @@ def _looks_broken_utf16(text: str) -> bool:
     return bad > (len(text) * 0.20)
 
 
+def _compress_newlines(text: str) -> str:
+    out = []
+    seen = 0
+
+    for ch in text:
+        if ch == "\n":
+            seen += 1
+            if seen <= 2:
+                out.append("\n")
+        else:
+            seen = 0
+            out.append(ch)
+
+    return "".join(out)
+
+
 def _decode_pdfium_buffer(buf, extracted: int) -> str:
     """
     Perform C#-equivalent decoding of a PDFium UTF-16 buffer, with automatic
@@ -115,7 +131,12 @@ def _decode_pdfium_buffer(buf, extracted: int) -> str:
 
     # Good UTF-16 → done
     if not _looks_broken_utf16(text16):
-        return text16.replace("\x00", "\n")
+        # Step 1: NUL → \n
+        text = text16.replace("\x00", "\n")
+        # Step 2: compress multiple \n into max 2 \n
+        text = _compress_newlines(text)
+
+        return text
 
     # 2) Reconstruct UTF-8 byte stream from 16-bit units
     data = bytearray()
