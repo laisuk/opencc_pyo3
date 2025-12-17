@@ -174,15 +174,34 @@ def extract_pdf_pages_with_callback_pdfium(
     callback(page_number, total_pages, text)
         page_number : 1-based page index
         total_pages : total pages in PDF
-        text        : extracted Unicode text for the page
+        text        : extracted Unicode text for the page (page-break-safe)
 
     Notes
     -----
     • Works for complex CJK fonts (Identity-H, CIDType0, missing ToUnicode).
     • Performs UTF-16 decode with UTF-8 fallback (same as PdfiumViewer).
     • Converts embedded NUL (U+0000) to newline for clean segmentation.
-    • This function **does not** perform reflow; it only extracts raw text.
+    • This function **does not** perform reflow; it only extracts text.
+    • IMPORTANT: Each callback `text` is guaranteed to end with a blank-line
+      separator so page boundaries are never lost when concatenated.
     """
+
+    def _normalize_page_text(s: str) -> str:
+        # Normalize line endings first (PDFium sometimes yields odd combos)
+        if s:
+            s = s.replace("\r\n", "\n").replace("\r", "\n")
+
+        # If blank/whitespace-only page, emit a visible blank separator
+        if not s or s.strip() == "":
+            return "\n"
+
+        # Match the C# behavior: AppendLine(text.Trim()); AppendLine();
+        # i.e. trimmed page text + a guaranteed blank line after it.
+        s = s.strip()
+
+        # Ensure page always ends with a blank line boundary
+        # (two \n means there is at least one empty line after the last content line)
+        return s + "\n\n"
 
     pdf_path_bytes = path.encode("utf-8")
 
@@ -195,48 +214,37 @@ def extract_pdf_pages_with_callback_pdfium(
     try:
         total = _pdfium.FPDF_GetPageCount(doc)
         if total <= 0:
-            callback(1, 1, "")
+            callback(1, 1, "\n")
             return
 
         for i in range(total):
             page = _pdfium.FPDF_LoadPage(doc, i)
-            # print("DEBUG PAGE HANDLE =", page)
-
             if not page:
-                callback(i + 1, total, "")
+                callback(i + 1, total, "\n")
                 continue
 
             textpage = _pdfium.FPDFText_LoadPage(page)
             if not textpage:
                 _pdfium.FPDF_ClosePage(page)
-                callback(i + 1, total, "")
+                callback(i + 1, total, "\n")
                 continue
 
-            # Count UTF-16 characters
             count = _pdfium.FPDFText_CountChars(textpage)
 
             if count > 0:
                 buf = (ctypes.c_uint16 * (count + 1))()
-                extracted = _pdfium.FPDFText_GetText(
-                    textpage,
-                    0, count,
-                    buf,
-                )
-
+                extracted = _pdfium.FPDFText_GetText(textpage, 0, count, buf)
                 if extracted > 0:
-                    text = _decode_pdfium_buffer(buf, extracted)
+                    raw = _decode_pdfium_buffer(buf, extracted)
                 else:
-                    # page exists but no text extracted → treat as blank paragraph
-                    text = "\n"
+                    raw = ""
             else:
-                # Blank page
-                text = "\n"
+                raw = ""
 
-            # Cleanup
             _pdfium.FPDFText_ClosePage(textpage)
             _pdfium.FPDF_ClosePage(page)
 
-            callback(i + 1, total, text)
+            callback(i + 1, total, _normalize_page_text(raw))
 
     finally:
         _pdfium.FPDF_CloseDocument(doc)
