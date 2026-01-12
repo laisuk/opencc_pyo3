@@ -1,8 +1,10 @@
 from opencc_pyo3 import extract_pdf_text, reflow_cjk_paragraphs
 
-input_file = "tests/简体字.pdf"
+# input_file = "tests/简体字.pdf"
+input_file = "tests/假面游戏.pdf"
 # Note: This file will contain TEXT, not a real PDF. You may want ".txt" instead.
-output_file = "tests/简体字_extracted.txt"
+# output_file = "tests/简体字_extracted.txt"
+output_file = "tests/假面游戏.txt"
 
 
 def main() -> None:

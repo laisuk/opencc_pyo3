@@ -3,12 +3,14 @@ name: Build and publish
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
 
 jobs:
   build:
+    name: Build wheels (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
 
@@ -18,18 +20,20 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
-      - name: Install Rust (modernized)
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
+      # ✅ Copy only this OS native into opencc_pyo3/pdfium/<platform>
+      - name: Sync pdfium natives into package (CI)
+        run: python tools/sync_pdfium_for_wheel.py
 
-      - name: Install maturin
-        run: pip install maturin
-
+      # ✅ Build wheels the correct way for each OS (manylinux on Linux)
       - name: Build wheels
-        run: maturin build --release --interpreter python
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --interpreter python3.10
+          # manylinux for broad compatibility
+          manylinux: auto
 
       - name: Upload wheel artifacts
         uses: actions/upload-artifact@v4
@@ -47,7 +51,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -59,8 +63,8 @@ jobs:
           mkdir -p final_dist
           find dist -name '*.whl' -exec mv {} final_dist/ \;
 
-      - name: Install maturin
-        run: pip install maturin
-
-      - name: Publish to PyPI using maturin
-        run: maturin upload final_dist/*.whl --non-interactive -u __token__ -p ${{ secrets.PYPI_API_TOKEN }}
+      - name: Publish to PyPI
+        uses: PyO3/maturin-action@v1
+        with:
+          command: upload
+          args: --non-interactive -u __token__ -p ${{ secrets.PYPI_API_TOKEN }} final_dist/*.whl

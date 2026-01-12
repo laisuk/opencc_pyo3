@@ -6,10 +6,8 @@ from opencc_pyo3 import (
     reflow_cjk_paragraphs,
 )
 
-input_file = "tests/My_Golden_Blood.pdf"
-# input_file = "tests/盗墓笔记.pdf"
-output_file = "tests/My_Golden_Blood_extracted.txt"
-# output_file = "tests/盗墓笔记_extracted.txt"
+input_file = "tests/假面游戏.pdf"
+output_file = "tests/假面游戏.txt"
 
 _pages: List[str] = []
 
@@ -21,7 +19,7 @@ def on_page(page: int, total: int, text: str) -> None:
     _pages.append(text)
 
 def main() -> None:
-    print(f"Extracting PDF page-by-page: {input_file}")
+    print(f"Extracting PDF page-by-page using Rust pdf-extract: {input_file}")
 
     try:
         extract_pdf_pages_with_callback(input_file, on_page)

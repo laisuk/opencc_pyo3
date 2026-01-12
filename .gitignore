@@ -22,3 +22,5 @@ __pycache__/
 
 # Wheels
 *.whl
+
+opencc_pyo3/pdfium/

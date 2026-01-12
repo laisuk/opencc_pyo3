@@ -1,0 +1,40 @@
+name: Build artifacts (manual)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build wheels (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # Sync only this platform's pdfium native into opencc_pyo3/pdfium
+      - name: Sync pdfium natives into package (CI)
+        run: python tools/sync_pdfium_for_wheel.py
+
+      # Build wheels (manylinux on Linux, delocate on macOS, native on Windows)
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --interpreter python3.10
+          manylinux: auto
+
+      - name: Upload wheel artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: target/wheels/*.whl

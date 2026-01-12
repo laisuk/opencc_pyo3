@@ -6,10 +6,10 @@ from opencc_pyo3 import (
     reflow_cjk_paragraphs,
 )
 
-# input_file = "tests/My_Golden_Blood.pdf"
-input_file = "tests/盗墓笔记.pdf"
-# output_file = "tests/My_Golden_Blood_extracted.txt"
-output_file = "tests/盗墓笔记_extracted.txt"
+input_file = "tests/简体字.pdf"
+# input_file = "tests/盗墓笔记.pdf"
+output_file = "tests/简体字_extracted.txt"
+# output_file = "tests/盗墓笔记_extracted.txt"
 
 _pages: List[str] = []
 

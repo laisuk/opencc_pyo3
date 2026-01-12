@@ -1,3 +1,6 @@
+from enum import Enum
+from typing import Union
+
 from .opencc_pyo3 import (
     OpenCC as _OpenCC,
     extract_pdf_text,
@@ -5,23 +8,64 @@ from .opencc_pyo3 import (
     extract_pdf_text_pages,
     extract_pdf_pages_with_callback
 )
-from .pdfium_text import extract_pdf_pages_with_callback_pdfium
+from .pdfium_helper import extract_pdf_pages_with_callback_pdfium
+
+
+class OpenccConfig(Enum):
+    S2T = "s2t"
+    T2S = "t2s"
+    S2TW = "s2tw"
+    TW2S = "tw2s"
+    S2TWP = "s2twp"
+    TW2SP = "tw2sp"
+    S2HK = "s2hk"
+    HK2S = "hk2s"
+    T2TW = "t2tw"
+    TW2T = "tw2t"
+    T2TWP = "t2twp"
+    TW2TP = "tw2tp"
+    T2HK = "t2hk"
+    HK2T = "hk2t"
+    T2JP = "t2jp"
+    JP2T = "jp2t"
+
+    @classmethod
+    def parse(cls, s: str) -> "OpenccConfig":
+        return cls(s.lower())
+
+
+_ConfigLike = Union[str, OpenccConfig]
 
 
 class OpenCC(_OpenCC):
-    CONFIG_LIST = [
-        "s2t", "t2s", "s2tw", "tw2s", "s2twp", "tw2sp", "s2hk", "hk2s",
-        "t2tw", "tw2t", "t2twp", "tw2tp", "t2hk", "hk2t", "t2jp", "jp2t"
-    ]
-    def __init__(self, config="s2t"):
-        self.config = config if config in self.CONFIG_LIST else "s2t"
+    CONFIG_LIST = [c.value for c in OpenccConfig]
+
+    def __init__(self, config: _ConfigLike = "s2t"):
+        # Normalize config to string, validate, then init native core
+        cfg = self._normalize_config(config)
+        self.config = cfg  # keep a Python-side mirror (optional but handy)
+        # self.config = config if config in self.CONFIG_LIST else "s2t"
+
+    @staticmethod
+    def _normalize_config(config: _ConfigLike) -> str:
+        if isinstance(config, OpenccConfig):
+            return config.value
+
+        if isinstance(config, str):
+            c = config.lower()
+            return c if c in OpenCC.CONFIG_LIST else "s2t"
+
+        # Unknown type -> fallback safely
+        return "s2t"
 
     def set_config(self, config):
         """
         Set the conversion configuration.
-        :param config: One of OpenCC.CONFIG_LIST
+        :param config: One of OpenccConfig or a canonical string like "s2t".
         """
-        super().apply_config(config)
+        cfg = self._normalize_config(config)
+        super().apply_config(cfg)
+        self.config = cfg
 
     def get_config(self):
         """

@@ -38,7 +38,7 @@ def load_pdfium() -> ctypes.CDLL:
 
     if sys.platform.startswith("win"):
         libname = "pdfium.dll"
-        dll_cls = ctypes.WinDLL  # ALWAYS WIN32 CALLING CONVENTION (stdcall)
+        dll_cls = ctypes.CDLL  # ALWAYS WIN32 CALLING CONVENTION (stdcall)
     elif sys.platform.startswith("linux"):
         libname = "libpdfium.so"
         dll_cls = ctypes.CDLL

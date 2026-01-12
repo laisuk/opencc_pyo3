@@ -147,12 +147,19 @@ def subcommand_pdf(args) -> int:
     input_path = args.input
     input_path_str = str(input_path)
 
+    p = Path(input_path_str)
+    if not p.is_file():
+        print("❌ PDF file not found.", file=sys.stderr)
+        print(f"  Path : {input_path_str}", file=sys.stderr)
+        return 2
+
     # Determine output filename
     if args.output:
         output_path = args.output
     else:
         stem = str(Path(input_path).with_suffix(""))
-        output_path = f"{stem}_converted.txt"
+        suffix = "_extracted.txt" if args.extract else "_converted.txt"
+        output_path = f"{stem}{suffix}"
 
     engine = getattr(args, "engine", "auto")
 
@@ -188,10 +195,12 @@ def subcommand_pdf(args) -> int:
                     "Falling back to pure-Rust extractor.",
                     file=sys.stderr,
                 )
+                print("Extracting PDF text...please wait...")
                 text = extract_pdf_text(input_path_str)
                 engine_used = "rust"
         else:
             print("⚠️  PDFium backend is not available; using pure-Rust extractor.")
+            print("Extracting PDF text...please wait...")
             text = extract_pdf_text(input_path_str)
             engine_used = "rust"
 
@@ -204,6 +213,7 @@ def subcommand_pdf(args) -> int:
                 "⚠️  PDFium backend not available. Falling back to Rust.",
                 file=sys.stderr,
             )
+            print("Extracting PDF text...please wait...")
             text = extract_pdf_text(input_path_str)
             engine_used = "rust"
         else:
@@ -226,6 +236,7 @@ def subcommand_pdf(args) -> int:
                     "Falling back to Rust extractor.",
                     file=sys.stderr,
                 )
+                print("Extracting PDF text...please wait...")
                 text = extract_pdf_text(input_path_str)
                 engine_used = "rust"
 
@@ -233,6 +244,7 @@ def subcommand_pdf(args) -> int:
     # FORCE RUST ENGINE
     # ---------------------------------------------------------
     else:  # engine == "rust"
+        print("Extracting PDF text...please wait...")
         text = extract_pdf_text(input_path_str)
         engine_used = "rust"
 
@@ -254,9 +266,15 @@ def subcommand_pdf(args) -> int:
     # ---------------------------------------------------------
     # OpenCC Conversion (optional)
     # ---------------------------------------------------------
-    if args.config:
-        opencc = OpenCC(args.config)
-        text = opencc.convert(text, args.punct)
+    # --extract means: extraction only, no OpenCC conversion.
+    if not args.extract:
+        if args.config:
+            opencc = OpenCC(args.config)
+            text = opencc.convert(text, args.punct)
+    else:
+        # Optional: warn if user provided config/punct but asked extract-only
+        if args.config or args.punct:
+            print("ℹ️  --extract specified: skipping OpenCC conversion.", file=sys.stderr)
 
     # ---------------------------------------------------------
     # Write Output
@@ -267,6 +285,10 @@ def subcommand_pdf(args) -> int:
     print(f"📄 Input : {input_path}")
     print(f"📁 Output: {output_path}")
     print(f"⚙️ Engine used: {engine_used}")
+    if args.extract:
+        print("🧾 Mode : extract-only (no OpenCC)")
+    elif args.config:
+        print(f"🧾 Config: {args.config} (punct={'on' if args.punct else 'off'})")
 
     return 0
 
@@ -463,6 +485,13 @@ def main():
             "  pdfium – PDFium backend with per-page progress; fallback if it fails\n"
             "(Default: auto)"
         ),
+    )
+    parser_pdf.add_argument(
+        "-E",
+        "--extract",
+        action="store_true",
+        default=False,
+        help="Extract PDF text only (skip OpenCC conversion).",
     )
 
     parser_pdf.set_defaults(func=subcommand_pdf)

@@ -1,7 +1,8 @@
+# use_chuck_aba_reflow.py
 from opencc_pyo3 import reflow_cjk_paragraphs
 
-input_file = "tests/chunk_ABC.txt"
-output_file = "tests/chunk_ABC_reflowed.txt"
+input_file = "tests/chunk_abc.txt"
+output_file = "tests/chunk_abc_reflowed.txt"
 
 
 def main() -> None:
