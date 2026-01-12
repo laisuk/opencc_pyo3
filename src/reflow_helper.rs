@@ -258,7 +258,7 @@ pub fn reflow_cjk_paragraphs(
         }
 
         // 9) Chapter-like ending lines
-        if is_chapter_ending_line(buffer_text) {
+        if !dialog_state.is_unclosed() && is_chapter_ending_line(buffer_text) {
             segments.push(std::mem::take(&mut buffer));
             buffer.push_str(&line_text);
             dialog_state.reset();
