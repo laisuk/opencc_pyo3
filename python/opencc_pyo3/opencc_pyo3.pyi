@@ -1,6 +1,5 @@
 from typing import Any, Callable, List
 
-
 class OpenCC:
     """
     Python binding for OpenCC and Jieba functionalities.
@@ -176,7 +175,7 @@ def extract_pdf_pages_with_callback(
     -----
     This function does not use PDFium. It is intended as a lightweight,
     pure-Rust fallback. For the highest compatibility with real-world
-    East-Asian text PDFs (HK/TW/CN/KR/JP novels, EPUB-converted PDFs,
+    East Asian text PDFs (HK/TW/CN/KR/JP novels, EPUB-converted PDFs,
     commercial publishers), a PDFium backend is recommended.
     """
     ...

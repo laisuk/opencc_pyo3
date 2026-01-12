@@ -1,12 +1,19 @@
-from opencc_pyo3 import OpenCC
+from opencc_pyo3 import OpenCC, OpenccConfig
 
 # text = "“春眠不觉晓，处处闻啼鸟。夜来风雨声，花落知多少”"
 text = "潦水盡而寒潭清，煙光凝而暮山紫。儼驂騑於上路，訪風景於崇阿；臨帝子之長洲，得天人之舊館。"
 opencc_dev = OpenCC()
 print(f"Original text: {text}")
+print(f"Supported config: {OpenCC.supported_configs()}")
+print(f"Default config: {opencc_dev.config}")
 original_text_code = opencc_dev.zho_check(text)
 print(f"Original text code: {original_text_code}")
-opencc_dev.config = "t2s" if original_text_code == 1 else "s2t"
+
+cfg = OpenccConfig.T2S if original_text_code == 1 else OpenccConfig.S2T
+# ✅ config property expects str → assign canonical string
+opencc_dev.config = cfg.value
+opencc_dev.set_config(cfg)
+
 converted = opencc_dev.convert(text, True)
 converted_code = opencc_dev.zho_check(converted)
 print(f"Auto config: {opencc_dev.config}")

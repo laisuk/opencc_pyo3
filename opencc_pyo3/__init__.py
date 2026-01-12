@@ -29,6 +29,12 @@ class OpenccConfig(Enum):
     T2JP = "t2jp"
     JP2T = "jp2t"
 
+    value: str
+
+    def to_canonical_name(self) -> str:
+        """Return OpenCC canonical config name (e.g. 's2t')."""
+        return self.value
+
     @classmethod
     def parse(cls, s: str) -> "OpenccConfig":
         return cls(s.lower())
