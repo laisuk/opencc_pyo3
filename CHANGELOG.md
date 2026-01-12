@@ -7,6 +7,13 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
+## [0.8.4] - 2026-01-12
+
+- Update `opencc-fmmseg` to v0.8.4
+- Added PDF support in opencc-pyo3 CLI script command.
+
+---
+
 ## [0.8.3] - 2025-10-22
 
 - Update `opencc-fmmseg` to v0.8.3

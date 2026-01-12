@@ -5,8 +5,8 @@
 //! - CLI (opencc-rs PDF / office / etc.)
 
 use once_cell::sync::Lazy;
-use std::collections::HashSet;
 use pyo3::{pyfunction, PyResult};
+use std::collections::HashSet;
 
 // ---------------------------------------------------------------------------
 // CJK PDF Reflow Engine (Rust implementation for opencc_pyo3)
@@ -34,7 +34,11 @@ use pyo3::{pyfunction, PyResult};
 ///     Reflowed text.
 ///
 #[pyfunction]
-pub fn reflow_cjk_paragraphs(text: &str, add_pdf_page_header: bool, compact: bool) -> PyResult<String> {
+pub fn reflow_cjk_paragraphs(
+    text: &str,
+    add_pdf_page_header: bool,
+    compact: bool,
+) -> PyResult<String> {
     // If the whole text is whitespace, return as-is.
     if text.chars().all(|c| c.is_whitespace()) {
         return Ok(text.to_owned());
@@ -361,9 +365,9 @@ static METADATA_KEYS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
         "初版",
         "ISBN",
     ]
-        .iter()
-        .copied()
-        .collect()
+    .iter()
+    .copied()
+    .collect()
 });
 
 const DIALOG_OPENERS: &[char] = &['“', '‘', '「', '『', '﹁', '﹃'];
@@ -973,7 +977,7 @@ fn is_ocr_cjk_ascii_punct_at_line_end(s: &str, punct_index: usize) -> bool {
 }
 
 /// Relaxed OCR: after punct, allow only whitespace and closers (quote/bracket).
-/// This enables `.”` / `.」` / `.）` to count as sentence boundary.
+/// This enables `“.”` / `.」` / `.）` to count as sentence boundary.
 fn is_ocr_cjk_ascii_punct_before_closers(s: &str, punct_index: usize) -> bool {
     if punct_index == 0 {
         return false;
