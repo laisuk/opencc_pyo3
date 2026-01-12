@@ -116,7 +116,7 @@ pub fn reflow_cjk_paragraphs(
         let is_short_heading = is_heading_like(&line_text);
         let is_metadata = is_metadata_line(&line_text);
 
-        let mut flush_buffer_and_push_line = |line: &str| {
+        let mut flush_buffer_and_emit_standalone = |line: &str| {
             if !buffer.is_empty() {
                 segments.push(std::mem::take(&mut buffer));
                 dialog_state.reset();
@@ -125,11 +125,11 @@ pub fn reflow_cjk_paragraphs(
         };
 
         if is_metadata {
-            flush_buffer_and_push_line(&line_text);
+            flush_buffer_and_emit_standalone(&line_text);
             continue;
         }
         if is_title_heading {
-            flush_buffer_and_push_line(&line_text);
+            flush_buffer_and_emit_standalone(&line_text);
             continue;
         }
 
