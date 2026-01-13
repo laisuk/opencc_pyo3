@@ -36,3 +36,11 @@ ChangeLog = "https://github.com/laisuk/opencc_pyo3/blob/master/CHANGELOG.md"
 
 [project.scripts]
 opencc-pyo3 = "opencc_pyo3.__main__:main"
+
+[tool.maturin]
+include = [
+    "opencc_pyo3/pdfium/**",
+]
+sdist-include = [
+    "opencc_pyo3/pdfium/**",
+]
