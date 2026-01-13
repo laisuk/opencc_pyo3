@@ -71,6 +71,8 @@ Sub-Commands are:
 - `office`: Convert Office document Chinese text using OpenCC
 - `pdf`: Convert extracted PDF document text using OpenCC
 
+---
+
 #### convert
 
 ```bash
@@ -87,6 +89,8 @@ options:
   --in-enc <encoding>   Encoding for input. (Default: UTF-8)
   --out-enc <encoding>  Encoding for output. (Default: UTF-8)
 ```
+
+---
 
 #### office
 
@@ -109,6 +113,8 @@ options:
   --keep-font           Preserve font-family information in Office content
 ```
 
+---
+
 #### PDF
 
 Support PDF files as input, with built-in text extraction and OpenCC-based conversion powered by `opencc-fmmseg`
@@ -116,6 +122,10 @@ Support PDF files as input, with built-in text extraction and OpenCC-based conve
 
 This command allows you to extract Chinese text from PDF documents, optionally apply CJK-aware paragraph reflow,
 and convert the result using OpenCC configurations.
+
+> **Note**  
+> Only text-embedded (searchable) PDF documents are supported.  
+> Scanned or image-only PDFs without an embedded text layer are not currently supported.
 
 ```bash
 python -m opencc_pyo3 pdf --help
