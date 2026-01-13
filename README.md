@@ -1,11 +1,14 @@
 # opencc_pyo3
+
 [![PyPI version](https://img.shields.io/pypi/v/opencc-pyo3.svg)](https://pypi.org/project/opencc-pyo3/)
 [![Downloads](https://pepy.tech/badge/opencc-pyo3)](https://pepy.tech/project/opencc-pyo3)
 [![Python Versions](https://img.shields.io/pypi/pyversions/opencc-pyo3.svg)](https://pypi.org/project/opencc-pyo3/)
 [![License](https://img.shields.io/github/license/laisuk/opencc_pyo3)](https://github.com/laisuk/opencc_pyo3/blob/main/LICENSE)
 [![Build Status](https://github.com/laisuk/opencc_pyo3/actions/workflows/build.yml/badge.svg)](https://github.com/laisuk/opencc_pyo3/actions/workflows/build.yml)
 
-`opencc_pyo3` is a Python extension module powered by [Rust](https://www.rust-lang.org/) and [PyO3](https://pyo3.rs/), providing fast and accurate conversion between different Chinese text variants using [OpenCC](https://github.com/BYVoid/OpenCC) algorithms.
+`opencc_pyo3` is a Python extension module powered by [Rust](https://www.rust-lang.org/) and [PyO3](https://pyo3.rs/),
+providing fast and accurate conversion between different Chinese text variants
+using [OpenCC](https://github.com/BYVoid/OpenCC) algorithms.
 
 ## Features
 
@@ -16,7 +19,8 @@
 
 ## Supported Conversion Configurations
 
-- `s2t`, `t2s`, `s2tw`, `tw2s`, `s2twp`, `tw2sp`, `s2hk`, `hk2s`, `t2tw`, `tw2t`, `t2twp`, `tw2tp`, `t2hk`, `hk2t`, `t2jp`, `jp2t`
+- `s2t`, `t2s`, `s2tw`, `tw2s`, `s2twp`, `tw2sp`, `s2hk`, `hk2s`, `t2tw`, `tw2t`, `t2twp`, `tw2tp`, `t2hk`, `hk2t`,
+  `t2jp`, `jp2t`
 
 ## Installation
 
@@ -40,7 +44,8 @@ Or for development (May require venv):
 maturin develop -r
 ```
 
-See [build.txt](https://github.com/laisuk/opencc_pyo3/blob/master/build.txt) for detailed build and install instructions.
+See [build.txt](https://github.com/laisuk/opencc_pyo3/blob/master/build.txt) for detailed build and install
+instructions.
 
 ## Usage
 
@@ -55,12 +60,16 @@ converted = opencc.convert(text, punctuation=True)
 print(converted)  # 「春眠不覺曉，處處聞啼鳥。」
 ```
 
+---
+
 ### CLI
 
 You can also use the CLI interface via Python module or Python script:  
 Sub-Commands are:
+
 - `convert`: Convert Chinese text using OpenCC
 - `office`: Convert Office document Chinese text using OpenCC
+- `pdf`: Convert extracted PDF document text using OpenCC
 
 #### convert
 
@@ -100,13 +109,53 @@ options:
   --keep-font           Preserve font-family information in Office content
 ```
 
+#### PDF
+
+Support PDF files as input, with built-in text extraction and OpenCC-based conversion powered by `opencc-fmmseg`
+(available since v0.8.4).
+
+This command allows you to extract Chinese text from PDF documents, optionally apply CJK-aware paragraph reflow,
+and convert the result using OpenCC configurations.
+
+```bash
+python -m opencc_pyo3 pdf --help
+
+usage: opencc-pyo3 pdf [-h] -i <file> [-o <file>] [-c <conversion>] [-p] [-H] [-r] [--compact] [--timing]
+                       [-e <engine>] [-E]
+
+options:
+  -h, --help            Show this help message and exit.
+  -i, --input <file>    Input PDF file.
+  -o, --output <file>   Output text file (UTF-8). If omitted, defaults to "<input>_converted.txt".
+  -c, --config <conversion>
+                        Conversion configuration:
+                        s2t | s2tw | s2twp | s2hk | t2s | tw2s | tw2sp | hk2s | jp2t | t2jp
+  -p, --punct           Enable punctuation conversion (default: off).
+  -H, --header          Preserve page-break-like gaps when reflowing CJK paragraphs
+                        (passed as `add_pdf_page_header` to `reflow_cjk_paragraphs`).
+  -r, --reflow          Enable CJK-aware paragraph reflow before conversion.
+  --compact             Use compact paragraph mode (single newline between paragraphs).
+  --timing              Show timing information for each processing stage.
+  -e, --engine <engine>
+                        PDF extraction engine:
+                          auto    – Prefer PDFium; fall back to the Rust extractor if unavailable (recommended)
+                          rust    – Pure-Rust extractor (no per-page progress)
+                          pdfium  – PDFium backend with per-page progress; falls back if extraction fails
+                        (default: auto)
+  -E, --extract         Extract PDF text only (skip OpenCC conversion).
+```
+
 ```sh
 python -m opencc_pyo3 convert -i input.txt -o output.txt -c s2t --punct
 
 python -m opencc_pyo3 office -c s2t --punct -i input.docx -o output.docx --keep-font
 
 opencc-pyo3 office -c s2tw -p -i input.epub -o output.epub
+
+opencc-pyo3 pdf -i input.pdf -o output.txt -c s2t -punct --reflow
 ```
+
+---
 
 ## API
 
@@ -115,7 +164,7 @@ opencc-pyo3 office -c s2tw -p -i input.epub -o output.epub
 - `OpenCC(config: str = "s2t")`
     - `config`: Conversion configuration (see above).
 - `set_config(config: str)`
-  - Set conversion config dynamically
+    - Set conversion config dynamically
 - `convert(input: str, punctuation: bool = False) -> str`
     - Convert text with optional punctuation conversion.
 - `zho_check(input: str) -> int`
@@ -125,7 +174,8 @@ opencc-pyo3 office -c s2tw -p -i input.epub -o output.epub
 ## Development
 
 - Rust source: [src/lib.rs](https://github.com/laisuk/opencc_pyo3/blob/master/src/lib.rs)
-- Python bindings: [opencc_pyo3/__init__.py](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/__init__.py), [opencc_pyo3/opencc_pyo3.pyi](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/opencc_pyo3.pyi)
+- Python bindings: [opencc_pyo3/__init
+  __.py](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/__init__.py), [opencc_pyo3/opencc_pyo3.pyi](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/opencc_pyo3.pyi)
 - CLI: [opencc_pyo3/__main__.py](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/__main__.py)
 
 ## Benchmarks
@@ -141,20 +191,20 @@ Processor: Intel64 Family 6 Model 191 Stepping 2, GenuineIntel
 
 ---
 
-| Method            | Config  | TextSize |      Mean |    StdDev |       Min |       Max | Ops/sec |  Chars/sec |
-|:------------------|:--------|---------:|----------:|----------:|----------:|----------:|--------:|-----------:|
-| Convert_Small     | s2t     |      100 |  0.118 ms |  0.097 ms |  0.049 ms |  0.811 ms |   8,499 |    849,910 |
-| Convert_Medium    | s2t     |    1,000 |  0.250 ms |  0.036 ms |  0.211 ms |  0.509 ms |   4,004 |  4,003,531 |
-| Convert_Large     | s2t     |   10,000 |  0.845 ms |  0.060 ms |  0.775 ms |  1.420 ms |   1,184 | 11,835,419 |
-| Convert_XLarge    | s2t     |  100,000 |  4.755 ms |  0.152 ms |  4.515 ms |  5.680 ms |     210 | 21,030,543 |
-| Convert_Small     | s2tw    |      100 |  0.141 ms |  0.027 ms |  0.096 ms |  0.321 ms |   7,111 |    711,093 |
-| Convert_Medium    | s2tw    |    1,000 |  0.392 ms |  0.030 ms |  0.355 ms |  0.623 ms |   2,552 |  2,552,127 |
-| Convert_Large     | s2tw    |   10,000 |  1.271 ms |  0.044 ms |  1.191 ms |  1.474 ms |     787 |  7,869,452 |
-| Convert_XLarge    | s2tw    |  100,000 |  6.317 ms |  0.139 ms |  6.004 ms |  7.250 ms |     158 | 15,831,322 |
-| Convert_Small     | s2twp   |      100 |  0.204 ms |  0.028 ms |  0.132 ms |  0.380 ms |   4,911 |    491,118 |
-| Convert_Medium    | s2twp   |    1,000 |  0.598 ms |  0.039 ms |  0.527 ms |  0.747 ms |   1,671 |  1,671,296 |
-| Convert_Large     | s2twp   |   10,000 |  1.942 ms |  0.061 ms |  1.823 ms |  2.223 ms |     515 |  5,149,357 |
-| Convert_XLarge    | s2twp   |  100,000 |  9.937 ms |  0.173 ms |  9.542 ms | 10.707 ms |     101 | 10,063,174 |
+| Method         | Config | TextSize |     Mean |   StdDev |      Min |       Max | Ops/sec |  Chars/sec |
+|:---------------|:-------|---------:|---------:|---------:|---------:|----------:|--------:|-----------:|
+| Convert_Small  | s2t    |      100 | 0.118 ms | 0.097 ms | 0.049 ms |  0.811 ms |   8,499 |    849,910 |
+| Convert_Medium | s2t    |    1,000 | 0.250 ms | 0.036 ms | 0.211 ms |  0.509 ms |   4,004 |  4,003,531 |
+| Convert_Large  | s2t    |   10,000 | 0.845 ms | 0.060 ms | 0.775 ms |  1.420 ms |   1,184 | 11,835,419 |
+| Convert_XLarge | s2t    |  100,000 | 4.755 ms | 0.152 ms | 4.515 ms |  5.680 ms |     210 | 21,030,543 |
+| Convert_Small  | s2tw   |      100 | 0.141 ms | 0.027 ms | 0.096 ms |  0.321 ms |   7,111 |    711,093 |
+| Convert_Medium | s2tw   |    1,000 | 0.392 ms | 0.030 ms | 0.355 ms |  0.623 ms |   2,552 |  2,552,127 |
+| Convert_Large  | s2tw   |   10,000 | 1.271 ms | 0.044 ms | 1.191 ms |  1.474 ms |     787 |  7,869,452 |
+| Convert_XLarge | s2tw   |  100,000 | 6.317 ms | 0.139 ms | 6.004 ms |  7.250 ms |     158 | 15,831,322 |
+| Convert_Small  | s2twp  |      100 | 0.204 ms | 0.028 ms | 0.132 ms |  0.380 ms |   4,911 |    491,118 |
+| Convert_Medium | s2twp  |    1,000 | 0.598 ms | 0.039 ms | 0.527 ms |  0.747 ms |   1,671 |  1,671,296 |
+| Convert_Large  | s2twp  |   10,000 | 1.942 ms | 0.061 ms | 1.823 ms |  2.223 ms |     515 |  5,149,357 |
+| Convert_XLarge | s2twp  |  100,000 | 9.937 ms | 0.173 ms | 9.542 ms | 10.707 ms |     101 | 10,063,174 |
 
 ---
 
@@ -168,4 +218,4 @@ Processor: Intel64 Family 6 Model 191 Stepping 2, GenuineIntel
 
 ---
 
-Powered by **Rust**, **PyO3**, **OpenCC** and **opencc-fmmseg**.
+Powered by **Rust**, **PyO3**, **OpenCC**, **Pdfium** and **opencc-fmmseg**.
