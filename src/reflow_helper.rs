@@ -249,13 +249,13 @@ pub fn reflow_cjk_paragraphs(
         }
 
         // 8c) Broad punctuation fallback
-        if !dialog_state.is_unclosed() && buffer_ends_with_cjk_punct(buffer_text) {
-            segments.push(std::mem::take(&mut buffer));
-            buffer.push_str(&line_text);
-            dialog_state.reset();
-            dialog_state.update(&line_text);
-            continue;
-        }
+        // if !dialog_state.is_unclosed() && buffer_ends_with_cjk_punct(buffer_text) {
+        //     segments.push(std::mem::take(&mut buffer));
+        //     buffer.push_str(&line_text);
+        //     dialog_state.reset();
+        //     dialog_state.update(&line_text);
+        //     continue;
+        // }
 
         // 9) Chapter-like ending lines
         if !dialog_state.is_unclosed() && is_chapter_ending_line(buffer_text) {
@@ -501,6 +501,7 @@ pub fn is_box_drawing_line(s: &str) -> bool {
     total >= 3
 }
 
+#[allow(dead_code)]
 fn buffer_ends_with_cjk_punct(s: &str) -> bool {
     s.chars()
         .rev()
