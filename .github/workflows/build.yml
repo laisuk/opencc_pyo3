@@ -63,8 +63,12 @@ jobs:
           mkdir -p final_dist
           find dist -name '*.whl' -exec mv {} final_dist/ \;
 
-      - name: Publish to PyPI
+      - name: Publish wheels to PyPI
         uses: PyO3/maturin-action@v1
+        env:
+          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         with:
           command: upload
-          args: --non-interactive -u __token__ -p ${{ secrets.PYPI_API_TOKEN }} final_dist/*.whl
+          args: >-
+            --non-interactive
+            final_dist/*.whl
