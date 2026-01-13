@@ -9,8 +9,14 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ## [0.8.4] - 2026-01-12
 
-- Update `opencc-fmmseg` to v0.8.4
-- Added PDF support in opencc-pyo3 CLI script command.
+### Added
+- PDF support in the `opencc-pyo3` CLI (`pdf` subcommand), enabling direct PDF text extraction and conversion.
+
+### Changed
+- Updated `opencc-fmmseg` to v0.8.4.
+
+### Packaging
+- Bundled platform-specific PDFium native libraries into the generated wheel files.
 
 ---
 
