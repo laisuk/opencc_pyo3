@@ -80,6 +80,12 @@ pub fn reflow_cjk_paragraphs(
         // 4) Empty line
         if heading_probe.trim().is_empty() {
             if !add_pdf_page_header && !buffer.is_empty() {
+                // NEW: If dialog is unclosed, always treat blank line as soft (cross-page artifact).
+                // Never flush mid-dialog just because we saw a blank line.
+                if dialog_state.is_unclosed() {
+                    continue;
+                }
+
                 // LIGHT rule: only flush on blank line if buffer ends with STRONG sentence end.
                 let ends_strong = buffer
                     .chars()
@@ -172,7 +178,7 @@ pub fn reflow_cjk_paragraphs(
 
         // Final strong line punct ending check for line text
         let stripped = line_text.trim_end();
-        if !buffer.is_empty() {
+        if !buffer.is_empty() && !dialog_state.is_unclosed() {
             if let Some(last) = stripped.chars().rev().next() {
                 if is_strong_sentence_end(last) {
                     buffer.push_str(&line_text);
@@ -677,24 +683,31 @@ fn is_heading_like(s: &str) -> bool {
         let mut has_non_ascii = false;
         let mut all_ascii = true;
         let mut has_letter = false;
-        let mut all_ascii_digits = true;
+        let mut all_digits = true; // ASCII or full-width digits, ignoring whitespace
+        let mut has_non_ws = false; // reject whitespace-only
 
         for ch in s.chars() {
+            // whitespace is neutral
+            if ch.is_whitespace() {
+                continue;
+            }
+
+            has_non_ws = true;
+
+            if !is_digit_ascii_or_fullwidth(ch) {
+                all_digits = false;
+            }
+
             if (ch as u32) > 0x7F {
                 has_non_ascii = true;
                 all_ascii = false;
-                all_ascii_digits = false;
-                continue;
-            }
-            if !ch.is_ascii_digit() {
-                all_ascii_digits = false;
-            }
-            if ch.is_ascii_alphabetic() {
+            } else if ch.is_ascii_alphabetic() {
                 has_letter = true;
             }
         }
 
-        if all_ascii_digits {
+        // digits-only (ASCII or full-width), but NOT whitespace-only
+        if has_non_ws && all_digits {
             return true;
         }
         if has_non_ascii {
@@ -714,21 +727,6 @@ pub fn is_all_ascii(s: &str) -> bool {
 }
 
 #[inline]
-pub fn is_all_cjk_no_ws(s: &str) -> bool {
-    let mut any = false;
-    for ch in s.chars() {
-        any = true;
-        if ch.is_whitespace() {
-            return false;
-        }
-        if !is_cjk_bmp(ch) {
-            return false;
-        }
-    }
-    any
-}
-
-#[inline]
 pub fn is_cjk_bmp(ch: char) -> bool {
     let c = ch as u32;
     (0x3400..=0x4DBF).contains(&c)
@@ -737,18 +735,36 @@ pub fn is_cjk_bmp(ch: char) -> bool {
 }
 
 #[inline]
-fn is_all_cjk_ignoring_ws(s: &str) -> bool {
-    let mut any = false;
+pub fn is_all_cjk(s: &str, allow_whitespace: bool) -> bool {
+    let mut seen = false;
+
     for ch in s.chars() {
         if ch.is_whitespace() {
+            if !allow_whitespace {
+                return false;
+            }
             continue;
         }
-        any = true;
-        if (ch as u32) <= 0x7F {
+
+        seen = true;
+
+        if !is_cjk_bmp(ch) {
             return false;
         }
     }
-    any
+
+    // false for empty / whitespace-only
+    seen
+}
+
+#[inline]
+pub fn is_all_cjk_ignoring_ws(s: &str) -> bool {
+    is_all_cjk(s, true)
+}
+
+#[inline]
+pub fn is_all_cjk_no_ws(s: &str) -> bool {
+    is_all_cjk(s, false)
 }
 
 #[inline]
@@ -910,7 +926,13 @@ pub fn ends_with_sentence_boundary(s: &str) -> bool {
         return true;
     }
 
-    // 5) Ellipsis as weak boundary.
+    // 5) NEW: long Mostly-CJK line ending with full-width colon "："
+    // Treat as a weak boundary (common in novels: "他说：" then dialog starts next line)
+    if last == '：' && is_mostly_cjk(s) {
+        return true;
+    }
+
+    // 6) Ellipsis as weak boundary.
     if ends_with_ellipsis(s) {
         return true;
     }
