@@ -1,5 +1,7 @@
 mod pdf_extract_helper;
 mod reflow_helper;
+mod punct_sets;
+mod cjk_text;
 
 // Import OpenCC crate and PyO3 for Python bindings
 use once_cell::sync::Lazy;
