@@ -8,7 +8,6 @@
 //! NOTE: These helpers are intentionally *pessimistic* in a few places.
 //! They are used for layout/reflow safety, not for perfect proofreading.
 
-use crate::cjk_text;
 use once_cell::sync::Lazy;
 use smallvec::SmallVec;
 use std::collections::HashSet;
@@ -152,6 +151,15 @@ pub fn is_bracket_closer(ch: char) -> bool {
     BRACKET_PAIRS.iter().any(|&(_, close)| close == ch)
 }
 
+/// Try get the matching closing bracket for an opening bracket.
+/// Returns `Some(close)` if the opener is known, otherwise `None`.
+#[inline(always)]
+pub fn try_get_matching_closer(open: char) -> Option<char> {
+    BRACKET_PAIRS
+        .iter()
+        .find_map(|&(o, c)| if o == open { Some(c) } else { None })
+}
+
 #[inline]
 pub fn is_allowed_postfix_closer(ch: char) -> bool {
     matches!(ch, '）' | ')')
@@ -176,6 +184,17 @@ pub fn ends_with_allowed_postfix_closer(s: &str) -> bool {
 #[inline]
 pub fn is_matching_bracket(open: char, close: char) -> bool {
     BRACKET_PAIRS.iter().any(|&(o, c)| o == open && c == close)
+}
+
+#[allow(dead_code)]
+#[inline(always)]
+pub fn is_wrapped_by_matching_bracket(s: &str, last_non_ws: char, min_len: usize) -> bool {
+    // min_len=3 means at least: open + 1 char + close
+    let mut it = s.chars();
+    match it.next() {
+        Some(open) => s.chars().count() >= min_len && is_matching_bracket(open, last_non_ws),
+        None => false,
+    }
 }
 
 #[inline]
@@ -208,11 +227,6 @@ pub fn ends_with_colon_like(s: &str) -> bool {
 pub fn ends_with_ellipsis(s: &str) -> bool {
     let t = s.trim_end();
     t.ends_with('…') || t.ends_with("……") || t.ends_with("...") || t.ends_with("..")
-}
-
-#[inline]
-fn nth_char(s: &str, idx: usize) -> char {
-    s.chars().nth(idx).unwrap_or('\0')
 }
 
 /// Last non-whitespace char index (char index).
@@ -316,155 +330,58 @@ pub fn has_unclosed_bracket(s: &str) -> bool {
     seen_bracket && !stack.is_empty()
 }
 
-// ------ Sentence Boundary start ------ //
-
-/// Level-2 normalized sentence boundary detection.
-///
-/// Includes OCR artifacts (ASCII '.' / ':'), but **does not** treat a bare
-/// bracket closer as a sentence boundary (that causes false flushes like "（亦作肥）").
-pub fn ends_with_sentence_boundary(s: &str) -> bool {
-    if s.trim().is_empty() {
-        return false;
-    }
-
-    // Need index only for OCR rules; grab last + prev with byte indices.
-    let Some(((last_i, last), (prev_i, prev))) = last_two_non_whitespace_idx(s) else {
-        // < 2 non-whitespace chars; still may match strong end on the single char
-        return last_non_whitespace(s).map_or(false, is_strong_sentence_end);
-    };
-
-    // 1) Strong sentence enders.
-    if is_strong_sentence_end(last) {
-        return true;
-    }
-
-    // 2) OCR '.' / ':' at line end (mostly-CJK).
-    if (last == '.' || last == ':') && is_ocr_cjk_ascii_punct_at_line_end(s, last_i) {
-        return true;
-    }
-
-    // 3) Quote closers + Allowed postfix closer after strong end,
-    //    plus OCR artifact `.“”` / `.」` / `.）`.
-    if is_dialog_closer(last) || is_allowed_postfix_closer(last) {
-        if is_strong_sentence_end(prev) {
-            return true;
-        }
-
-        if prev == '.' && is_ocr_cjk_ascii_punct_before_closers(s, prev_i) {
-            return true;
-        }
-    }
-
-    // 4) Full-width colon as a weak boundary (common: "他说：" then dialog next line)
-    if is_colon_like(last) && cjk_text::is_mostly_cjk(s) {
-        return true;
-    }
-
-    // 5) Ellipsis as weak boundary.
-    if ends_with_ellipsis(s) {
-        return true;
-    }
-
-    false
-}
-
-/// Strict OCR: punct itself is at end-of-line (only whitespace after it),
-/// and preceded by CJK in a mostly-CJK line.
-fn is_ocr_cjk_ascii_punct_at_line_end(s: &str, punct_index: usize) -> bool {
-    if punct_index == 0 {
-        return false;
-    }
-    if !is_at_line_end_ignoring_whitespace(s, punct_index) {
-        return false;
-    }
-    let prev = nth_char(s, punct_index - 1);
-    cjk_text::is_cjk_bmp(prev) && cjk_text::is_mostly_cjk(s)
-}
-
-/// Relaxed OCR: after punct, allow only whitespace and closers (quote/bracket).
-/// This enables `“.”` / `.」` / `.）` to count as sentence boundary.
-fn is_ocr_cjk_ascii_punct_before_closers(s: &str, punct_index: usize) -> bool {
-    if punct_index == 0 {
-        return false;
-    }
-    if !is_at_end_allowing_closers(s, punct_index) {
-        return false;
-    }
-    let prev = nth_char(s, punct_index - 1);
-    cjk_text::is_cjk_bmp(prev) && cjk_text::is_mostly_cjk(s)
-}
-
-fn is_at_line_end_ignoring_whitespace(s: &str, index: usize) -> bool {
-    s.chars().skip(index + 1).all(|c| c.is_whitespace())
-}
-
-fn is_at_end_allowing_closers(s: &str, index: usize) -> bool {
-    for ch in s.chars().skip(index + 1) {
-        if ch.is_whitespace() {
-            continue;
-        }
-        if is_dialog_closer(ch) || is_bracket_closer(ch) {
-            continue;
-        }
-        return false;
-    }
-    true
-}
-
-// ------ Sentence Boundary end ------ //
-
 // ------ Bracket Boundary start ------ //
 
-/// Returns true if the string ends with a balanced CJK-style bracket boundary,
-/// e.g. （完）, 【番外】, 《後記》.
-pub fn ends_with_cjk_bracket_boundary(s: &str) -> bool {
-    let t = s.trim();
-    if t.is_empty() {
-        return false;
-    }
+// /// Returns true if the string ends with a balanced CJK-style bracket boundary,
+// /// e.g. （完）, 【番外】, 《後記》.
+// pub fn ends_with_cjk_bracket_boundary(s: &str) -> bool {
+//     let t = s.trim();
+//     if t.is_empty() {
+//         return false;
+//     }
+//
+//     // Need at least two chars: open + close
+//     let mut chars = t.chars();
+//     let open = match chars.next() {
+//         Some(c) => c,
+//         None => return false,
+//     };
+//     let close = match t.chars().rev().next() {
+//         Some(c) => c,
+//         None => return false,
+//     };
+//
+//     // 1) Must be a known matching pair
+//     if !is_matching_bracket(open, close) {
+//         return false;
+//     }
+//
+//     // 2) Avoid Latin cases like "(test)" or "[1.2]"
+//     if !cjk_text::is_mostly_cjk(t) {
+//         return false;
+//     }
+//
+//     // 3) Ensure this bracket type is balanced inside the string
+//     is_bracket_type_balanced(t, open, close)
+// }
 
-    // Need at least two chars: open + close
-    let mut chars = t.chars();
-    let open = match chars.next() {
-        Some(c) => c,
-        None => return false,
-    };
-    let close = match t.chars().rev().next() {
-        Some(c) => c,
-        None => return false,
-    };
-
-    // 1) Must be a known matching pair
-    if !is_matching_bracket(open, close) {
-        return false;
-    }
-
-    // 2) Avoid Latin cases like "(test)" or "[1.2]"
-    if !cjk_text::is_mostly_cjk(t) {
-        return false;
-    }
-
-    // 3) Ensure this bracket type is balanced inside the string
-    is_bracket_type_balanced(t, open, close)
-}
-
-#[inline]
-fn is_bracket_type_balanced(s: &str, open: char, close: char) -> bool {
-    let mut depth: i32 = 0;
-
-    for ch in s.chars() {
-        if ch == open {
-            depth += 1;
-        } else if ch == close {
-            depth -= 1;
-            if depth < 0 {
-                return false;
-            }
-        }
-    }
-
-    depth == 0
-}
+// #[inline]
+// fn is_bracket_type_balanced(s: &str, open: char, close: char) -> bool {
+//     let mut depth: i32 = 0;
+//
+//     for ch in s.chars() {
+//         if ch == open {
+//             depth += 1;
+//         } else if ch == close {
+//             depth -= 1;
+//             if depth < 0 {
+//                 return false;
+//             }
+//         }
+//     }
+//
+//     depth == 0
+// }
 
 // ------ Bracket Boundary end ------ //
 
