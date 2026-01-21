@@ -339,10 +339,8 @@ fn slice_inner_without_outer_pair(s: &str) -> Option<&str> {
     Some(&s[after_first..last_start])
 }
 
-// ------ Bracket Boundary end ------
-
 #[inline(always)]
-pub fn is_bracket_type_balanced_str(s: &str, open: char) -> bool {
+fn is_bracket_type_balanced_str(s: &str, open: char) -> bool {
     let Some(close) = try_get_matching_closer(open) else {
         // If we don't recognize the opener, treat as "balanced" (same as C# returning true)
         return true;
@@ -363,3 +361,5 @@ pub fn is_bracket_type_balanced_str(s: &str, open: char) -> bool {
 
     depth == 0
 }
+
+// ------ Bracket Boundary end ------

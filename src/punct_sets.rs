@@ -151,7 +151,7 @@ pub fn is_bracket_closer(ch: char) -> bool {
     BRACKET_PAIRS.iter().any(|&(_, close)| close == ch)
 }
 
-/// Try get the matching closing bracket for an opening bracket.
+/// Try to get the matching closing bracket for an opening bracket.
 /// Returns `Some(close)` if the opener is known, otherwise `None`.
 #[inline(always)]
 pub fn try_get_matching_closer(open: char) -> Option<char> {
@@ -329,61 +329,6 @@ pub fn has_unclosed_bracket(s: &str) -> bool {
 
     seen_bracket && !stack.is_empty()
 }
-
-// ------ Bracket Boundary start ------ //
-
-// /// Returns true if the string ends with a balanced CJK-style bracket boundary,
-// /// e.g. （完）, 【番外】, 《後記》.
-// pub fn ends_with_cjk_bracket_boundary(s: &str) -> bool {
-//     let t = s.trim();
-//     if t.is_empty() {
-//         return false;
-//     }
-//
-//     // Need at least two chars: open + close
-//     let mut chars = t.chars();
-//     let open = match chars.next() {
-//         Some(c) => c,
-//         None => return false,
-//     };
-//     let close = match t.chars().rev().next() {
-//         Some(c) => c,
-//         None => return false,
-//     };
-//
-//     // 1) Must be a known matching pair
-//     if !is_matching_bracket(open, close) {
-//         return false;
-//     }
-//
-//     // 2) Avoid Latin cases like "(test)" or "[1.2]"
-//     if !cjk_text::is_mostly_cjk(t) {
-//         return false;
-//     }
-//
-//     // 3) Ensure this bracket type is balanced inside the string
-//     is_bracket_type_balanced(t, open, close)
-// }
-
-// #[inline]
-// fn is_bracket_type_balanced(s: &str, open: char, close: char) -> bool {
-//     let mut depth: i32 = 0;
-//
-//     for ch in s.chars() {
-//         if ch == open {
-//             depth += 1;
-//         } else if ch == close {
-//             depth -= 1;
-//             if depth < 0 {
-//                 return false;
-//             }
-//         }
-//     }
-//
-//     depth == 0
-// }
-
-// ------ Bracket Boundary end ------ //
 
 #[inline]
 pub fn is_visual_divider_line(s: &str) -> bool {
