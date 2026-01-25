@@ -7,15 +7,36 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
+## [0.8.5] - 2026-01-25
+
+### Added
+
+- Added separate prebuilt wheels for **macOS x86_64 (Intel)** and **macOS arm64 (Apple Silicon)** to improve
+  installation compatibility on macOS platforms.
+
+### Changed
+
+- Updated `opencc-fmmseg` dependency to **v0.8.5**.
+
+### Packaging
+
+- Refined macOS wheel packaging to provide architecture-specific builds instead of a single arm64-only wheel.
+- Continued bundling of platform-specific PDFium native libraries in all wheel distributions.
+
+---
+
 ## [0.8.4] - 2026-01-12
 
 ### Added
+
 - PDF support in the `opencc-pyo3` CLI (`pdf` subcommand), enabling direct PDF text extraction and conversion.
 
 ### Changed
+
 - Updated `opencc-fmmseg` to v0.8.4.
 
 ### Packaging
+
 - Bundled platform-specific PDFium native libraries into the generated wheel files.
 
 ---
