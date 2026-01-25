@@ -22,7 +22,6 @@ jobs:
             pdfium_target: win-x64
             maturin_args: >-
               --release
-              --abi3
               --interpreter python3.10
 
           - name: linux-x64
@@ -31,7 +30,6 @@ jobs:
             pdfium_target: linux-x64
             maturin_args: >-
               --release
-              --abi3
               --interpreter python3.10
 
           - name: macos-x64
@@ -40,7 +38,6 @@ jobs:
             pdfium_target: macos-x64
             maturin_args: >-
               --release
-              --abi3
               --interpreter python3.10
               --target x86_64-apple-darwin
 
@@ -50,7 +47,6 @@ jobs:
             pdfium_target: macos-arm64
             maturin_args: >-
               --release
-              --abi3
               --interpreter python3.10
               --target aarch64-apple-darwin
 
