@@ -1,6 +1,6 @@
 [package]
 name = "opencc-pyo3"         # Cargo uses dash
-version = "0.8.4"
+version = "0.8.5"
 edition = "2021"
 authors = ["laisuk <laisuk@yahoo.com>"]
 license = "MIT"

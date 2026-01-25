@@ -350,8 +350,8 @@ checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 
 [[package]]
 name = "opencc-fmmseg"
-version = "0.8.4"
-source = "git+https://github.com/laisuk/opencc-fmmseg.git?branch=master#8fa878d438818381f90791b68f1788148d49924a"
+version = "0.8.5"
+source = "git+https://github.com/laisuk/opencc-fmmseg.git?branch=master#ce6bae8bc008f64cabdd7f592ff2cd1135120daf"
 dependencies = [
  "once_cell",
  "rayon",
@@ -364,7 +364,7 @@ dependencies = [
 
 [[package]]
 name = "opencc-pyo3"
-version = "0.8.4"
+version = "0.8.5"
 dependencies = [
  "once_cell",
  "opencc-fmmseg",
