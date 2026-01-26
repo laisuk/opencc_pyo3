@@ -36,6 +36,7 @@ jobs:
             os: macos-15-intel
             py: "3.10"
             pdfium_target: macos-x64
+            rust_target: x86_64-apple-darwin
             maturin_args: >-
               --release
               --interpreter python3.10
@@ -45,6 +46,7 @@ jobs:
             os: macos-latest
             py: "3.10"
             pdfium_target: macos-arm64
+            rust_target: aarch64-apple-darwin
             maturin_args: >-
               --release
               --interpreter python3.10
@@ -59,10 +61,9 @@ jobs:
         with:
           python-version: ${{ matrix.py }}
 
-      - name: Add Rust targets (macOS)
+      - name: Add Rust target (macOS only, per-job)
         if: runner.os == 'macOS'
-        run: |
-          rustup target add x86_64-apple-darwin aarch64-apple-darwin
+        run: rustup target add ${{ matrix.rust_target }}
 
       - name: Sync Pdfium natives into package
         env:
@@ -89,38 +90,3 @@ jobs:
         with:
           name: wheels-${{ matrix.name }}
           path: target/wheels/*.whl
-
-  publish:
-    name: Publish to PyPI
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Download wheel artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: dist
-
-      - name: Merge wheels
-        run: |
-          mkdir -p final_dist
-          find dist -name '*.whl' -exec mv {} final_dist/ \;
-
-      - name: List final wheels
-        run: |
-          ls -la final_dist
-
-      - name: Publish wheels to PyPI
-        uses: PyO3/maturin-action@v1
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-        with:
-          command: upload
-          args: >-
-            --non-interactive
-            final_dist/*.whl
