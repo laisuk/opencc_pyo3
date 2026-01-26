@@ -30,6 +30,8 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ## [0.8.5] - 2026-01-25
 
+> Note: `Version 0.8.5` has been **yanked** due to PDFium native loading issues. Please use `0.8.6` or later.
+
 ### Added
 
 - Added separate prebuilt wheels for **macOS x86_64 (Intel)** and **macOS arm64 (Apple Silicon)** to improve
