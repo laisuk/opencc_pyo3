@@ -2,9 +2,10 @@
 from __future__ import annotations
 from typing import List
 from opencc_pyo3 import (
-    extract_pdf_pages_with_callback_pdfium,
     reflow_cjk_paragraphs,
 )
+# PDF extraction (requires pdfium.dll presence)
+from opencc_pyo3.pdfium_helper import extract_pdf_pages_with_callback_pdfium
 
 input_file = "tests/简体字.pdf"
 # input_file = "tests/盗墓笔记.pdf"
