@@ -23,7 +23,7 @@ def _detect_platform_folder() -> str:
 
     elif sys.platform.startswith("darwin"):
         arch = "arm64" if os.uname().machine == "arm64" else "x64"
-        return f"osx-{arch}"
+        return f"macos-{arch}"
 
     else:
         raise RuntimeError(f"Unsupported platform: {sys.platform}")
@@ -38,7 +38,7 @@ def load_pdfium() -> ctypes.CDLL:
 
     if sys.platform.startswith("win"):
         libname = "pdfium.dll"
-        dll_cls = ctypes.CDLL  # ALWAYS WIN32 CALLING CONVENTION (stdcall)
+        dll_cls = ctypes.CDLL  # ALWAYS C CALLING CONVENTION (cdecl)
     elif sys.platform.startswith("linux"):
         libname = "libpdfium.so"
         dll_cls = ctypes.CDLL
