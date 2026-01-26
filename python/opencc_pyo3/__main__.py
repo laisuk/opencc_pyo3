@@ -1,21 +1,15 @@
 from __future__ import print_function
 
 import argparse
-import sys
 import io
 import os
+import sys
 import time
 from pathlib import Path
 from typing import List
 
 from opencc_pyo3 import OpenCC, extract_pdf_text, reflow_cjk_paragraphs
 from .office_helper import OFFICE_FORMATS, convert_office_doc
-
-try:
-    # If there's PDFium backend，can import； otherwise fallback
-    from . import extract_pdf_pages_with_callback_pdfium
-except (RuntimeError, Exception):  # ImportError 或 RuntimeError 由 lazy loader 拋出都算
-    extract_pdf_pages_with_callback_pdfium = None  # type: ignore[assignment]
 
 
 def subcommand_convert(args):
@@ -166,15 +160,26 @@ def subcommand_pdf(args) -> int:
     if args.timing:
         t0_total = time.perf_counter()
 
-    # text: str = ""
+    # ---------------------------------------------------------
+    # Lazy import PDFium backend (only for pdf subcommand)
+    # ---------------------------------------------------------
+    extract_pdf_pages_with_callback_pdfium = None
+    pdfium_import_err = None
+
+    if engine in ("auto", "pdfium"):
+        try:
+            from opencc_pyo3.pdfium_helper import (  # type: ignore
+                extract_pdf_pages_with_callback_pdfium,
+            )
+        except Exception as exc:
+            extract_pdf_pages_with_callback_pdfium = None
+            pdfium_import_err = exc
 
     # ---------------------------------------------------------
     # AUTO ENGINE SELECTION
     # ---------------------------------------------------------
     if engine == "auto":
-        pdfium_available = extract_pdf_pages_with_callback_pdfium is not None
-
-        if pdfium_available:
+        if extract_pdf_pages_with_callback_pdfium is not None:
             try:
                 pages: List[str] = []
 
@@ -186,7 +191,6 @@ def subcommand_pdf(args) -> int:
                 extract_pdf_pages_with_callback_pdfium(input_path_str, _on_page)
                 print()
                 text = "".join(pages)
-
                 engine_used = "pdfium"
 
             except Exception as exc:
@@ -199,7 +203,13 @@ def subcommand_pdf(args) -> int:
                 text = extract_pdf_text(input_path_str)
                 engine_used = "rust"
         else:
-            print("⚠️  PDFium backend is not available; using pure-Rust extractor.")
+            if pdfium_import_err is not None:
+                print(
+                    f"⚠️  PDFium backend is not available ({pdfium_import_err}); using pure-Rust extractor.",
+                    file=sys.stderr,
+                )
+            else:
+                print("⚠️  PDFium backend is not available; using pure-Rust extractor.", file=sys.stderr)
             print("Extracting PDF text...please wait...")
             text = extract_pdf_text(input_path_str)
             engine_used = "rust"
@@ -209,10 +219,13 @@ def subcommand_pdf(args) -> int:
     # ---------------------------------------------------------
     elif engine == "pdfium":
         if extract_pdf_pages_with_callback_pdfium is None:
-            print(
-                "⚠️  PDFium backend not available. Falling back to Rust.",
-                file=sys.stderr,
-            )
+            if pdfium_import_err is not None:
+                print(
+                    f"⚠️  PDFium backend not available ({pdfium_import_err}). Falling back to Rust.",
+                    file=sys.stderr,
+                )
+            else:
+                print("⚠️  PDFium backend not available. Falling back to Rust.", file=sys.stderr)
             print("Extracting PDF text...please wait...")
             text = extract_pdf_text(input_path_str)
             engine_used = "rust"
@@ -266,13 +279,11 @@ def subcommand_pdf(args) -> int:
     # ---------------------------------------------------------
     # OpenCC Conversion (optional)
     # ---------------------------------------------------------
-    # --extract means: extraction only, no OpenCC conversion.
     if not args.extract:
         if args.config:
             opencc = OpenCC(args.config)
             text = opencc.convert(text, args.punct)
     else:
-        # Optional: warn if user provided config/punct but asked extract-only
         if args.config or args.punct:
             print("ℹ️  --extract specified: skipping OpenCC conversion.", file=sys.stderr)
 

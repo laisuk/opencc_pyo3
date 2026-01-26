@@ -8,7 +8,6 @@ from .opencc_pyo3 import (
     extract_pdf_text_pages,
     extract_pdf_pages_with_callback
 )
-from .pdfium_helper import extract_pdf_pages_with_callback_pdfium
 
 
 class OpenccConfig(Enum):
