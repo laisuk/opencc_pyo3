@@ -7,6 +7,17 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
+## [0.8.6] - 2026-01-26
+
+### Fixed
+
+- **macOS native loading path**: corrected the platform folder name from `osx-*` to `macos-*`, ensuring the PDFium
+  native library is loaded from the correct directory on macOS systems.
+- **Linux wheel packaging**: fixed an issue where `libpdfium.so` was not included in Linux wheels due to an imprecise
+  packaging include pattern. The wheel build now explicitly includes all PDFium native files on Linux.
+
+---
+
 ## [0.8.5] - 2026-01-25
 
 ### Added
