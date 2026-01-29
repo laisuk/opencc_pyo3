@@ -1,5 +1,8 @@
 # use_pdfium_progress.py
 from __future__ import annotations
+
+import sys
+from pathlib import Path
 from typing import List
 from opencc_pyo3 import (
     reflow_cjk_paragraphs,
@@ -7,9 +10,9 @@ from opencc_pyo3 import (
 # PDF extraction (requires pdfium.dll presence)
 from opencc_pyo3.pdfium_helper import extract_pdf_pages_with_callback_pdfium
 
-input_file = "tests/简体字.pdf"
+input_file = "简体字.pdf"
 # input_file = "tests/盗墓笔记.pdf"
-output_file = "tests/简体字_extracted.txt"
+output_file = "简体字_extracted.txt"
 # output_file = "tests/盗墓笔记_extracted.txt"
 
 _pages: List[str] = []
@@ -24,6 +27,14 @@ def on_page(page: int, total: int, text: str) -> None:
 
 
 def main() -> None:
+    input_path_str = str(input_file)
+
+    p = Path(input_path_str)
+    if not p.is_file():
+        print("❌ PDF file not found.", file=sys.stderr)
+        print(f"  Path : {input_path_str}", file=sys.stderr)
+        return
+
     print(f"Extracting PDF page-by-page with PDFium: {input_file}")
 
     # PDFium backend: if it fails, it's usually a fatal PDF issue
