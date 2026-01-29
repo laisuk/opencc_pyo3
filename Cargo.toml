@@ -23,6 +23,10 @@ smallvec = "1.15.1"
 
 [features]
 default = []
+
+# Enable only when building a Python extension module (e.g. via maturin).
+# Do NOT enable by default: `cargo test` builds a standalone executable
+# which must link against libpython and will fail in extension-module mode (Linux).
 extension-module = ["pyo3/extension-module"]
 
 [lib]
