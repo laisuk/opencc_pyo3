@@ -18,6 +18,7 @@ KNOWN = {
     "macos-arm64",
     "win-x64",
     "win-arm64",
+    "win-x86",
 }
 
 
@@ -31,9 +32,20 @@ def detect_target() -> str:
     mach = platform.machine().lower()
 
     if sys_name == "windows":
-        return "win-x64"
+        # Normalize common Windows machine strings
+        if mach in ("amd64", "x86_64"):
+            return "win-x64"
+        if mach in ("x86", "i386"):
+            return "win-x86"
+        if mach in ("arm64", "aarch64"):
+            return "win-arm64"
+
+        # Fallback: Python bitness
+        return "win-x64" if sys.maxsize > 2**32 else "win-x86"
+
     if sys_name == "linux":
-        return "linux-x64"
+        return "linux-arm64" if mach in ("aarch64", "arm64") else "linux-x64"
+
     if sys_name == "darwin":
         return "macos-arm64" if mach in ("arm64", "aarch64") else "macos-x64"
 
