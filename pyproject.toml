@@ -41,6 +41,6 @@ opencc-pyo3 = "opencc_pyo3.__main__:main"
 include = [
     "opencc_pyo3/pdfium/**/*",
 ]
-sdist-include = [
-    "opencc_pyo3/pdfium/**/*",
-]
+#sdist-include = [
+#    "opencc_pyo3/pdfium/**/*",
+#]

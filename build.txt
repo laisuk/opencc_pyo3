@@ -10,7 +10,7 @@ opencc_pyo3.pyi
 
 prepare .venv if needed
 maturin develop -r
-(This create pyd into opencc_pyo3 folder, need venv, if any old pyd in the folder, delete it first)
+(This creates pyd into opencc_pyo3 folder, need venv, if any old pyd in the folder, delete it first)
 
 Exit .venv to Windows system Python env (Deactivate) (Optional)
 maturin build -r
