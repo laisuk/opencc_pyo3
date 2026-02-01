@@ -69,7 +69,6 @@ jobs:
             maturin_args: >-
               --release
               --interpreter python3.10
-              --target x86_64-win7-windows-msvc
               -Z build-std=std,panic_abort
 
     steps:
@@ -108,6 +107,7 @@ jobs:
           RUSTFLAGS: ${{ matrix.is_win7 && '-C link-arg=/SUBSYSTEM:CONSOLE,6.01' || '' }}
         with:
           command: build
+          target: ${{ matrix.rust_target }}
           args: ${{ matrix.maturin_args }}
 
       - name: Build wheels (Linux, manylinux)
