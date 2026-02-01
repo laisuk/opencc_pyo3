@@ -94,16 +94,30 @@ jobs:
           CI: "true"
         run: python tools/sync_pdfium_for_wheel.py --target ${{ matrix.pdfium_target }}
 
-      - name: Build wheels (Win7, manual maturin)
-        if: runner.os == 'Windows' && matrix.is_win7
-        shell: pwsh
+#      - name: Build wheels (Win7, manual maturin)
+#        if: runner.os == 'Windows' && matrix.is_win7
+#        shell: pwsh
+#        env:
+#          RUSTUP_TOOLCHAIN: nightly
+#          RUSTFLAGS: -C link-arg=/SUBSYSTEM:CONSOLE,6.01
+#        run: |
+#          python -m pip install -U pip
+#          python -m pip install -U "maturin>=1,<2"
+#          maturin build --release --interpreter python --target x86_64-win7-windows-msvc -Z build-std=std,panic_abort
+
+      - name: Build wheels (Win7 via maturin-action, no --target)
+        if: matrix.is_win7
+        uses: PyO3/maturin-action@v1
         env:
           RUSTUP_TOOLCHAIN: nightly
           RUSTFLAGS: -C link-arg=/SUBSYSTEM:CONSOLE,6.01
-        run: |
-          python -m pip install -U pip
-          python -m pip install -U "maturin>=1,<2"
-          maturin build --release --interpreter python --target x86_64-win7-windows-msvc -Z build-std=std,panic_abort
+          CARGO_BUILD_TARGET: x86_64-win7-windows-msvc
+        with:
+          command: build
+          args: >-
+            --release
+            --interpreter python3.10
+            -Z build-std=std,panic_abort
 
       - name: Build wheels (normal)
         if: ${{ matrix.is_win7 != true }}
