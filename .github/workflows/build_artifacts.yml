@@ -94,10 +94,6 @@ jobs:
         if: runner.os == 'macOS'
         run: rustup target add ${{ matrix.rust_target }}
 
-      - name: Add Rust target (Win7 only)
-        if: matrix.is_win7
-        run: rustup target add ${{ matrix.rust_target }}
-
       - name: Sync Pdfium natives into package
         env:
           CI: "true"
