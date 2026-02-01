@@ -7,62 +7,113 @@ jobs:
   build:
     name: Build wheels (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
 
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: linux-x64
-            os: ubuntu-latest
-            pdfium_target: linux-x64
-            maturin_args: >-
-              --release
-              --interpreter python3.10
-
+          # -------------------------
+          # Normal wheels
+          # -------------------------
           - name: windows-x64
             os: windows-latest
+            py: "3.10"
             pdfium_target: win-x64
+            is_win7: false
             maturin_args: >-
               --release
               --interpreter python3.10
 
-          - name: macos-arm64
-            os: macos-latest
-            pdfium_target: macos-arm64
-            rust_target: aarch64-apple-darwin
+          - name: linux-x64
+            os: ubuntu-latest
+            py: "3.10"
+            pdfium_target: linux-x64
+            is_win7: false
             maturin_args: >-
               --release
               --interpreter python3.10
-              --target aarch64-apple-darwin
 
           - name: macos-x64
             os: macos-15-intel
+            py: "3.10"
             pdfium_target: macos-x64
             rust_target: x86_64-apple-darwin
+            is_win7: false
             maturin_args: >-
               --release
               --interpreter python3.10
               --target x86_64-apple-darwin
 
+          - name: macos-arm64
+            os: macos-latest
+            py: "3.10"
+            pdfium_target: macos-arm64
+            rust_target: aarch64-apple-darwin
+            is_win7: false
+            maturin_args: >-
+              --release
+              --interpreter python3.10
+              --target aarch64-apple-darwin
+
+          # -------------------------
+          # Win7-compatible wheel (artifact-only)
+          # -------------------------
+          - name: windows-win7-x64
+            os: windows-latest
+            py: "3.10"
+            pdfium_target: win-x64
+            is_win7: true
+            rust_target: x86_64-win7-windows-msvc
+            maturin_args: >-
+              --release
+              --interpreter python3.10
+              --target x86_64-win7-windows-msvc
+              -Z build-std=std,panic_abort
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: ${{ matrix.py }}
 
+      # Win7 needs nightly + rust-src for -Z build-std
+      - name: Set Rust (nightly + rust-src) for Win7
+        if: matrix.is_win7
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly
+          components: rust-src
+
+      # Add targets only when needed
       - name: Add Rust target (macOS only, per-job)
         if: runner.os == 'macOS'
         run: rustup target add ${{ matrix.rust_target }}
 
-      # Sync only this platform's pdfium native into opencc_pyo3/pdfium
-      - name: Sync pdfium natives into package (CI)
+      - name: Add Rust target (Win7 only)
+        if: matrix.is_win7
+        run: rustup target add ${{ matrix.rust_target }}
+
+      - name: Sync Pdfium natives into package
         env:
           CI: "true"
         run: python tools/sync_pdfium_for_wheel.py --target ${{ matrix.pdfium_target }}
 
-      # Build wheels
+      - name: Build wheels (non-Linux)
+        if: runner.os != 'Linux'
+        uses: PyO3/maturin-action@v1
+        env:
+          # Win7: session-only environment, does not affect other jobs
+          RUSTUP_TOOLCHAIN: ${{ matrix.is_win7 && 'nightly' || '' }}
+          RUSTFLAGS: ${{ matrix.is_win7 && '-C link-arg=/SUBSYSTEM:CONSOLE,6.01' || '' }}
+        with:
+          command: build
+          args: ${{ matrix.maturin_args }}
+
       - name: Build wheels (Linux, manylinux)
         if: runner.os == 'Linux'
         uses: PyO3/maturin-action@v1
@@ -70,13 +121,6 @@ jobs:
           command: build
           args: ${{ matrix.maturin_args }}
           manylinux: auto
-
-      - name: Build wheels (non-Linux)
-        if: runner.os != 'Linux'
-        uses: PyO3/maturin-action@v1
-        with:
-          command: build
-          args: ${{ matrix.maturin_args }}
 
       - name: Upload wheel artifacts
         uses: actions/upload-artifact@v4
