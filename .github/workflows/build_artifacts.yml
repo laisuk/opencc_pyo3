@@ -39,7 +39,6 @@ jobs:
             os: macos-15-intel
             py: "3.10"
             pdfium_target: macos-x64
-            rust_target: x86_64-apple-darwin
             is_win7: false
             maturin_args: >-
               --release
@@ -50,7 +49,6 @@ jobs:
             os: macos-latest
             py: "3.10"
             pdfium_target: macos-arm64
-            rust_target: aarch64-apple-darwin
             is_win7: false
             maturin_args: >-
               --release
@@ -69,7 +67,6 @@ jobs:
             maturin_args: >-
               --release
               --interpreter python3.10
-              --target x86_64-win7-windows-msvc
               -Z build-std=std,panic_abort
 
     steps:
@@ -83,7 +80,7 @@ jobs:
 
       # Win7 needs nightly + rust-src for -Z build-std
       - name: Set Rust (nightly + rust-src) for Win7
-        if: matrix.is_win7
+        if: ${{ matrix.is_win7 }}
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: nightly
@@ -94,30 +91,27 @@ jobs:
           CI: "true"
         run: python tools/sync_pdfium_for_wheel.py --target ${{ matrix.pdfium_target }}
 
-#      - name: Build wheels (Win7, manual maturin)
-#        if: runner.os == 'Windows' && matrix.is_win7
-#        shell: pwsh
-#        env:
-#          RUSTUP_TOOLCHAIN: nightly
-#          RUSTFLAGS: -C link-arg=/SUBSYSTEM:CONSOLE,6.01
-#        run: |
-#          python -m pip install -U pip
-#          python -m pip install -U "maturin>=1,<2"
-#          maturin build --release --interpreter python --target x86_64-win7-windows-msvc -Z build-std=std,panic_abort
+      #      - name: Build wheels (Win7, manual maturin)
+      #        if: runner.os == 'Windows' && matrix.is_win7
+      #        shell: pwsh
+      #        env:
+      #          RUSTUP_TOOLCHAIN: nightly
+      #          RUSTFLAGS: -C link-arg=/SUBSYSTEM:CONSOLE,6.01
+      #        run: |
+      #          python -m pip install -U pip
+      #          python -m pip install -U "maturin>=1,<2"
+      #          maturin build --release --interpreter python --target x86_64-win7-windows-msvc -Z build-std=std,panic_abort
 
       - name: Build wheels (Win7 via maturin-action, no --target)
-        if: matrix.is_win7
+        if: ${{ runner.os == 'Windows' && matrix.is_win7 }}
         uses: PyO3/maturin-action@v1
         env:
           RUSTUP_TOOLCHAIN: nightly
           RUSTFLAGS: -C link-arg=/SUBSYSTEM:CONSOLE,6.01
-          CARGO_BUILD_TARGET: x86_64-win7-windows-msvc
+          CARGO_BUILD_TARGET: ${{ matrix.rust_target }}
         with:
           command: build
-          args: >-
-            --release
-            --interpreter python3.10
-            -Z build-std=std,panic_abort
+          args: ${{ matrix.maturin_args }}
 
       - name: Build wheels (normal)
         if: ${{ matrix.is_win7 != true }}
@@ -125,7 +119,6 @@ jobs:
         with:
           command: build
           args: ${{ matrix.maturin_args }}
-
 
       - name: Upload wheel artifacts
         uses: actions/upload-artifact@v4
