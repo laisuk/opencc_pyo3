@@ -106,20 +106,13 @@ jobs:
           python -m pip install -U "maturin>=1,<2"
           maturin build --release --interpreter python --target x86_64-win7-windows-msvc -Z build-std=std,panic_abort
 
-      - name: Build wheels (non-Linux)
-        if: runner.os != 'Linux' && !matrix.is_win7
+      - name: Build wheels (normal)
+        if: ${{ matrix.is_win7 != true }}
         uses: PyO3/maturin-action@v1
         with:
           command: build
           args: ${{ matrix.maturin_args }}
 
-      - name: Build wheels (Linux, manylinux)
-        if: runner.os == 'Linux'
-        uses: PyO3/maturin-action@v1
-        with:
-          command: build
-          args: ${{ matrix.maturin_args }}
-          manylinux: auto
 
       - name: Upload wheel artifacts
         uses: actions/upload-artifact@v4
