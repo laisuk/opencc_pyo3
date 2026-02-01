@@ -100,7 +100,6 @@ jobs:
         env:
           RUSTUP_TOOLCHAIN: nightly
           RUSTFLAGS: -C link-arg=/SUBSYSTEM:CONSOLE,6.01
-          RUST_TARGET_PATH: ${{ github.workspace }}\targets
         run: |
           python -m pip install -U pip
           python -m pip install -U "maturin>=1,<2"
