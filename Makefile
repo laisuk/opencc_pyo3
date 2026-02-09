@@ -15,13 +15,13 @@ POWERSHELL ?= pwsh
 build:
 	$(POWERSHELL) -NoProfile -Command "\
 		$$env:RUSTFLAGS = $$null; \
-		maturin build --release --interpreter $(PYTHON) \
+		maturin build --release \
 	"
 
 develop:
 	$(POWERSHELL) -NoProfile -Command "\
 		$$env:RUSTFLAGS = $$null; \
-		maturin develop --release --interpreter $(PYTHON) \
+		maturin develop --release \
 	"
 
 # -------------------------
