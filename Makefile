@@ -6,26 +6,74 @@ WIN7_RUSTFLAGS ?= -C link-arg=/SUBSYSTEM:CONSOLE,6.01
 WIN7_ZFLAGS ?= -Z build-std=std,panic_abort
 POWERSHELL ?= pwsh
 
-.PHONY: build develop build-win7 develop-win7 clean check publish
+.PHONY: build develop build-stable develop-stable develop-win7-x64 build-win7-x64 build-win7-x86 clean check
 
 # -------------------------
-# Normal builds (explicitly no Win7 flags)
+# Normal builds (no Win7 flags, no forced toolchain)
 # -------------------------
 
 build:
 	$(POWERSHELL) -NoProfile -Command "\
+		$$oldRustflags = $$env:RUSTFLAGS; \
+		$$oldToolchain = $$env:RUSTUP_TOOLCHAIN; \
+		\
 		$$env:RUSTFLAGS = $$null; \
-		maturin build --release \
+		$$env:RUSTUP_TOOLCHAIN = $$null; \
+		\
+		maturin build --release; \
+		\
+		$$env:RUSTFLAGS = $$oldRustflags; \
+		$$env:RUSTUP_TOOLCHAIN = $$oldToolchain \
 	"
 
 develop:
 	$(POWERSHELL) -NoProfile -Command "\
+		$$oldRustflags = $$env:RUSTFLAGS; \
+		$$oldToolchain = $$env:RUSTUP_TOOLCHAIN; \
+		\
 		$$env:RUSTFLAGS = $$null; \
-		maturin develop --release \
+		$$env:RUSTUP_TOOLCHAIN = $$null; \
+		\
+		maturin develop --release; \
+		\
+		$$env:RUSTFLAGS = $$oldRustflags; \
+		$$env:RUSTUP_TOOLCHAIN = $$oldToolchain \
 	"
 
 # -------------------------
-# Win7 (PowerShell, echoed, scoped)
+# Stable toolchain builds
+# -------------------------
+
+build-stable:
+	$(POWERSHELL) -NoProfile -Command "\
+		$$oldRustflags = $$env:RUSTFLAGS; \
+		$$oldToolchain = $$env:RUSTUP_TOOLCHAIN; \
+		\
+		$$env:RUSTFLAGS = $$null; \
+		$$env:RUSTUP_TOOLCHAIN = 'stable'; \
+		\
+		maturin build --release; \
+		\
+		$$env:RUSTFLAGS = $$oldRustflags; \
+		$$env:RUSTUP_TOOLCHAIN = $$oldToolchain \
+	"
+
+develop-stable:
+	$(POWERSHELL) -NoProfile -Command "\
+		$$oldRustflags = $$env:RUSTFLAGS; \
+		$$oldToolchain = $$env:RUSTUP_TOOLCHAIN; \
+		\
+		$$env:RUSTFLAGS = $$null; \
+		$$env:RUSTUP_TOOLCHAIN = 'stable'; \
+		\
+		maturin develop --release; \
+		\
+		$$env:RUSTFLAGS = $$oldRustflags; \
+		$$env:RUSTUP_TOOLCHAIN = $$oldToolchain \
+	"
+
+# -------------------------
+# Win7 (PowerShell, echoed, scoped + restore)
 # -------------------------
 
 develop-win7-x64:
@@ -40,12 +88,19 @@ develop-win7-x64:
 	@echo   $(WIN7_ZFLAGS)
 	@echo.
 	$(POWERSHELL) -NoProfile -Command "\
-		$$env:RUSTUP_TOOLCHAIN = '$(WIN7_TOOLCHAIN)'; \
-		$$env:RUSTFLAGS = '$(WIN7_RUSTFLAGS)'; \
-		maturin develop ` \
-		  --release ` \
-		  --target $(WIN7_TARGET) ` \
-		  $(WIN7_ZFLAGS) \
+		$$oldToolchain = $$env:RUSTUP_TOOLCHAIN; \
+		$$oldRustflags = $$env:RUSTFLAGS; \
+		try { \
+			$$env:RUSTUP_TOOLCHAIN = '$(WIN7_TOOLCHAIN)'; \
+			$$env:RUSTFLAGS = '$(WIN7_RUSTFLAGS)'; \
+			maturin develop ` \
+			  --release ` \
+			  --target $(WIN7_TARGET) ` \
+			  $(WIN7_ZFLAGS); \
+		} finally { \
+			$$env:RUSTUP_TOOLCHAIN = $$oldToolchain; \
+			$$env:RUSTFLAGS = $$oldRustflags; \
+		} \
 	"
 
 build-win7-x64:
@@ -64,30 +119,20 @@ build-win7-x64:
 	@echo   $(WIN7_ZFLAGS)
 	@echo.
 	$(POWERSHELL) -NoProfile -Command "\
-		$$env:RUSTUP_TOOLCHAIN = '$(WIN7_TOOLCHAIN)'; \
-		$$env:RUSTFLAGS = '$(WIN7_RUSTFLAGS)'; \
-		maturin build ` \
-		  --release ` \
-		  --target $(WIN7_TARGET) ` \
-		  $(WIN7_ZFLAGS) \
+		$$oldToolchain = $$env:RUSTUP_TOOLCHAIN; \
+		$$oldRustflags = $$env:RUSTFLAGS; \
+		try { \
+			$$env:RUSTUP_TOOLCHAIN = '$(WIN7_TOOLCHAIN)'; \
+			$$env:RUSTFLAGS = '$(WIN7_RUSTFLAGS)'; \
+			maturin build ` \
+			  --release ` \
+			  --target $(WIN7_TARGET) ` \
+			  $(WIN7_ZFLAGS); \
+		} finally { \
+			$$env:RUSTUP_TOOLCHAIN = $$oldToolchain; \
+			$$env:RUSTFLAGS = $$oldRustflags; \
+		} \
 	"
-
-# ------------------------------------------------------------
-# build-win7-x86
-#
-# Build a Windows 7–compatible 32-bit Python extension wheel
-# on a modern Windows host (e.g. Windows 11).
-#
-# Target:
-#   - Rust: i686-win7-windows-msvc
-#   - Python: cp38-abi3 (requires Python 3.8 x86 at runtime)
-#
-# Notes:
-#   - Uses nightly + build-std to support Win7
-#   - Forces PE subsystem version 6.01 (Windows 7)
-#   - Produces a distributable .whl via maturin
-#   - Cleans pdfium native residues from other platforms before sync
-# ------------------------------------------------------------
 build-win7-x86:
 	@echo ============================================================
 	@echo Win7 x86 wheel build (host: Windows 10/11)
@@ -112,37 +157,44 @@ build-win7-x86:
 	$(POWERSHELL) -NoProfile -Command "& { \
 		$$ErrorActionPreference = 'Stop'; \
 		\
-		Write-Host '==[1] Clean pdfium folders (keep win-x86 only)=='; \
-		$$pdfiumRoot = Join-Path (Get-Location) 'opencc_pyo3/pdfium'; \
-		Write-Host ('pdfiumRoot=' + $$pdfiumRoot); \
-		if (Test-Path $$pdfiumRoot) { \
-			Get-ChildItem -LiteralPath $$pdfiumRoot -Directory -ErrorAction SilentlyContinue | ForEach-Object { \
-				if ($$_.Name -ne 'win-x86') { \
-					Write-Host ('Removing: ' + $$_.FullName); \
-					Remove-Item -LiteralPath $$_.FullName -Recurse -Force; \
-				} \
-			}; \
-		} else { \
-			New-Item -ItemType Directory -Path $$pdfiumRoot | Out-Null; \
+		$$oldToolchain = $$env:RUSTUP_TOOLCHAIN; \
+		$$oldRustflags = $$env:RUSTFLAGS; \
+		try { \
+			Write-Host '==[1] Clean pdfium folders (keep win-x86 only)=='; \
+			$$pdfiumRoot = Join-Path (Get-Location) 'opencc_pyo3/pdfium'; \
+			Write-Host ('pdfiumRoot=' + $$pdfiumRoot); \
+			if (Test-Path $$pdfiumRoot) { \
+				Get-ChildItem -LiteralPath $$pdfiumRoot -Directory -ErrorAction SilentlyContinue | ForEach-Object { \
+					if ($$_.Name -ne 'win-x86') { \
+						Write-Host ('Removing: ' + $$_.FullName); \
+						Remove-Item -LiteralPath $$_.FullName -Recurse -Force; \
+					} \
+				}; \
+			} else { \
+				New-Item -ItemType Directory -Path $$pdfiumRoot | Out-Null; \
+			} \
+			\
+			Write-Host '==[2] Clear residues inside win-x86 folder=='; \
+			$$winx86 = Join-Path $$pdfiumRoot 'win-x86'; \
+			if (Test-Path $$winx86) { \
+				Get-ChildItem -LiteralPath $$winx86 -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force; \
+			} else { \
+				New-Item -ItemType Directory -Path $$winx86 | Out-Null; \
+			} \
+			\
+			Write-Host '==[3] Sync Pdfium natives: --local --target win-x86=='; \
+			python tools/sync_pdfium_for_wheel.py --local --target win-x86; \
+			Write-Host 'Contents of opencc_pyo3/pdfium after sync:'; \
+			Get-ChildItem -LiteralPath $$pdfiumRoot -Recurse | ForEach-Object { Write-Host $$_.FullName }; \
+			\
+			Write-Host '==[4] Build wheel (maturin)=='; \
+			$$env:RUSTUP_TOOLCHAIN = '$(WIN7_TOOLCHAIN)'; \
+			$$env:RUSTFLAGS = '$(WIN7_RUSTFLAGS)'; \
+			maturin build --release --target $(WIN7_X86_TARGET) $(WIN7_ZFLAGS); \
+		} finally { \
+			$$env:RUSTUP_TOOLCHAIN = $$oldToolchain; \
+			$$env:RUSTFLAGS = $$oldRustflags; \
 		} \
-		\
-		Write-Host '==[2] Clear residues inside win-x86 folder=='; \
-		$$winx86 = Join-Path $$pdfiumRoot 'win-x86'; \
-		if (Test-Path $$winx86) { \
-			Get-ChildItem -LiteralPath $$winx86 -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force; \
-		} else { \
-			New-Item -ItemType Directory -Path $$winx86 | Out-Null; \
-		} \
-		\
-		Write-Host '==[3] Sync Pdfium natives: --local --target win-x86=='; \
-		python tools/sync_pdfium_for_wheel.py --local --target win-x86; \
-		Write-Host 'Contents of opencc_pyo3/pdfium after sync:'; \
-		Get-ChildItem -LiteralPath $$pdfiumRoot -Recurse | ForEach-Object { Write-Host $$_.FullName }; \
-		\
-		Write-Host '==[4] Build wheel (maturin)=='; \
-		$$env:RUSTUP_TOOLCHAIN = '$(WIN7_TOOLCHAIN)'; \
-		$$env:RUSTFLAGS = '$(WIN7_RUSTFLAGS)'; \
-		maturin build --release --target $(WIN7_X86_TARGET) $(WIN7_ZFLAGS); \
 	}"
 
 # -------------------------
