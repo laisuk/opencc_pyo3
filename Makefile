@@ -28,7 +28,7 @@ develop:
 # Win7 (PowerShell, echoed, scoped)
 # -------------------------
 
-develop-win7:
+develop-win7-x64:
 	@echo PowerShell:
 	@echo.
 	@echo $$env:RUSTUP_TOOLCHAIN = "$(WIN7_TOOLCHAIN)"
@@ -48,7 +48,7 @@ develop-win7:
 		  $(WIN7_ZFLAGS) \
 	"
 
-build-win7:
+build-win7-x64:
 	@echo Correct maturin build command (Win11 host)
 	@echo ------------------------------------------
 	@echo Used to produce distributable wheel (.whl):
