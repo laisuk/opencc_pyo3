@@ -484,7 +484,7 @@ def main():
         help="Show time use for each process workflow.",
     )
     parser_pdf.add_argument(
-        "-e",
+        "-E",
         "--engine",
         metavar="<engine>",
         choices=["auto", "rust", "pdfium"],
@@ -498,7 +498,7 @@ def main():
         ),
     )
     parser_pdf.add_argument(
-        "-E",
+        "-e",
         "--extract",
         action="store_true",
         default=False,
