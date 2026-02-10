@@ -4,7 +4,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 from typing import List
-from opencc_pyo3 import (
+from opencc_pyo3.opencc_pyo3 import (
     reflow_cjk_paragraphs,
 )
 # PDF extraction (requires pdfium.dll presence)
