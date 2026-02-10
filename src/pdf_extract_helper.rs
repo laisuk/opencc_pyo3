@@ -1,5 +1,8 @@
+#[cfg(feature = "pdf-extract")]
 use pdf_extract::Document;
-use pyo3::{exceptions, pyfunction, Py, PyAny, PyResult, Python};
+#[cfg(feature = "pdf-extract")]
+use pyo3::{Python};
+use pyo3::{exceptions, pyfunction, Py, PyAny, PyResult};
 
 /// Extracts plain text from a PDF file.
 ///
@@ -16,6 +19,7 @@ use pyo3::{exceptions, pyfunction, Py, PyAny, PyResult, Python};
 /// -------
 /// str
 ///     Concatenated text of all pages.
+#[cfg(feature = "pdf-extract")]
 #[pyfunction]
 pub fn extract_pdf_text(path: &str) -> PyResult<String> {
     let text = pdf_extract::extract_text(path).map_err(|e| {
@@ -25,6 +29,15 @@ pub fn extract_pdf_text(path: &str) -> PyResult<String> {
         ))
     })?;
     Ok(text)
+}
+
+#[cfg(not(feature = "pdf-extract"))]
+#[pyfunction]
+pub fn extract_pdf_text(_path: &str) -> PyResult<String> {
+    Err(exceptions::PyRuntimeError::new_err(
+        "Feature 'pdf-extract' is disabled. \
+         This build only supports PDFium-based extraction.",
+    ))
 }
 
 /// Extracts plain text from a PDF file, split by pages.
@@ -42,6 +55,7 @@ pub fn extract_pdf_text(path: &str) -> PyResult<String> {
 /// -------
 /// List[str]
 ///     A list of page texts. `result[i]` is the text of page `i + 1`.
+#[cfg(feature = "pdf-extract")]
 #[pyfunction]
 pub fn extract_pdf_text_pages(path: &str) -> PyResult<Vec<String>> {
     let pages = pdf_extract::extract_text_by_pages(path).map_err(|e| {
@@ -53,6 +67,15 @@ pub fn extract_pdf_text_pages(path: &str) -> PyResult<Vec<String>> {
     Ok(pages)
 }
 
+#[cfg(not(feature = "pdf-extract"))]
+#[pyfunction]
+pub fn extract_pdf_text_pages(_path: &str) -> PyResult<Vec<String>> {
+    Err(exceptions::PyRuntimeError::new_err(
+        "Feature 'pdf-extract' is disabled. \
+         Use a PDFium-enabled build instead.",
+    ))
+}
+
 /// Extracts PDF text page-by-page and reports progress to a Python callback.
 ///
 /// For PDFs where `pdf-extract` can see the page tree:
@@ -61,6 +84,7 @@ pub fn extract_pdf_text_pages(path: &str) -> PyResult<Vec<String>> {
 ///   - falls back to `extract_text(path)` and calls the callback once as 1/1.
 ///
 /// callback signature: callback(page_number, total_pages, text)
+#[cfg(feature = "pdf-extract")]
 #[pyfunction]
 pub fn extract_pdf_pages_with_callback(path: &str, callback: Py<PyAny>) -> PyResult<()> {
     use pyo3::exceptions;
@@ -175,4 +199,16 @@ pub fn extract_pdf_pages_with_callback(path: &str, callback: Py<PyAny>) -> PyRes
         }
         Ok(())
     })
+}
+
+#[cfg(not(feature = "pdf-extract"))]
+#[pyfunction]
+pub fn extract_pdf_pages_with_callback(
+    _path: &str,
+    _callback: Py<PyAny>,
+) -> PyResult<()> {
+    Err(exceptions::PyRuntimeError::new_err(
+        "Feature 'pdf-extract' is disabled. \
+         Page-by-page extraction requires PDFium.",
+    ))
 }

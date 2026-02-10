@@ -12,7 +12,7 @@ This module provides:
 from __future__ import annotations
 
 import ctypes
-from typing import Callable, Any
+from typing import Callable, Any, Tuple, List
 
 from .pdfium_loader import load_pdfium
 
@@ -249,3 +249,85 @@ def extract_pdf_pages_with_callback_pdfium(
     finally:
         _pdfium.FPDF_CloseDocument(doc)
         _pdfium.FPDF_DestroyLibrary()
+
+
+def make_progress_collector() -> Tuple[Callable[[int, int, str], None], List[str]]:
+    """
+    Create a progress-reporting callback for PDF page extraction.
+
+    The returned callback:
+    - prints a single-line progress indicator (carriage-return based)
+    - collects extracted page text in order
+
+    Returns
+    -------
+    callback : (page: int, total: int, text: str) -> None
+        Callback suitable for OpenCC PDF extract APIs.
+    pages : List[str]
+        Collected page texts.
+    """
+    pages: List[str] = []
+
+    def on_page(page: int, total: int, text: str) -> None:
+        percent = page * 100 // total if total else 100
+        msg = f"Loading [{page}/{total}] ({percent:3d}%) Extracted {len(text)} chars"
+
+        # Pad so previous content is fully overwritten
+        print(msg.ljust(80), end="\r", flush=True)
+
+        pages.append(text)
+
+    return on_page, pages
+
+
+def make_silent_collector() -> Tuple[Callable[[int, int, str], None], List[str]]:
+    """
+    Create a silent PDF page collector.
+
+    The returned callback:
+    - collects extracted page text in order
+    - does NOT print progress
+
+    Returns
+    -------
+    callback : (page: int, total: int, text: str) -> None
+    pages : List[str]
+    """
+    pages: List[str] = []
+
+    def on_page(_page: int, _total: int, text: str) -> None:
+        pages.append(text)
+
+    return on_page, pages
+
+
+def extract_pdf_text_progress(path: str) -> str:
+    """
+    Extract full PDF text with a terminal progress indicator.
+
+    This uses the page-by-page PDF extraction backend and prints a
+    carriage-return-based progress line while extracting.
+
+    Parameters
+    ----------
+    path : str
+        Path to the PDF file.
+
+    Returns
+    -------
+    str
+        Concatenated text of all pages.
+    """
+    callback, pages = make_progress_collector()
+    extract_pdf_pages_with_callback_pdfium(path, callback)
+    print()  # move to next line after progress
+    return "".join(pages)
+
+
+def extract_pdf_text_silent(path: str) -> str:
+    """
+    Extract full PDF text without printing progress.
+    """
+    callback, pages = make_silent_collector()
+    extract_pdf_pages_with_callback_pdfium(path, callback)
+    return "".join(pages)

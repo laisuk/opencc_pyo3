@@ -4,11 +4,8 @@ import argparse
 import io
 import os
 import sys
-import time
-from pathlib import Path
-from typing import List
 
-from opencc_pyo3 import OpenCC, extract_pdf_text, reflow_cjk_paragraphs
+from opencc_pyo3 import OpenCC
 from .office_helper import OFFICE_FORMATS, convert_office_doc
 
 
@@ -137,6 +134,15 @@ def subcommand_office(args):
 
 
 def subcommand_pdf(args) -> int:
+    import time
+    from pathlib import Path
+    from typing import List
+
+    from .opencc_pyo3 import reflow_cjk_paragraphs
+    from opencc_pyo3.pdfium_helper import (
+        extract_pdf_pages_with_callback_pdfium,
+    )
+
     t0_total = None
     input_path = args.input
     input_path_str = str(input_path)
@@ -155,113 +161,26 @@ def subcommand_pdf(args) -> int:
         suffix = "_extracted.txt" if args.extract else "_converted.txt"
         output_path = f"{stem}{suffix}"
 
-    engine = getattr(args, "engine", "auto")
-
     if args.timing:
         t0_total = time.perf_counter()
 
     # ---------------------------------------------------------
-    # Lazy import PDFium backend (only for pdf subcommand)
+    # PDFium extraction (single source of truth)
     # ---------------------------------------------------------
-    extract_pdf_pages_with_callback_pdfium = None
-    pdfium_import_err = None
+    pages: List[str] = []
 
-    if engine in ("auto", "pdfium"):
-        try:
-            from opencc_pyo3.pdfium_helper import (  # type: ignore
-                extract_pdf_pages_with_callback_pdfium,
-            )
-        except Exception as exc:
-            extract_pdf_pages_with_callback_pdfium = None
-            pdfium_import_err = exc
+    def _on_page(page: int, total: int, chunk: str) -> None:
+        percent = page * 100 // total if total else 100
+        msg = f"Loading [{page}/{total}] ({percent:3d}%) Extracted {len(chunk)} chars"
+        print(msg.ljust(80), end="\r", flush=True)
+        pages.append(chunk)
 
-    # ---------------------------------------------------------
-    # AUTO ENGINE SELECTION
-    # ---------------------------------------------------------
-    if engine == "auto":
-        if extract_pdf_pages_with_callback_pdfium is not None:
-            try:
-                pages: List[str] = []
+    print(f"Extracting PDF page-by-page with PDFium: {input_path}")
+    extract_pdf_pages_with_callback_pdfium(input_path_str, _on_page)
+    print()  # newline after progress
 
-                def _on_page(page: int, total: int, chunk: str) -> None:
-                    msg = f"[{page}/{total}] Extracted {len(chunk)} chars"
-                    print(msg.ljust(80), end="\r", flush=True)
-                    pages.append(chunk)
+    text = "".join(pages)
 
-                extract_pdf_pages_with_callback_pdfium(input_path_str, _on_page)
-                print()
-                text = "".join(pages)
-                engine_used = "pdfium"
-
-            except Exception as exc:
-                print(
-                    f"⚠️  PDFium extraction failed ({exc}). "
-                    "Falling back to pure-Rust extractor.",
-                    file=sys.stderr,
-                )
-                print("Extracting PDF text...please wait...")
-                text = extract_pdf_text(input_path_str)
-                engine_used = "rust"
-        else:
-            if pdfium_import_err is not None:
-                print(
-                    f"⚠️  PDFium backend is not available ({pdfium_import_err}); using pure-Rust extractor.",
-                    file=sys.stderr,
-                )
-            else:
-                print("⚠️  PDFium backend is not available; using pure-Rust extractor.", file=sys.stderr)
-            print("Extracting PDF text...please wait...")
-            text = extract_pdf_text(input_path_str)
-            engine_used = "rust"
-
-    # ---------------------------------------------------------
-    # FORCE PDFIUM ENGINE
-    # ---------------------------------------------------------
-    elif engine == "pdfium":
-        if extract_pdf_pages_with_callback_pdfium is None:
-            if pdfium_import_err is not None:
-                print(
-                    f"⚠️  PDFium backend not available ({pdfium_import_err}). Falling back to Rust.",
-                    file=sys.stderr,
-                )
-            else:
-                print("⚠️  PDFium backend not available. Falling back to Rust.", file=sys.stderr)
-            print("Extracting PDF text...please wait...")
-            text = extract_pdf_text(input_path_str)
-            engine_used = "rust"
-        else:
-            try:
-                pages: List[str] = []
-
-                def _on_page(page: int, total: int, chunk: str) -> None:
-                    msg = f"[{page}/{total}] Extracted {len(chunk)} chars"
-                    print(msg.ljust(80), end="\r", flush=True)
-                    pages.append(chunk)
-
-                extract_pdf_pages_with_callback_pdfium(input_path_str, _on_page)
-                print()
-                text = "".join(pages)
-                engine_used = "pdfium"
-
-            except Exception as exc:
-                print(
-                    f"⚠️  PDFium extraction failed ({exc}). "
-                    "Falling back to Rust extractor.",
-                    file=sys.stderr,
-                )
-                print("Extracting PDF text...please wait...")
-                text = extract_pdf_text(input_path_str)
-                engine_used = "rust"
-
-    # ---------------------------------------------------------
-    # FORCE RUST ENGINE
-    # ---------------------------------------------------------
-    else:  # engine == "rust"
-        print("Extracting PDF text...please wait...")
-        text = extract_pdf_text(input_path_str)
-        engine_used = "rust"
-
-    # Timing
     if args.timing:
         t1_extract = time.perf_counter()
         print(f"[timing] PDF extract: {(t1_extract - t0_total) * 1000:.1f} ms")
@@ -270,6 +189,7 @@ def subcommand_pdf(args) -> int:
     # Reflow (optional)
     # ---------------------------------------------------------
     if args.reflow:
+        print("Reflowing CJK paragraphs...")
         text = reflow_cjk_paragraphs(
             text,
             add_pdf_page_header=args.header,
@@ -295,9 +215,9 @@ def subcommand_pdf(args) -> int:
 
     print(f"📄 Input : {input_path}")
     print(f"📁 Output: {output_path}")
-    print(f"⚙️ Engine used: {engine_used}")
+    print("⚙️ Engine : pdfium")
     if args.extract:
-        print("🧾 Mode : extract-only (no OpenCC)")
+        print("🧾 Mode  : extract-only (no OpenCC)")
     elif args.config:
         print(f"🧾 Config: {args.config} (punct={'on' if args.punct else 'off'})")
 
@@ -482,20 +402,6 @@ def main():
         action="store_true",
         default=False,
         help="Show time use for each process workflow.",
-    )
-    parser_pdf.add_argument(
-        "-E",
-        "--engine",
-        metavar="<engine>",
-        choices=["auto", "rust", "pdfium"],
-        default="auto",
-        help=(
-            "PDF extraction engine:\n"
-            "  auto   – Prefer PDFium; fallback to Rust if unavailable (recommended)\n"
-            "  rust   – Pure-Rust extractor (no page progress)\n"
-            "  pdfium – PDFium backend with per-page progress; fallback if it fails\n"
-            "(Default: auto)"
-        ),
     )
     parser_pdf.add_argument(
         "-e",

@@ -198,6 +198,7 @@ mod tests {
 
     /// Test PDF text extraction using a known CJK PDF.
     /// Saves *reflowed* text to `tests/简体字_output.txt` for manual inspection.
+    #[cfg(feature = "pdf-extract")]
     #[test]
     fn test_extract_pdf_text() {
         use std::fs;
