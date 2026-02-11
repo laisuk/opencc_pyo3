@@ -28,20 +28,29 @@ def _detect_platform_folder() -> str:
 
 def _module_dir() -> Path:
     """
-    Return directory of opencc_pyo3 package.
+    Return the physical directory of the installed ``opencc_pyo3`` package.
 
-    Supports:
-    - normal pip install
-    - virtualenv
-    - mapped drives / subst
-    - PyInstaller (onefile & onedir)
+    This helper intentionally avoids ``Path.resolve()`` because it may raise
+    ``WinError 1`` on certain Windows environments (e.g. subst drives,
+    RAM disks, network-mapped drives).
+
+    Supported environments:
+    - Standard pip installation
+    - Virtual environments (venv / pyenv)
+    - Windows mapped / virtual drives
+    - PyInstaller (onefile & onedir builds via ``sys._MEIPASS``)
+    - Nuitka standalone / onefile builds
+
+    In frozen applications (PyInstaller), package files are extracted
+    into a temporary directory referenced by ``sys._MEIPASS``.
+    In all other cases (including Nuitka), ``__file__`` remains valid.
     """
+    # PyInstaller
+    meipass = getattr(sys, "_MEIPASS", None)
+    if getattr(sys, "frozen", False) and meipass:
+        return Path(meipass) / "opencc_pyo3"
 
-    # PyInstaller onefile / onedir
-    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-        return Path(sys._MEIPASS) / "opencc_pyo3"
-
-    # Normal installed package
+    # Nuitka and normal execution
     return Path(os.path.abspath(__file__)).parent
 
 
