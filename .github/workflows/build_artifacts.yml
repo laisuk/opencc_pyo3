@@ -56,7 +56,7 @@ jobs:
               --target aarch64-apple-darwin
 
           # -------------------------
-          # Win7-compatible wheel (artifact-only)
+          # Win7-x64-compatible wheel (artifact-only)
           # -------------------------
           - name: windows-win7-x64
             os: windows-latest
@@ -69,14 +69,37 @@ jobs:
               --interpreter python3.10
               -Z build-std=std,panic_abort
 
+          # -------------------------
+          # Win7-x86-compatible wheel (artifact-only)
+          # -------------------------
+          - name: windows-win7-x86
+            os: windows-latest
+            py: "3.8"
+            py_arch: "x86"
+            pdfium_target: win-x86
+            is_win7: true
+            rust_target: i686-win7-windows-msvc
+            maturin_args: >-
+              --release
+              --interpreter python3.8-32
+              -Z build-std=std,panic_abort
+
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python (normal)
+        if: ${{ !(runner.os == 'Windows' && matrix.name == 'windows-win7-x86') }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py }}
+
+      - name: Set up Python (Win7 x86 needs 3.8 x86)
+        if: ${{ runner.os == 'Windows' && matrix.name == 'windows-win7-x86' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+          architecture: "x86"
 
       # Win7 needs nightly + rust-src for -Z build-std
       - name: Set Rust (nightly + rust-src) for Win7

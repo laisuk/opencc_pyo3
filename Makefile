@@ -1,4 +1,5 @@
 PYTHON ?= python3.13
+PYTHON_WIN7_X86 ?= python3.8-32
 WIN7_TARGET ?= x86_64-win7-windows-msvc
 WIN7_X86_TARGET ?= i686-win7-windows-msvc
 WIN7_TOOLCHAIN ?= nightly
@@ -190,7 +191,7 @@ build-win7-x86:
 			Write-Host '==[4] Build wheel (maturin)=='; \
 			$$env:RUSTUP_TOOLCHAIN = '$(WIN7_TOOLCHAIN)'; \
 			$$env:RUSTFLAGS = '$(WIN7_RUSTFLAGS)'; \
-			maturin build --release --target $(WIN7_X86_TARGET) $(WIN7_ZFLAGS); \
+			maturin build --release --target $(WIN7_X86_TARGET) $(WIN7_ZFLAGS) --interpreter $(PYTHON_WIN7_X86); \
 		} finally { \
 			$$env:RUSTUP_TOOLCHAIN = $$oldToolchain; \
 			$$env:RUSTFLAGS = $$oldRustflags; \
