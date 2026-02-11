@@ -16,25 +16,66 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: windows-x64
+          # -------------------------
+          # Windows 7 (x64) - nightly + build-std
+          # -------------------------
+          - name: windows-win7-x64
             os: windows-latest
             py: "3.10"
+            is_win7: true
+            rust_target: x86_64-win7-windows-msvc
             pdfium_target: win-x64
             maturin_args: >-
               --release
               --interpreter python3.10
+              -Z build-std=std,panic_abort
 
+          # -------------------------
+          # Windows 7 (x86) - nightly + build-std
+          # -------------------------
+          - name: windows-win7-x86
+            os: windows-latest
+            py: "3.8"
+            py_arch: "x86"
+            pdfium_target: win-x86
+            is_win7: true
+            rust_target: i686-win7-windows-msvc
+            maturin_args: >-
+              --release
+              --interpreter python3.8-32
+              -Z build-std=std,panic_abort
+
+          # -------------------------
+          # Linux (x64) - manylinux
+          # -------------------------
           - name: linux-x64
             os: ubuntu-latest
             py: "3.10"
+            is_win7: false
             pdfium_target: linux-x64
             maturin_args: >-
               --release
               --interpreter python3.10
 
+          # -------------------------
+          # Linux (arm64) - manylinux
+          # -------------------------
+          - name: linux-arm64
+            os: ubuntu-24.04-arm
+            py: "3.10"
+            is_win7: false
+            pdfium_target: linux-arm64
+            maturin_args: >-
+              --release
+              --interpreter python3.10
+
+          # -------------------------
+          # macOS (x64)
+          # -------------------------
           - name: macos-x64
             os: macos-15-intel
             py: "3.10"
+            is_win7: false
             pdfium_target: macos-x64
             rust_target: x86_64-apple-darwin
             maturin_args: >-
@@ -42,9 +83,13 @@ jobs:
               --interpreter python3.10
               --target x86_64-apple-darwin
 
+          # -------------------------
+          # macOS (arm64)
+          # -------------------------
           - name: macos-arm64
             os: macos-latest
             py: "3.10"
+            is_win7: false
             pdfium_target: macos-arm64
             rust_target: aarch64-apple-darwin
             maturin_args: >-
@@ -56,34 +101,51 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python (normal)
+        if: ${{ !(runner.os == 'Windows' && matrix.name == 'windows-win7-x86') }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py }}
 
-      - name: Add Rust target (macOS only, per-job)
-        if: runner.os == 'macOS'
-        run: rustup target add ${{ matrix.rust_target }}
+      - name: Set up Python (Win7 x86 needs 3.8 x86)
+        if: ${{ runner.os == 'Windows' && matrix.name == 'windows-win7-x86' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+          architecture: "x86"
+
+      # Win7 needs nightly + rust-src for -Z build-std
+      - name: Set Rust (nightly + rust-src) for Win7
+        if: ${{ runner.os == 'Windows' && matrix.is_win7 }}
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly
+          components: rust-src
 
       - name: Sync Pdfium natives into package
         env:
           CI: "true"
         run: python tools/sync_pdfium_for_wheel.py --target ${{ matrix.pdfium_target }}
 
-      - name: Build wheels (non-Linux)
-        if: runner.os != 'Linux'
+      # Win7 wheel build (uses CARGO_BUILD_TARGET instead of --target)
+      - name: Build wheels (Windows 7 x64/x86)
+        if: ${{ runner.os == 'Windows' && matrix.is_win7 }}
         uses: PyO3/maturin-action@v1
+        env:
+          RUSTUP_TOOLCHAIN: nightly
+          RUSTFLAGS: -C link-arg=/SUBSYSTEM:CONSOLE,6.01
+          CARGO_BUILD_TARGET: ${{ matrix.rust_target }}
         with:
           command: build
           args: ${{ matrix.maturin_args }}
 
-      - name: Build wheels (Linux, manylinux)
-        if: runner.os == 'Linux'
+      # Normal build paths
+      - name: Build wheels (normal)
+        if: ${{ matrix.is_win7 != true }}
         uses: PyO3/maturin-action@v1
         with:
           command: build
           args: ${{ matrix.maturin_args }}
-          manylinux: auto
 
       - name: Upload wheel artifacts
         uses: actions/upload-artifact@v4
