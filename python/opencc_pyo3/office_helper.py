@@ -204,7 +204,8 @@ def create_epub_zip_with_spec(source_dir: Path, output_path: Path) -> Tuple[bool
                 return False, "❌ 'mimetype' file is missing. EPUB requires it as the first entry."
 
             for file in source_dir.rglob("*"):
-                if file.is_file() and not file.samefile(mime_path):
+                # if file.is_file() and not file.samefile(mime_path):
+                if file.is_file() and file.absolute() != mime_path.absolute():
                     epub.write(file, file.relative_to(source_dir).as_posix(), compress_type=zipfile.ZIP_DEFLATED)
 
         return True, "✅ EPUB archive created successfully."
