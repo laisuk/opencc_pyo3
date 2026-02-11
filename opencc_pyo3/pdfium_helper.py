@@ -301,7 +301,7 @@ def make_silent_collector() -> Tuple[Callable[[int, int, str], None], List[str]]
     return on_page, pages
 
 
-def extract_pdf_text_progress(path: str) -> str:
+def extract_pdf_text_pdfium_progress(path: str) -> str:
     """
     Extract full PDF text with a terminal progress indicator.
 
@@ -324,10 +324,36 @@ def extract_pdf_text_progress(path: str) -> str:
     return "".join(pages)
 
 
-def extract_pdf_text_silent(path: str) -> str:
+def extract_pdf_text_pdfium_silent(path: str) -> str:
     """
     Extract full PDF text without printing progress.
     """
     callback, pages = make_silent_collector()
     extract_pdf_pages_with_callback_pdfium(path, callback)
     return "".join(pages)
+
+
+def extract_pdf_text_pages_pdfium(path: str, /) -> List[str]:
+    """
+    Extract PDF text as a list of pages (PDFium backend).
+
+    Returns
+    -------
+    List[str]
+        One entry per page. Each page string is normalized and guaranteed
+        to end with a blank-line separator (\"\\n\\n\") so page boundaries
+        are never lost when concatenated.
+    """
+    callback, pages = make_silent_collector()
+    extract_pdf_pages_with_callback_pdfium(path, callback)
+    return pages
+
+
+def extract_pdf_text_pages_pdfium_progress(path: str, /) -> List[str]:
+    """
+    Same as extract_pdf_text_pages_pdfium(), but prints progress.
+    """
+    callback, pages = make_progress_collector()
+    extract_pdf_pages_with_callback_pdfium(path, callback)
+    print()
+    return pages

@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from opencc_pyo3.opencc_pyo3 import reflow_cjk_paragraphs
-from opencc_pyo3.pdfium_helper import extract_pdf_text_progress
+from opencc_pyo3.pdfium_helper import extract_pdf_text_pdfium_progress
 
 
 def main() -> int:
@@ -44,7 +44,7 @@ def main() -> int:
     print(f"Extracting PDF page-by-page with PDFium: {input_path.name}")
 
     # ✅ One-liner: extract + progress
-    full_text = extract_pdf_text_progress(str(input_path))
+    full_text = extract_pdf_text_pdfium_progress(str(input_path))
 
     print(f"Total extracted characters: {len(full_text):,}")
 

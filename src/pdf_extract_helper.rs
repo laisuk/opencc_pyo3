@@ -1,7 +1,7 @@
 #[cfg(feature = "pdf-extract")]
 use pdf_extract::Document;
 #[cfg(feature = "pdf-extract")]
-use pyo3::{Python};
+use pyo3::Python;
 use pyo3::{exceptions, pyfunction, Py, PyAny, PyResult};
 
 /// Extracts plain text from a PDF file.
@@ -35,8 +35,16 @@ pub fn extract_pdf_text(path: &str) -> PyResult<String> {
 #[pyfunction]
 pub fn extract_pdf_text(_path: &str) -> PyResult<String> {
     Err(exceptions::PyRuntimeError::new_err(
-        "Feature 'pdf-extract' is disabled. \
-         This build only supports PDFium-based extraction.",
+        "Feature 'pdf-extract' is disabled in this build.\n\
+         This package now uses PDFium as the only supported PDF engine.\n\
+         \n\
+         Please use:\n\
+           opencc_pyo3.pdfium_helper.extract_pdf_text_pdfium_progress()\n\
+         or\n\
+           opencc_pyo3.pdfium_helper.extract_pdf_text_pdfium_silent()\n\
+         \n\
+         If you are building from source and still require the legacy \
+         extractor, enable the 'pdf-extract' feature explicitly.",
     ))
 }
 
@@ -71,8 +79,15 @@ pub fn extract_pdf_text_pages(path: &str) -> PyResult<Vec<String>> {
 #[pyfunction]
 pub fn extract_pdf_text_pages(_path: &str) -> PyResult<Vec<String>> {
     Err(exceptions::PyRuntimeError::new_err(
-        "Feature 'pdf-extract' is disabled. \
-         Use a PDFium-enabled build instead.",
+        "Feature 'pdf-extract' is disabled in this build.\n\
+         PDF extraction is now provided exclusively by the PDFium engine.\n\
+         \n\
+         Please use:\n\
+           opencc_pyo3.pdfium_helper.extract_pdf_text_pages_pdfium(path)\n\
+         or\n\
+           opencc_pyo3.pdfium_helper.extract_pdf_text_pages_pdfium_progress(path)\n\
+         \n\
+         Returns List[str], one entry per page.",
     ))
 }
 
@@ -96,10 +111,9 @@ pub fn extract_pdf_pages_with_callback(path: &str, callback: Py<PyAny>) -> PyRes
             // Detect file-not-found specifically
             let msg = e.to_string();
 
-            let is_not_found =
-                msg.contains("No such file")
-                    || msg.contains("cannot find the file")
-                    || msg.contains("os error 2");
+            let is_not_found = msg.contains("No such file")
+                || msg.contains("cannot find the file")
+                || msg.contains("os error 2");
 
             if is_not_found {
                 return Err(exceptions::PyFileNotFoundError::new_err(path.to_string()));
@@ -203,12 +217,18 @@ pub fn extract_pdf_pages_with_callback(path: &str, callback: Py<PyAny>) -> PyRes
 
 #[cfg(not(feature = "pdf-extract"))]
 #[pyfunction]
-pub fn extract_pdf_pages_with_callback(
-    _path: &str,
-    _callback: Py<PyAny>,
-) -> PyResult<()> {
+pub fn extract_pdf_pages_with_callback(_path: &str, _callback: Py<PyAny>) -> PyResult<()> {
     Err(exceptions::PyRuntimeError::new_err(
-        "Feature 'pdf-extract' is disabled. \
-         Page-by-page extraction requires PDFium.",
+        "Feature 'pdf-extract' is disabled in this build.\n\
+         Page-by-page extraction is provided by the PDFium engine.\n\
+         \n\
+         Please use the PDFium helper:\n\
+           opencc_pyo3.pdfium_helper.extract_pdf_pages_with_callback_pdfium(path, callback)\n\
+         \n\
+         Callback signature:\n\
+           callback(page_index: int, page_count: int, text: str) -> Any\n\
+         \n\
+         If you are building from source and still require the legacy \
+         extractor, enable the 'pdf-extract' feature explicitly.",
     ))
 }
