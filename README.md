@@ -130,29 +130,20 @@ and convert the result using OpenCC configurations.
 ```bash
 python -m opencc_pyo3 pdf --help
 
-usage: opencc-pyo3 pdf [-h] -i <file> [-o <file>] [-c <conversion>] [-p] [-H] [-r] [--compact] [--timing]
-                       [-e <engine>] [-E]
+usage: __main__.py pdf [-h] -i <file> [-o <file>] [-c <conversion>] [-p] [-H] [-r] [--compact] [--timing] [-e]
 
 options:
-  -h, --help            Show this help message and exit.
+  -h, --help            show this help message and exit
   -i, --input <file>    Input PDF file.
   -o, --output <file>   Output text file (UTF-8). If omitted, defaults to "<input>_converted.txt".
   -c, --config <conversion>
-                        Conversion configuration:
-                        s2t | s2tw | s2twp | s2hk | t2s | tw2s | tw2sp | hk2s | jp2t | t2jp
-  -p, --punct           Enable punctuation conversion (default: off).
-  -H, --header          Preserve page-break-like gaps when reflowing CJK paragraphs
-                        (passed as `add_pdf_page_header` to `reflow_cjk_paragraphs`).
+                        Conversion configuration: s2t|s2tw|s2twp|s2hk|t2s|tw2s|tw2sp|hk2s|jp2t|t2jp
+  -p, --punct           Enable punctuation conversion. (Default: False)
+  -H, --header          Preserve page-break-like gaps when reflowing CJK paragraphs (passed as add_pdf_page_header to reflow_cjk_paragraphs).
   -r, --reflow          Enable CJK-aware paragraph reflow before conversion.
   --compact             Use compact paragraph mode (single newline between paragraphs).
-  --timing              Show timing information for each processing stage.
-  -e, --engine <engine>
-                        PDF extraction engine:
-                          auto    – Prefer PDFium; fall back to the Rust extractor if unavailable (recommended)
-                          rust    – Pure-Rust extractor (no per-page progress)
-                          pdfium  – PDFium backend with per-page progress; falls back if extraction fails
-                        (default: auto)
-  -E, --extract         Extract PDF text only (skip OpenCC conversion).
+  --timing              Show time use for each process workflow.
+  -e, --extract         Extract PDF text only (skip OpenCC conversion).
 ```
 
 ```sh

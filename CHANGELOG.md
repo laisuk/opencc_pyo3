@@ -7,6 +7,34 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
+## [0.8.8] - 2026-02-12
+
+### Added
+
+- Added additional platform wheel artifacts in CI workflow:
+  - Linux ARM64 (native runner)
+  - Windows Win7 x86 / x64 (nightly build-std)
+- Added `extract_pdf_text_pages_pdfium()` helper returning `List[str]` (one entry per page).
+
+### Changed
+
+- Deprecated legacy PDF extraction via the `pdf-extract` crate.
+- PDFium is now the single source of truth for all PDF-related features.
+- Legacy `pdf-extract` remains available when building from source with the `pdf-extract` feature enabled.
+- Improved Pdfium native synchronization logic for wheel packaging.
+- Improved transition error messages to clearly guide users to PDFium-based APIs.
+
+### Fixed
+
+- Fixed `pdfium_loader` path resolution to avoid `Path.resolve()` WinError 1 on:
+  - Windows 7
+  - Python 3.8 (especially 32-bit)
+  - RAM disks / subst drives
+  - PyInstaller and Nuitka environments
+- Improved loader robustness for frozen application builds.
+
+---
+
 ## [0.8.7] - 2026-01-26
 
 ### Changed
