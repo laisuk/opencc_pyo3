@@ -56,6 +56,8 @@ def _module_dir() -> Path:
 
 def load_pdfium() -> ctypes.CDLL:
     """Load bundled PDFium."""
+    # NOTE: do not use Path.resolve();
+    # it can raise WinError 1 on some Windows drives (esp. CPython 3.8 x86)
     base = _module_dir() / "pdfium"
 
     platform_folder = _detect_platform_folder()
