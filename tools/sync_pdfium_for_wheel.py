@@ -6,7 +6,7 @@ import shutil
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(os.path.abspath(__file__)).parents[1]
 SRC = ROOT / "pdfium"
 DST = ROOT / "opencc_pyo3" / "pdfium"
 
@@ -44,7 +44,9 @@ def detect_target() -> str:
         return "win-x64" if sys.maxsize > 2**32 else "win-x86"
 
     if sys_name == "linux":
-        return "linux-arm64" if mach in ("aarch64", "arm64") else "linux-x64"
+        if mach in ("aarch64", "arm64") or mach.startswith("armv8"):
+            return "linux-arm64"
+        return "linux-x64"
 
     if sys_name == "darwin":
         return "macos-arm64" if mach in ("arm64", "aarch64") else "macos-x64"
@@ -94,7 +96,7 @@ def parse_args(argv: list[str]) -> tuple[str, str | None]:
 
 def main() -> None:
     mode, target_override = parse_args(sys.argv)
-    is_ci = os.getenv("CI") == "true"
+    is_ci = os.getenv("CI", "").lower() in ("true", "1", "yes")
 
     if mode == "ci" and not is_ci:
         die("refusing to run destructive CI mode outside CI. Use --local, or set CI=true to override.")
