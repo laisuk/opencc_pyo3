@@ -1,14 +1,14 @@
 from __future__ import print_function
 
 import argparse
-import io
-import os
 import sys
 
 from opencc_pyo3 import OpenCC
 
 
 def subcommand_convert(args):
+    import io
+
     if args.config is None:
         print("ℹ️  Config not specified. Use default 's2t'", file=sys.stderr)
         args.config = 's2t'
@@ -40,6 +40,7 @@ def subcommand_convert(args):
 
 
 def subcommand_office(args):
+    import os
     from pathlib import Path
     from .office_helper import OFFICE_FORMATS, convert_office_doc
 
@@ -120,7 +121,6 @@ def subcommand_pdf(args) -> int:
     import time
     from pathlib import Path
     from typing import List
-
     from .opencc_pyo3 import reflow_cjk_paragraphs
     from opencc_pyo3.pdfium_helper import (
         extract_pdf_pages_with_callback_pdfium,
