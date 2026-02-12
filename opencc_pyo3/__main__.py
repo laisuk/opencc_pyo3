@@ -155,8 +155,13 @@ def subcommand_pdf(args) -> int:
     def _on_page(page: int, total: int, chunk: str) -> None:
         percent = page * 100 // total if total else 100
         msg = f"Loading [{page}/{total}] ({percent:3d}%) Extracted {len(chunk)} chars"
-        print(msg.ljust(80), end="\r", flush=True)
+        width = 70  # safe for your 72-column Win7 console
+        # Prevent wrapping
+        msg = msg[:width]
+        # Overwrite previous line
+        print(msg.ljust(width), end="\r", flush=True)
         pages.append(chunk)
+
 
     print(f"Extracting PDF page-by-page with PDFium: {input_path}")
     extract_pdf_pages_with_callback_pdfium(input_path_str, _on_page)
