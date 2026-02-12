@@ -163,7 +163,7 @@ def subcommand_pdf(args) -> int:
         pages.append(chunk)
 
 
-    print(f"Extracting PDF page-by-page with PDFium: {input_path}")
+    print(f"Extracting PDF page-by-page with PDFium: {p}")
     extract_pdf_pages_with_callback_pdfium(input_path_str, _on_page)
     print()  # newline after progress
 
@@ -201,7 +201,7 @@ def subcommand_pdf(args) -> int:
     with open(output_path, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
 
-    print(f"📄 Input : {input_path}")
+    print(f"📄 Input : {p}")
     print(f"📁 Output: {output_path}")
     print("⚙️ Engine : pdfium")
     if args.extract:
