@@ -8,7 +8,7 @@ Supported formats: docx, xlsx, pptx, odt, ods, odp, epub.
 
 Author
 ------
-Laisuk Lai (https://github.com/laisuk)
+https://github.com/laisuk
 """
 import os
 import re
@@ -55,11 +55,25 @@ def convert_office_doc(
     """
     input_path = Path(input_path)
     output_path = Path(output_path)
-    temp_dir = Path(tempfile.gettempdir()) / f"{office_format}_temp_{os.urandom(6).hex()}"
+
+    # --- NEW: normalized temp root and pre-created working dir
+    temp_root = _normalized_temp_root()
+    temp_dir = Path(tempfile.mkdtemp(prefix=f"{office_format}_temp_", dir=temp_root))
 
     try:
         with zipfile.ZipFile(input_path, 'r') as archive:
-            archive.extractall(temp_dir)
+            for entry in archive.infolist():
+                try:
+                    dest_path = _safe_zip_join(str(temp_dir), entry.filename)
+                except ValueError as ve:
+                    return False, f"❌ {ve}"
+
+                if entry.is_dir():
+                    dest_path.mkdir(parents=True, exist_ok=True)
+                else:
+                    dest_path.parent.mkdir(parents=True, exist_ok=True)
+                    with archive.open(entry) as src, open(dest_path, 'wb') as dst:
+                        shutil.copyfileobj(src, dst)  # type: ignore
 
         target_paths = _get_target_xml_paths(office_format, temp_dir)
         if not target_paths:
@@ -80,7 +94,6 @@ def convert_office_doc(
                 font_counter = 0
 
                 if pattern:
-                    # Replace font-family values with unique markers to preserve them during conversion
                     def replace_font(match):
                         nonlocal font_counter
                         font_key = f"__F_O_N_T_{font_counter}__"
@@ -103,7 +116,12 @@ def convert_office_doc(
         if converted_count == 0:
             return False, f"⚠️ No valid XML fragments were found. Is the format '{office_format}' correct?"
 
-        output_path.unlink(missing_ok=True)
+        # Ensure output path is clear
+        try:
+            output_path.unlink(missing_ok=True)  # Python 3.8+: ok
+        except TypeError:
+            if output_path.exists():
+                output_path.unlink()
 
         if office_format == "epub":
             return create_epub_zip_with_spec(temp_dir, output_path)
@@ -111,7 +129,8 @@ def convert_office_doc(
             with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
                 for file in temp_dir.rglob("*"):
                     if file.is_file():
-                        archive.write(file, file.relative_to(temp_dir).as_posix())
+                        # Use forward slashes inside the zip
+                        archive.write(file, os.path.normpath(file.relative_to(temp_dir).as_posix()))
 
         return True, f"✅ Successfully converted {converted_count} fragment(s) in {office_format} document."
 
@@ -119,7 +138,34 @@ def convert_office_doc(
         return False, f"❌ Conversion failed: {ex}"
     finally:
         if temp_dir.exists():
-            shutil.rmtree(temp_dir)
+            # Robust cleanup on Windows (readonly files)
+            def _onerror(func, path, _):
+                try:
+                    os.chmod(path, 0o700)
+                    func(path)
+                except (PermissionError, OSError):
+                    pass
+
+            shutil.rmtree(temp_dir, onerror=_onerror)
+
+
+def _normalized_temp_root() -> str:
+    # Normalize temp root path string to avoid Windows resolve() issues (e.g., R:\Temp)
+    return os.path.normpath(os.path.abspath(tempfile.gettempdir()))
+
+
+def _safe_zip_join(base_dir: str, member: str) -> Path:
+    """
+    Safely join a zip member path under base_dir without using Path.resolve(),
+    preventing Zip Slip via commonpath check.
+    """
+    # Normalize
+    base_dir_norm = os.path.normpath(base_dir)
+    dest = os.path.normpath(os.path.join(base_dir_norm, member))
+    # Ensure dest remains inside base_dir
+    if os.path.commonpath([base_dir_norm, dest]) != base_dir_norm:
+        raise ValueError(f"Unsafe ZIP path detected: {member}")
+    return Path(dest)
 
 
 def _get_target_xml_paths(office_format: str, base_dir: Path) -> Optional[List[Path]]:
@@ -156,7 +202,7 @@ def _get_target_xml_paths(office_format: str, base_dir: Path) -> Optional[List[P
         return [
             path.relative_to(base_dir)
             for path in base_dir.rglob("*")
-            if path.suffix.lower() in (".html", ".xhtml", ".opf", ".ncx")
+            if path.suffix.lower() in (".xhtml", ".html", ".opf", ".ncx")
         ]
     return None
 
@@ -197,16 +243,25 @@ def create_epub_zip_with_spec(source_dir: Path, output_path: Path) -> Tuple[bool
     mime_path = source_dir / "mimetype"
 
     try:
-        with zipfile.ZipFile(output_path, "w") as epub:
-            if mime_path.is_file():
-                epub.write(mime_path, "mimetype", compress_type=zipfile.ZIP_STORED)
-            else:
-                return False, "❌ 'mimetype' file is missing. EPUB requires it as the first entry."
+        if not mime_path.is_file():
+            return False, "❌ 'mimetype' file is missing. EPUB requires it as the first entry."
 
-            for file in source_dir.rglob("*"):
-                # if file.is_file() and not file.samefile(mime_path):
-                if file.is_file() and file.absolute() != mime_path.absolute():
-                    epub.write(file, file.relative_to(source_dir).as_posix(), compress_type=zipfile.ZIP_DEFLATED)
+        with zipfile.ZipFile(output_path, "w") as epub:
+            # 1) Write mimetype first (must be uncompressed per EPUB spec)
+            epub.write(mime_path, "mimetype", compress_type=zipfile.ZIP_STORED)
+
+            # 2) Write remaining files deterministically
+            for file in sorted(source_dir.rglob("*")):
+                if not file.is_file():
+                    continue
+
+                arc_name = file.relative_to(source_dir).as_posix()
+
+                # Skip mimetype (already written)
+                if arc_name == "mimetype":
+                    continue
+
+                epub.write(file, arc_name, compress_type=zipfile.ZIP_DEFLATED)
 
         return True, "✅ EPUB archive created successfully."
     except Exception as ex:

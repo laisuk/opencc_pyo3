@@ -11,44 +11,42 @@ from .office_helper import OFFICE_FORMATS, convert_office_doc
 
 def subcommand_convert(args):
     if args.config is None:
-        print("ℹ️  Config not specified. Using default: s2t", file=sys.stderr)
-        args.config = "s2t"
+        print("ℹ️  Config not specified. Use default 's2t'", file=sys.stderr)
+        args.config = 's2t'
 
+    # Plain text conversion fallback
     opencc = OpenCC(args.config)
 
-    if args.input:
-        with io.open(args.input, encoding=args.in_enc) as f:
-            input_str = f.read()
-    else:
-        # Prompt only if reading from stdin, and it's interactive (i.e., not piped or redirected)
-        if args.input is None and sys.stdin.isatty():
-            print(
-                "Input text to convert, <Ctrl+Z> (Windows) or <Ctrl+D> (Unix) then Enter to submit:",
-                file=sys.stderr,
-            )
+    # Prompt user if input is from terminal
+    if args.input is None and sys.stdin.isatty():
+        print("Input text to convert, <Ctrl+Z>/<Ctrl+D> to submit:", file=sys.stderr)
 
-        input_str = sys.stdin.read()
+    # Read input text (from file or stdin)
+    with io.open(args.input if args.input else 0, encoding=args.in_enc) as f:
+        input_str = f.read()
 
+    # Perform conversion
     output_str = opencc.convert(input_str, args.punct)
 
-    if args.output:
-        with io.open(args.output, "w", encoding=args.out_enc) as f:
-            f.write(output_str)
-    else:
-        sys.stdout.write(output_str)
+    # Write output text (to file or stdout)
+    with io.open(args.output if args.output else 1, 'w', encoding=args.out_enc) as f:
+        f.write(output_str)
 
     in_from = args.input if args.input else "<stdin>"
     out_to = args.output if args.output else "stdout"
     if sys.stderr.isatty():
-        print(
-            f"Conversion completed ({args.config}): {in_from} -> {out_to}",
-            file=sys.stderr,
-        )
+        print(f"Conversion completed ({args.config}): {in_from} -> {out_to}", file=sys.stderr)
 
     return 0
 
 
 def subcommand_office(args):
+    from pathlib import Path
+
+    if args.config is None:
+        print("ℹ️  Config not specified. Use default 's2t'", file=sys.stderr)
+    args.config = 's2t'
+
     input_file = args.input
     output_file = args.output
     office_format = args.format
@@ -56,11 +54,6 @@ def subcommand_office(args):
     config = args.config
     punct = args.punct
     keep_font = getattr(args, "keep_font", False)
-
-    if args.config is None:
-        print("ℹ️  Config not specified. Using default: s2t", file=sys.stderr)
-        args.config = "s2t"
-        config = args.config
 
     # Check for missing input/output files
     if not input_file and not output_file:
@@ -72,36 +65,33 @@ def subcommand_office(args):
 
     # If output file is not specified, generate one based on input file
     if not output_file:
-        input_name = os.path.splitext(os.path.basename(input_file))[0]
-        input_ext = os.path.splitext(os.path.basename(input_file))[1]
-        input_dir = os.path.dirname(input_file) or os.getcwd()
-        ext = (
-            f".{office_format}"
-            if auto_ext and office_format and office_format in OFFICE_FORMATS
-            else input_ext
-        )
-        output_file = os.path.join(input_dir, f"{input_name}_converted{ext}")
-        print(f"ℹ️  Output file not specified. Using: {output_file}", file=sys.stderr)
+        input_path = Path(input_file)
+
+        input_name = input_path.stem
+        input_ext = input_path.suffix
+        input_dir = input_path.parent if input_path.parent != Path("") else Path.cwd()
+
+        if auto_ext and office_format in OFFICE_FORMATS:
+            ext = f".{office_format}"
+        else:
+            ext = input_ext
+
+        output_path = input_dir / f"{input_name}_converted{ext}"
+        output_file = str(output_path)
+
+        print(f"ℹ️  Output file not specified. Using: {output_path}", file=sys.stderr)
 
     # Determine office format from file extension if not provided
     if not office_format:
         file_ext = os.path.splitext(input_file)[1].lower()
         if file_ext[1:] not in OFFICE_FORMATS:
             print(f"❌  Invalid Office file extension: {file_ext}", file=sys.stderr)
-            print(
-                "   Valid extensions: .docx | .xlsx | .pptx | .odt | .ods | .odp | .epub",
-                file=sys.stderr,
-            )
+            print("   Valid extensions: .docx | .xlsx | .pptx | .odt | .ods | .odp | .epub", file=sys.stderr)
             return 1
         office_format = file_ext[1:]
 
     # Auto-append extension to output file if needed
-    if (
-            auto_ext
-            and output_file
-            and not os.path.splitext(output_file)[1]
-            and office_format in OFFICE_FORMATS
-    ):
+    if auto_ext and output_file and not os.path.splitext(output_file)[1] and office_format in OFFICE_FORMATS:
         output_file += f".{office_format}"
         print(f"ℹ️  Auto-extension applied: {output_file}", file=sys.stderr)
 
@@ -116,20 +106,13 @@ def subcommand_office(args):
             keep_font,
         )
         if success:
-            print(
-                f"{message}\n📁  Output saved to: {os.path.abspath(output_file)}",
-                file=sys.stderr,
-            )
+            print(f"{message}\n📁  Output saved to: {os.path.abspath(output_file)}", file=sys.stderr)
             return 0
         else:
-            print(
-                f"❌  Office document conversion failed: {message}", file=sys.stderr
-            )
+            print(f"❌  Conversion failed: {message}", file=sys.stderr)
             return 1
     except Exception as ex:
-        print(
-            f"❌  Error during Office document conversion: {str(ex)}", file=sys.stderr
-        )
+        print(f"❌  Error during Office document conversion: {str(ex)}", file=sys.stderr)
         return 1
 
 
