@@ -66,6 +66,13 @@ def load_pdfium() -> ctypes.CDLL:
     if sys.platform.startswith("win"):
         libname = "pdfium.dll"
         dll_cls = ctypes.CDLL
+        # Python 3.8+ Windows DLL search path fix
+        try:
+            os.add_dll_directory(str(path_dir))
+        except (AttributeError, FileNotFoundError):
+            # AttributeError → Python < 3.8
+            # FileNotFoundError → directory missing (handled below)
+            pass
     elif sys.platform.startswith("linux"):
         libname = "libpdfium.so"
         dll_cls = ctypes.CDLL

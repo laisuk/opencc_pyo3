@@ -268,12 +268,17 @@ def make_progress_collector() -> Tuple[Callable[[int, int, str], None], List[str
     """
     pages: List[str] = []
 
+    width = 70  # safe for your 72-column Win7 console
+
     def on_page(page: int, total: int, text: str) -> None:
         percent = page * 100 // total if total else 100
         msg = f"Loading [{page}/{total}] ({percent:3d}%) Extracted {len(text)} chars"
 
+        # Truncate to prevent wrapping
+        msg = msg[:width]
+
         # Pad so previous content is fully overwritten
-        print(msg.ljust(80), end="\r", flush=True)
+        print(msg.ljust(width), end="\r", flush=True)
 
         pages.append(text)
 
