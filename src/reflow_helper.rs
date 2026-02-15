@@ -32,6 +32,10 @@ pub fn reflow_cjk_paragraphs(
         return Ok(text.to_owned());
     }
 
+    if is_latin_leading_block(text, 100) {
+        return Ok(text.to_owned());
+    }
+    
     // Normalize line endings
     let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
     let lines = normalized.split('\n');

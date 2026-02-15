@@ -363,3 +363,69 @@ fn is_bracket_type_balanced_str(s: &str, open: char) -> bool {
 }
 
 // ------ Bracket Boundary end ------
+
+/// Returns true if the leading block is overwhelmingly "Latin-ish" (>= 90%)
+/// within the first `non_space_limit` non-whitespace chars.
+///
+/// Behavior matches the C# version:
+/// - Skips whitespace
+/// - If any early CJK is seen -> returns false immediately
+/// - Counts ASCII letters/digits/common punctuation as Latin-ish
+/// - Also counts Latin-1 / Latin Extended ranges as Latin-ish
+/// - Requires at least 40 non-space chars to make a decision
+#[inline(always)]
+pub fn is_latin_leading_block(s: &str, non_space_limit: usize) -> bool {
+    let mut seen: usize = 0;
+    let mut latinish: usize = 0;
+
+    for ch in s.chars() {
+        if seen >= non_space_limit {
+            break;
+        }
+
+        if ch.is_whitespace() {
+            continue;
+        }
+
+        seen += 1;
+
+        // Any early CJK -> do NOT skip reflow
+        if is_cjk_bmp(ch) {
+            return false;
+        }
+
+        // Count Latin letters / digits / common ASCII punctuation as "Latin-ish"
+        if ch.is_ascii() {
+            if is_ascii_latinish(ch) {
+                latinish += 1;
+            }
+        } else {
+            let u = ch as u32;
+            // Latin-1 / Latin Extended blocks (covers most Western languages)
+            if (0x00C0..=0x024F).contains(&u) || (0x1E00..=0x1EFF).contains(&u) {
+                latinish += 1;
+            }
+        }
+    }
+
+    if seen < 40 {
+        return false; // too little signal
+    }
+
+    // >= 90% Latin-ish
+    latinish * 10 >= seen * 9
+}
+
+#[inline(always)]
+fn is_ascii_latinish(ch: char) -> bool {
+    matches!(
+        ch,
+        'A'..='Z'
+            | 'a'..='z'
+            | '0'..='9'
+            | '.' | ',' | '!' | '?' | ':' | ';' | '\'' | '"'
+            | '(' | ')' | '[' | ']' | '{' | '}'
+            | '-' | '_' | '/' | '\\'
+            | '@' | '#' | '$' | '%' | '&' | '*' | '+' | '=' | '<' | '>'
+    )
+}
