@@ -213,6 +213,14 @@ Processor: Intel64 Family 6 Model 191 Stepping 2, GenuineIntel
 
 ![Throughput](https://raw.githubusercontent.com/laisuk/opencc_pyo3/master/assets/throughput_vs_size.png)
 
+---
+
+## Projects That Use `opencc-pyo3`
+
+[OpenccPyo3Gui](https://github.com/laisuk/OpenccPyo3Gui)
+
+---
+
 ## License
 
 [MIT](https://github.com/laisuk/opencc_pyo3/blob/master/LICENSE)
