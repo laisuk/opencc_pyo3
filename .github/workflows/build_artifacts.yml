@@ -26,6 +26,16 @@ jobs:
               --release
               --interpreter python3.10
 
+          - name: windows-arm64
+            os: windows-latest
+            py: "3.10"
+            pdfium_target: win-arm64
+            is_win7: false
+            rust_target: aarch64-pc-windows-msvc
+            maturin_args: >-
+              --release
+              --interpreter python3.10
+
           - name: linux-x64
             os: ubuntu-latest
             py: "3.10"
@@ -110,6 +120,10 @@ jobs:
           python-version: "3.8"
           architecture: "x86"
 
+      - name: Add Windows ARM64 Rust target
+        if: ${{ matrix.name == 'windows-arm64' }}
+        run: rustup target add aarch64-pc-windows-msvc
+
       # Win7 needs nightly + rust-src for -Z build-std
       - name: Set Rust (nightly + rust-src) for Win7
         if: ${{ matrix.is_win7 }}
@@ -163,8 +177,17 @@ jobs:
           target: aarch64
           args: ${{ matrix.maturin_args }}
 
+      - name: Build wheels (Windows ARM64)
+        if: ${{ matrix.name == 'windows-arm64' }}
+        uses: PyO3/maturin-action@v1
+        env:
+          CARGO_BUILD_TARGET: aarch64-pc-windows-msvc
+        with:
+          command: build
+          args: ${{ matrix.maturin_args }}
+
       - name: Build wheels (normal)
-        if: ${{ matrix.is_win7 != true && !startsWith(matrix.name, 'linux-') }}
+        if: ${{ matrix.is_win7 != true && !startsWith(matrix.name, 'linux-') && matrix.name != 'windows-arm64' }}
         uses: PyO3/maturin-action@v1
         with:
           command: build

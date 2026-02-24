@@ -139,9 +139,27 @@ jobs:
           command: build
           args: ${{ matrix.maturin_args }}
 
+      - name: Build wheels (linux-x64 manylinux2014)
+        if: ${{ matrix.name == 'linux-x64' }}
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          manylinux: 2014
+          target: x86_64
+          args: ${{ matrix.maturin_args }}
+
+      - name: Build wheels (linux-arm64 manylinux2014)
+        if: ${{ matrix.name == 'linux-arm64' }}
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          manylinux: 2014
+          target: aarch64
+          args: ${{ matrix.maturin_args }}
+
       # Normal build paths
       - name: Build wheels (normal)
-        if: ${{ matrix.is_win7 != true }}
+        if: ${{ matrix.is_win7 != true && !startsWith(matrix.name, 'linux-') }}
         uses: PyO3/maturin-action@v1
         with:
           command: build
