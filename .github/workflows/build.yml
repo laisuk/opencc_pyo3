@@ -54,6 +54,7 @@ jobs:
             maturin_args: >-
               --release
               --interpreter python3.10
+              --features gen-import-lib
 
           # -------------------------
           # Linux (x64) - manylinux

@@ -35,6 +35,7 @@ jobs:
             maturin_args: >-
               --release
               --interpreter python3.10
+              --features gen-import-lib
 
           - name: linux-x64
             os: ubuntu-latest
