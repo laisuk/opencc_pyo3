@@ -11,11 +11,19 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ### Added 
 
-- Added `add_page_header` arguments in PDF text extraction
+- Added `Windows-ARM64` package.
+- Added `add_page_header` arguments in PDF text extraction.
 
 ### Changed
 
-- Added zip-slip guard in Office + EPUB conversion
+- Optimized CLI subcommand office conversion.
+- Optimized native loading win Windows.
+- Updated zip-slip path guard in Office + EPUB conversion.
+- Updated Linux package builds with `manylinux2014` support.
+
+### Fixed
+
+- Fixed PDF conversion progress display in old windows console
 
 ---
 
