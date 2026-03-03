@@ -164,7 +164,7 @@ def subcommand_pdf(args) -> int:
 
 
     print(f"Extracting PDF page-by-page with PDFium: {p}")
-    extract_pdf_pages_with_callback_pdfium(input_path_str, _on_page)
+    extract_pdf_pages_with_callback_pdfium(input_path_str, _on_page, args.header)
     print()  # newline after progress
 
     text = "".join(pages)

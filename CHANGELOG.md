@@ -7,6 +7,18 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
+## [0.8.9] - 2026-03=03
+
+### Added 
+
+- Added `add_page_header` arguments in PDF text extraction
+
+### Changed
+
+- Added zip-slip guard in Office + EPUB conversion
+
+---
+
 ## [0.8.8] - 2026-02-12
 
 ### Added

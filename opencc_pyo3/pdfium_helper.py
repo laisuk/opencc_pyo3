@@ -166,6 +166,7 @@ def extract_pdf_pages_with_callback_pdfium(
         path: str,
         callback: Callable[[int, int, str], Any],
         /,
+        add_page_header: bool = False,  # ✅ new
 ):
     """
     Extract text from a PDF file page-by-page using PDFium,
@@ -184,6 +185,8 @@ def extract_pdf_pages_with_callback_pdfium(
     • This function **does not** perform reflow; it only extracts text.
     • IMPORTANT: Each callback `text` is guaranteed to end with a blank-line
       separator so page boundaries are never lost when concatenated.
+    • If add_page_header=True, each page is prefixed with:
+      === [Page i/total] ===
     """
 
     def _normalize_page_text(s: str) -> str:
@@ -196,11 +199,9 @@ def extract_pdf_pages_with_callback_pdfium(
             return "\n"
 
         # Match the C# behavior: AppendLine(text.Trim()); AppendLine();
-        # i.e. trimmed page text + a guaranteed blank line after it.
         s = s.strip()
 
         # Ensure page always ends with a blank line boundary
-        # (two \n means there is at least one empty line after the last content line)
         return s + "\n\n"
 
     pdf_path_bytes = path.encode("utf-8")
@@ -218,15 +219,23 @@ def extract_pdf_pages_with_callback_pdfium(
             return
 
         for i in range(total):
+            page_no = i + 1
+
             page = _pdfium.FPDF_LoadPage(doc, i)
             if not page:
-                callback(i + 1, total, "\n")
+                text = "\n"
+                if add_page_header:
+                    text = f"=== [Page {page_no}/{total}] ===\n" + text
+                callback(page_no, total, text)
                 continue
 
             textpage = _pdfium.FPDFText_LoadPage(page)
             if not textpage:
                 _pdfium.FPDF_ClosePage(page)
-                callback(i + 1, total, "\n")
+                text = "\n"
+                if add_page_header:
+                    text = f"=== [Page {page_no}/{total}] ===\n" + text
+                callback(page_no, total, text)
                 continue
 
             count = _pdfium.FPDFText_CountChars(textpage)
@@ -234,17 +243,18 @@ def extract_pdf_pages_with_callback_pdfium(
             if count > 0:
                 buf = (ctypes.c_uint16 * (count + 1))()
                 extracted = _pdfium.FPDFText_GetText(textpage, 0, count, buf)
-                if extracted > 0:
-                    raw = _decode_pdfium_buffer(buf, extracted)
-                else:
-                    raw = ""
+                raw = _decode_pdfium_buffer(buf, extracted) if extracted > 0 else ""
             else:
                 raw = ""
 
             _pdfium.FPDFText_ClosePage(textpage)
             _pdfium.FPDF_ClosePage(page)
 
-            callback(i + 1, total, _normalize_page_text(raw))
+            # ✅ Add header (C#-aligned) before normalization so output still ends with \n\n
+            if add_page_header:
+                raw = f"=== [Page {page_no}/{total}] ===\n" + raw
+
+            callback(page_no, total, _normalize_page_text(raw))
 
     finally:
         _pdfium.FPDF_CloseDocument(doc)
