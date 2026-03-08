@@ -7,23 +7,26 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
-## [0.8.9] - 2026-03=03
+## [0.8.9] - 2026-03-03
 
-### Added 
+### Added
 
-- Added `Windows-ARM64` package.
-- Added `add_page_header` arguments in PDF text extraction.
+- Added `Windows ARM64` wheel.
+- Added `add_page_header` option for PDF text extraction.
 
 ### Changed
 
-- Optimized CLI subcommand office conversion.
-- Optimized native loading win Windows.
-- Updated zip-slip path guard in Office + EPUB conversion.
-- Updated Linux package builds with `manylinux2014` support.
+- Improved CLI `office` subcommand conversion performance.
+- Improved native library loading on Windows.
+- Updated ZIP path guard to prevent zip-slip in Office and EPUB conversion.
+
+### Build
+
+- Added Linux wheels built with `manylinux2014` for improved compatibility.
 
 ### Fixed
 
-- Fixed PDF conversion progress display in old windows console
+- Fixed PDF conversion progress display in older Windows consoles.
 
 ---
 
@@ -32,8 +35,8 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 ### Added
 
 - Added additional platform wheel artifacts in CI workflow:
-  - Linux ARM64 (native runner)
-  - Windows Win7 x86 / x64 (nightly build-std)
+    - Linux ARM64 (native runner)
+    - Windows Win7 x86 / x64 (nightly build-std)
 - Added `extract_pdf_text_pages_pdfium()` helper returning `List[str]` (one entry per page).
 
 ### Changed
@@ -47,10 +50,10 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 ### Fixed
 
 - Fixed `pdfium_loader` path resolution to avoid `Path.resolve()` WinError 1 on:
-  - Windows 7
-  - Python 3.8 (especially 32-bit)
-  - RAM disks / subst drives
-  - PyInstaller and Nuitka environments
+    - Windows 7
+    - Python 3.8 (especially 32-bit)
+    - RAM disks / subst drives
+    - PyInstaller and Nuitka environments
 - Improved loader robustness for frozen application builds.
 
 ---
