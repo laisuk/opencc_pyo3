@@ -4,7 +4,7 @@ version = "0.8.9"
 edition = "2021"
 authors = ["laisuk <laisuk@yahoo.com>"]
 license = "MIT"
-description = "A Python extension module powered by Rust and PyO3, providing fast and accurate Chinese text conversion."
+description = "High-performance Chinese text conversion (Simplified ↔ Traditional) powered by Rust, PyO3, and OpenCC lexicons."
 repository = "https://github.com/laisuk/opencc_pyo3"
 readme = "README.md"
 

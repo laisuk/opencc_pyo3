@@ -224,7 +224,7 @@ def main():
     # convert subcommand
     # -----------------
     parser_convert = subparsers.add_parser(
-        "convert", help="Convert Chinese text using OpenCC"
+        "convert", formatter_class=argparse.ArgumentDefaultsHelpFormatter, help="Convert Chinese text using OpenCC"
     )
     parser_convert.add_argument(
         "-i",
@@ -273,6 +273,7 @@ def main():
     # -----------------
     parser_office = subparsers.add_parser(
         "office",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         help="Convert Office document and EPUB Chinese text using OpenCC",
     )
     parser_office.add_argument(
@@ -328,6 +329,7 @@ def main():
     # -------------
     parser_pdf = subparsers.add_parser(
         "pdf",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         help="Extract + convert Chinese text from a PDF using OpenCC",
     )
     parser_pdf.add_argument(
