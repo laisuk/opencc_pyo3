@@ -8,7 +8,7 @@ dynamic = ["version"]
 authors = [
     { name="laisuk", email="laisuk@yahoo.com" },
 ]
-description = "A Python extension module powered by Rust and PyO3, providing fast and accurate Chinese text conversion."
+description = "High-performance Chinese text conversion (Simplified ↔ Traditional) powered by Rust, PyO3, and OpenCC lexicons."
 requires-python = ">=3.8"
 readme = "README.md"
 license = { text = "MIT" }
