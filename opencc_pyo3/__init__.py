@@ -45,7 +45,6 @@ class OpenCC(_OpenCC):
         # Normalize config to string, validate, then init native core
         cfg = self._normalize_config(config)
         self.config = cfg  # keep a Python-side mirror (optional but handy)
-        # self.config = config if config in self.CONFIG_LIST else "s2t"
 
     @staticmethod
     def _normalize_config(config: _ConfigLike) -> str:
@@ -53,8 +52,7 @@ class OpenCC(_OpenCC):
             return config.value
 
         if isinstance(config, str):
-            c = config.lower()
-            return c if c in OpenCC.CONFIG_LIST else "s2t"
+            return config.lower()
 
         # Unknown type -> fallback safely
         return "s2t"
@@ -66,7 +64,7 @@ class OpenCC(_OpenCC):
         """
         cfg = self._normalize_config(config)
         super().apply_config(cfg)
-        self.config = cfg
+        self.config = super().get_config()
 
     def get_config(self):
         """

@@ -1,35 +1,31 @@
-mod pdf_extract_helper;
-mod reflow_helper;
-mod punct_sets;
 mod cjk_text;
+mod pdf_extract_helper;
+mod punct_sets;
+mod reflow_helper;
 
-// Import OpenCC crate and PyO3 for Python bindings
-use once_cell::sync::Lazy;
 use opencc_fmmseg;
-use opencc_fmmseg::OpenCC as _OpenCC;
-use pyo3::prelude::*;
-use std::collections::HashSet;
-
+use opencc_fmmseg::{OpenCC as _OpenCC, OpenccConfig};
 use pdf_extract_helper::{
     extract_pdf_pages_with_callback, extract_pdf_text, extract_pdf_text_pages,
 };
+use pyo3::prelude::*;
 use reflow_helper::reflow_cjk_paragraphs;
 
-/// List of supported OpenCC conversion configurations.
-/// These correspond to different Chinese conversion schemes, e.g.:
-/// - "s2t": Simplified to Traditional
-/// - "t2s": Traditional to Simplified
-/// - "s2tw": Simplified to Traditional (Taiwan Standard)
-/// - ...and others (see README for full list)
-pub static CONFIG_SET: Lazy<HashSet<&'static str>> = Lazy::new(|| {
-    [
-        "s2t", "t2s", "s2tw", "tw2s", "s2twp", "tw2sp", "s2hk", "hk2s", "t2tw", "tw2t", "t2twp",
-        "tw2tp", "t2hk", "hk2t", "t2jp", "jp2t",
-    ]
-    .iter()
-    .copied()
-    .collect()
-});
+impl OpenCC {
+    #[inline]
+    fn apply_config_internal(&mut self, config: &str) {
+        match OpenccConfig::try_from(config) {
+            Ok(cfg) => {
+                self.config = cfg.as_str().to_owned();
+                self.last_error.clear();
+            }
+            Err(_) => {
+                self.config = OpenccConfig::S2t.as_str().to_owned();
+                self.last_error = format!("Invalid config '{}', reverted to 's2t'", config);
+            }
+        }
+    }
+}
 
 /// Python class wrapping the Rust OpenCC struct.
 ///
@@ -43,7 +39,7 @@ pub static CONFIG_SET: Lazy<HashSet<&'static str>> = Lazy::new(|| {
 #[pyo3(subclass)]
 struct OpenCC {
     opencc: _OpenCC,
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     config: String,
     last_error: String,
 }
@@ -60,19 +56,110 @@ impl OpenCC {
     #[pyo3(signature = (config=None))]
     fn new(config: Option<&str>) -> Self {
         let opencc = _OpenCC::new();
-        let (config_str, error_str) = match config {
-            Some(c) if CONFIG_SET.contains(&c) => (c.to_string(), String::new()),
-            Some(c) => (
-                "s2t".to_string(),
-                format!("Invalid config '{}', reverted to 's2t'", c),
-            ),
-            None => ("s2t".to_string(), String::new()),
+
+        let (config_enum, error_str) = match config {
+            Some(c) => match OpenccConfig::try_from(c) {
+                Ok(cfg) => (cfg, String::new()),
+                Err(_) => (
+                    OpenccConfig::S2t,
+                    format!("Invalid config '{}', reverted to 's2t'", c),
+                ),
+            },
+            None => (OpenccConfig::S2t, String::new()),
         };
+
         OpenCC {
             opencc,
-            config: config_str,
+            config: config_enum.as_str().to_string(),
             last_error: error_str,
         }
+    }
+
+    /// Get the current configuration name.
+    ///
+    /// # Returns
+    /// A string slice representing the currently active OpenCC config,
+    /// such as `"s2t"`, `"t2s"`, etc.
+    fn get_config(&self) -> &str {
+        &self.config
+    }
+
+    /// Set the OpenCC conversion configuration.
+    ///
+    /// This setter validates the provided configuration string and updates the
+    /// internal configuration if valid. The input is case-insensitive and will
+    /// be normalized to the canonical lowercase form.
+    ///
+    /// If the provided configuration is invalid, the configuration will be
+    /// reset to `"s2t"` and an error message will be stored in `last_error`.
+    /// No exception is raised.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - A configuration string (e.g. `"s2t"`, `"t2s"`, `"s2twp"`).
+    ///
+    /// # Behavior
+    ///
+    /// - Valid config → applied and `last_error` is cleared
+    /// - Invalid config → fallback to `"s2t"` and `last_error` is updated
+    #[setter]
+    fn set_config(&mut self, config: &str) -> PyResult<()> {
+        self.apply_config_internal(config);
+        Ok(())
+    }
+
+    /// Apply a new OpenCC configuration.
+    ///
+    /// This method validates and applies the provided configuration string.
+    /// The input is case-insensitive and will be normalized to the canonical
+    /// lowercase form.
+    ///
+    /// If the provided configuration is invalid, the configuration will be
+    /// reset to `"s2t"` and an error message will be stored in `last_error`.
+    /// No exception is raised.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - A configuration string (e.g. `"s2t"`, `"t2s"`).
+    ///
+    /// # Behavior
+    ///
+    /// - Valid config → applied and `last_error` is cleared
+    /// - Invalid config → fallback to `"s2t"` and `last_error` is updated
+    fn apply_config(&mut self, config: &str) -> PyResult<()> {
+        self.apply_config_internal(config);
+        Ok(())
+    }
+
+    /// Get a list of all supported OpenCC configuration codes.
+    ///
+    /// # Returns
+    /// A vector of string slices representing valid configuration codes,
+    /// such as `"s2t"`, `"t2s"`, `"s2tw"`, etc.
+    #[staticmethod]
+    fn supported_configs() -> Vec<&'static str> {
+        OpenccConfig::ALL.iter().map(|c| c.as_str()).collect()
+    }
+
+    /// Check if a configuration name is valid.
+    ///
+    /// # Arguments
+    /// * `config` - A string slice representing the config to check.
+    ///
+    /// # Returns
+    /// `true` if the config is supported, otherwise `false`.
+    #[staticmethod]
+    fn is_valid_config(config: &str) -> bool {
+        OpenccConfig::is_valid_config(config)
+    }
+
+    /// Get the most recent error string (if any).
+    ///
+    /// # Returns
+    /// A string slice containing the most recent error message.
+    /// If no error occurred, returns an empty string.
+    fn get_last_error(&self) -> &str {
+        &self.last_error
     }
 
     /// Convert input text using the current configuration.
@@ -97,66 +184,6 @@ impl OpenCC {
     /// 1 - Traditional Chinese, 2 - Simplified Chinese, 0 - Others
     fn zho_check(&self, input_text: &str) -> i32 {
         self.opencc.zho_check(input_text)
-    }
-
-    /// Get the current configuration name.
-    ///
-    /// # Returns
-    /// A string slice representing the currently active OpenCC config,
-    /// such as `"s2t"`, `"t2s"`, etc.
-    fn get_config(&self) -> &str {
-        &self.config
-    }
-
-    /// Set the configuration name.
-    ///
-    /// # Arguments
-    /// * `config` - A string slice representing the new configuration to set.
-    ///              If the value is not in the supported list, it will fall back
-    ///              to `"s2t"` and set an error message.
-    ///
-    /// # Behavior
-    /// - If the config is valid, it will update the current config and clear any previous error.
-    /// - If the config is invalid, it sets the config to `"s2t"` and stores an error in `last_error`.
-    fn apply_config(&mut self, config: &str) {
-        if CONFIG_SET.contains(config) {
-            self.config = config.to_string();
-            self.last_error.clear();
-        } else {
-            self.config = "s2t".to_string();
-            self.last_error = format!("Invalid config '{}', reverted to 's2t'", config);
-        }
-    }
-
-    /// Get the most recent error string (if any).
-    ///
-    /// # Returns
-    /// A string slice containing the most recent error message.
-    /// If no error occurred, returns an empty string.
-    fn get_last_error(&self) -> &str {
-        &self.last_error
-    }
-
-    /// Get a list of all supported OpenCC configuration codes.
-    ///
-    /// # Returns
-    /// A vector of string slices representing valid configuration codes,
-    /// such as `"s2t"`, `"t2s"`, `"s2tw"`, etc.
-    #[staticmethod]
-    fn supported_configs() -> Vec<&'static str> {
-        CONFIG_SET.iter().copied().collect()
-    }
-
-    /// Check if a configuration name is valid.
-    ///
-    /// # Arguments
-    /// * `config` - A string slice representing the config to check.
-    ///
-    /// # Returns
-    /// `true` if the config is supported, otherwise `false`.
-    #[staticmethod]
-    fn is_valid_config(config: &str) -> bool {
-        CONFIG_SET.contains(config)
     }
 }
 
@@ -191,8 +218,8 @@ mod tests {
     #[test]
     fn test_get_supported_list() {
         let configs = OpenCC::supported_configs();
-        let expected: HashSet<&str> = CONFIG_SET.iter().copied().collect();
-        let actual: HashSet<&str> = configs.into_iter().collect();
+        let expected: Vec<_> = OpenccConfig::ALL.iter().map(|c| c.as_str()).collect();
+        let actual: Vec<_> = configs.into_iter().collect();
         assert_eq!(actual, expected);
     }
 
