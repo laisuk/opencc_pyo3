@@ -1,15 +1,16 @@
 from __future__ import print_function
 
 import argparse
-import io
-import os
 import sys
 
 from opencc_pyo3 import OpenCC
-from .office_helper import OFFICE_FORMATS, convert_office_doc
+
+CONFIG_HELP = "Configuration: " + "|".join(OpenCC.supported_configs())
 
 
 def subcommand_convert(args):
+    import io
+
     if args.config is None:
         print("ℹ️  Config not specified. Use default 's2t'", file=sys.stderr)
         args.config = 's2t'
@@ -41,7 +42,9 @@ def subcommand_convert(args):
 
 
 def subcommand_office(args):
+    import os
     from pathlib import Path
+    from .office_helper import OFFICE_FORMATS, convert_office_doc
 
     if args.config is None:
         print("ℹ️  Config not specified. Use default 's2t'", file=sys.stderr)
@@ -120,7 +123,6 @@ def subcommand_pdf(args) -> int:
     import time
     from pathlib import Path
     from typing import List
-
     from .opencc_pyo3 import reflow_cjk_paragraphs
     from opencc_pyo3.pdfium_helper import (
         extract_pdf_pages_with_callback_pdfium,
@@ -155,11 +157,15 @@ def subcommand_pdf(args) -> int:
     def _on_page(page: int, total: int, chunk: str) -> None:
         percent = page * 100 // total if total else 100
         msg = f"Loading [{page}/{total}] ({percent:3d}%) Extracted {len(chunk)} chars"
-        print(msg.ljust(80), end="\r", flush=True)
+        width = 70  # safe for your 72-column Win7 console
+        # Prevent wrapping
+        msg = msg[:width]
+        # Overwrite previous line
+        print(msg.ljust(width), end="\r", flush=True)
         pages.append(chunk)
 
-    print(f"Extracting PDF page-by-page with PDFium: {input_path}")
-    extract_pdf_pages_with_callback_pdfium(input_path_str, _on_page)
+    print(f"Extracting PDF page-by-page with PDFium: {p}")
+    extract_pdf_pages_with_callback_pdfium(input_path_str, _on_page, args.header)
     print()  # newline after progress
 
     text = "".join(pages)
@@ -196,7 +202,7 @@ def subcommand_pdf(args) -> int:
     with open(output_path, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
 
-    print(f"📄 Input : {input_path}")
+    print(f"📄 Input : {p}")
     print(f"📁 Output: {output_path}")
     print("⚙️ Engine : pdfium")
     if args.extract:
@@ -219,7 +225,7 @@ def main():
     # convert subcommand
     # -----------------
     parser_convert = subparsers.add_parser(
-        "convert", help="Convert Chinese text using OpenCC"
+        "convert", formatter_class=argparse.ArgumentDefaultsHelpFormatter, help="Convert Chinese text using OpenCC"
     )
     parser_convert.add_argument(
         "-i",
@@ -237,10 +243,7 @@ def main():
         "-c",
         "--config",
         metavar="<conversion>",
-        help=(
-            "Conversion configuration: "
-            "s2t|s2tw|s2twp|s2hk|t2s|tw2s|tw2sp|hk2s|jp2t|t2jp"
-        ),
+        help=CONFIG_HELP,
     )
     parser_convert.add_argument(
         "-p",
@@ -268,6 +271,7 @@ def main():
     # -----------------
     parser_office = subparsers.add_parser(
         "office",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         help="Convert Office document and EPUB Chinese text using OpenCC",
     )
     parser_office.add_argument(
@@ -286,10 +290,7 @@ def main():
         "-c",
         "--config",
         metavar="<conversion>",
-        help=(
-            "conversion: "
-            "s2t|s2tw|s2twp|s2hk|t2s|tw2s|tw2sp|hk2s|jp2t|t2jp"
-        ),
+        help=CONFIG_HELP,
     )
     parser_office.add_argument(
         "-p",
@@ -323,6 +324,7 @@ def main():
     # -------------
     parser_pdf = subparsers.add_parser(
         "pdf",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         help="Extract + convert Chinese text from a PDF using OpenCC",
     )
     parser_pdf.add_argument(
@@ -345,10 +347,7 @@ def main():
         "-c",
         "--config",
         metavar="<conversion>",
-        help=(
-            "Conversion configuration: "
-            "s2t|s2tw|s2twp|s2hk|t2s|tw2s|tw2sp|hk2s|jp2t|t2jp"
-        ),
+        help=CONFIG_HELP,
     )
     parser_pdf.add_argument(
         "-p",

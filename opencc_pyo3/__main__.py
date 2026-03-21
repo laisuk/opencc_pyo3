@@ -5,6 +5,8 @@ import sys
 
 from opencc_pyo3 import OpenCC
 
+CONFIG_HELP = "Configuration: " + "|".join(OpenCC.supported_configs())
+
 
 def subcommand_convert(args):
     import io
@@ -162,7 +164,6 @@ def subcommand_pdf(args) -> int:
         print(msg.ljust(width), end="\r", flush=True)
         pages.append(chunk)
 
-
     print(f"Extracting PDF page-by-page with PDFium: {p}")
     extract_pdf_pages_with_callback_pdfium(input_path_str, _on_page, args.header)
     print()  # newline after progress
@@ -242,10 +243,7 @@ def main():
         "-c",
         "--config",
         metavar="<conversion>",
-        help=(
-            "Conversion configuration: "
-            "s2t|s2tw|s2twp|s2hk|t2s|tw2s|tw2sp|hk2s|jp2t|t2jp"
-        ),
+        help=CONFIG_HELP,
     )
     parser_convert.add_argument(
         "-p",
@@ -292,10 +290,7 @@ def main():
         "-c",
         "--config",
         metavar="<conversion>",
-        help=(
-            "conversion: "
-            "s2t|s2tw|s2twp|s2hk|t2s|tw2s|tw2sp|hk2s|jp2t|t2jp"
-        ),
+        help=CONFIG_HELP,
     )
     parser_office.add_argument(
         "-p",
@@ -352,10 +347,7 @@ def main():
         "-c",
         "--config",
         metavar="<conversion>",
-        help=(
-            "Conversion configuration: "
-            "s2t|s2tw|s2twp|s2hk|t2s|tw2s|tw2sp|hk2s|jp2t|t2jp"
-        ),
+        help=CONFIG_HELP,
     )
     parser_pdf.add_argument(
         "-p",
