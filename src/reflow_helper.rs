@@ -243,12 +243,19 @@ pub fn reflow_cjk_paragraphs(
             }
         }
 
-        // 🔸 9b) Dialog end line: ends with dialog closer.
-        // Flush when the char before closer is strong end,
-        // and bracket safety is satisfied (with a narrow typo override).
+        // 🔸 9b) Dialog end line: ends with a dialog closer.
+        // Flush only when the character before the closer is a strong sentence end,
+        // so quoted fragments such as “不適合換行” do not get split as standalone sentences.
+        //
+        // Tolerance for imperfect source text:
+        // - normal case: buffer has no bracket issue
+        // - local corruption: current line itself has bracket issue (OCR / typo / page split)
+        // - fallback: if the buffer is already long enough (> 60), allow flush at this
+        //   strong dialog boundary to stop runaway accumulation caused by missing opening
+        //   quotes or cross-page broken quoted text
         if let Some((last_ch, prev_ch)) = last_two_non_whitespace(stripped) {
             if is_dialog_closer(last_ch) {
-                // Check punctuation right before the closer (e.g., “？” / “。”)
+                // Check punctuation right before the closer (e.g. “？” / “。”)
                 let punct_before_closer_is_strong = is_clause_or_end_punct(prev_ch);
 
                 // Snapshot bracket safety BEFORE appending current line
@@ -259,16 +266,9 @@ pub fn reflow_cjk_paragraphs(
                 buffer.push_str(stripped);
                 dialog_state.update(stripped);
 
-                // Allow flush if:
-                // - dialog is closed after this line
-                // - punctuation before closer is a strong end
-                // - and either:
-                //     (a) buffer has no bracket issue, OR
-                //     (b) buffer has bracket issue but this line itself is the culprit (OCR/typo),
-                //         so allow a dialog-end flush anyway.
                 if !dialog_state.is_unclosed()
                     && punct_before_closer_is_strong
-                    && (!buffer_has_bracket_issue || line_has_bracket_issue)
+                    && (!buffer_has_bracket_issue || line_has_bracket_issue || buffer.len() > 60)
                 {
                     segments.push(std::mem::take(&mut buffer));
                     dialog_state.reset();
