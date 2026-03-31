@@ -250,7 +250,7 @@ pub fn reflow_cjk_paragraphs(
         // Tolerance for imperfect source text:
         // - normal case: buffer has no bracket issue
         // - local corruption: current line itself has bracket issue (OCR / typo / page split)
-        // - fallback: if the buffer is already long enough (> 60), allow flush at this
+        // - fallback: if the buffer is already long enough (> 120), allow flush at this
         //   strong dialog boundary to stop runaway accumulation caused by missing opening
         //   quotes or cross-page broken quoted text
         if let Some((last_ch, prev_ch)) = last_two_non_whitespace(stripped) {
@@ -268,7 +268,7 @@ pub fn reflow_cjk_paragraphs(
 
                 if !dialog_state.is_unclosed()
                     && punct_before_closer_is_strong
-                    && (!buffer_has_bracket_issue || line_has_bracket_issue || buffer.len() > 60)
+                    && (!buffer_has_bracket_issue || line_has_bracket_issue || buffer.len() > 120)
                 {
                     segments.push(std::mem::take(&mut buffer));
                     dialog_state.reset();

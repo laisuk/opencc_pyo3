@@ -53,8 +53,8 @@ def convert_office_doc(
     Returns:
         (success: bool, message: str)
     """
-    input_path = Path(input_path)
-    output_path = Path(output_path)
+    input_path = str(Path(input_path))
+    output_path = str(Path(output_path))
 
     # --- NEW: normalized temp root and pre-created working dir
     temp_root = _normalized_temp_root()
@@ -118,13 +118,13 @@ def convert_office_doc(
 
         # Ensure output path is clear
         try:
-            output_path.unlink(missing_ok=True)  # Python 3.8+: ok
+            Path(output_path).unlink(missing_ok=True)  # Python 3.8+: ok
         except TypeError:
-            if output_path.exists():
-                output_path.unlink()
+            if Path(output_path).exists():
+                Path(output_path).unlink()
 
         if office_format == "epub":
-            return create_epub_zip_with_spec(temp_dir, output_path)
+            return create_epub_zip_with_spec(temp_dir, Path(output_path))
         else:
             with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
                 for file in temp_dir.rglob("*"):
