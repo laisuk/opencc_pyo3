@@ -524,7 +524,7 @@ fn is_heading_like(s: &str) -> bool {
         return false;
     }
 
-    if has_unclosed_bracket(s) {
+    if has_unclosed_bracket(s) || has_unclosed_dialog_quote(s) {
         return false;
     }
 

@@ -331,6 +331,77 @@ pub fn has_unclosed_bracket(s: &str) -> bool {
 }
 
 #[inline]
+pub fn has_unclosed_dialog_quote(s: &str) -> bool {
+    let mut balance = [0u8; 6];
+
+    for ch in s.chars() {
+        match ch {
+            // --- Openers ---
+            '“' => balance[0] += 1,
+            '‘' => balance[1] += 1,
+            '「' => balance[2] += 1,
+            '『' => balance[3] += 1,
+            '﹁' => balance[4] += 1,
+            '﹃' => balance[5] += 1,
+
+            // --- Closers ---
+            '”' | '〞' | '〟' => {
+                if balance[0] > 0 {
+                    balance[0] -= 1
+                } else {
+                    return true;
+                }
+            }
+
+            '’' => {
+                if balance[1] > 0 {
+                    balance[1] -= 1
+                } else {
+                    return true;
+                }
+            }
+
+            '」' => {
+                if balance[2] > 0 {
+                    balance[2] -= 1
+                } else {
+                    return true;
+                }
+            }
+
+            '』' => {
+                if balance[3] > 0 {
+                    balance[3] -= 1
+                } else {
+                    return true;
+                }
+            }
+
+            '﹂' => {
+                if balance[4] > 0 {
+                    balance[4] -= 1
+                } else {
+                    return true;
+                }
+            }
+
+            '﹄' => {
+                if balance[5] > 0 {
+                    balance[5] -= 1
+                } else {
+                    return true;
+                }
+            }
+
+            _ => {}
+        }
+    }
+
+    // any unclosed opener remains
+    balance.iter().any(|&n| n > 0)
+}
+
+#[inline]
 pub fn is_visual_divider_line(s: &str) -> bool {
     if s.trim().is_empty() {
         return false;
