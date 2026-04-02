@@ -368,7 +368,6 @@ dependencies = [
 name = "opencc-pyo3"
 version = "0.8.10"
 dependencies = [
- "once_cell",
  "opencc-fmmseg",
  "pdf-extract",
  "pyo3",

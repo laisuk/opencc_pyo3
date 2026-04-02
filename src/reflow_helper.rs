@@ -35,7 +35,7 @@ pub fn reflow_cjk_paragraphs(
     if is_latin_leading_block(text, 100) {
         return Ok(text.to_owned());
     }
-    
+
     // Normalize line endings
     let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
     let lines = normalized.split('\n');
@@ -383,7 +383,7 @@ fn is_metadata_line(line: &str) -> bool {
     };
 
     let key = s[..sep_byte_idx].trim();
-    if !METADATA_KEYS.contains(key) {
+    if !metadata_keys().contains(key) {
         return false;
     }
 
@@ -630,10 +630,25 @@ fn collapse_repeated_segments(line: &str) -> String {
         return line.to_owned();
     }
 
+    if parts.len() == 1 {
+        let token = parts[0];
+        return if likely_needs_token_collapse(token) {
+            collapse_repeated_token(token)
+        } else {
+            token.to_owned()
+        };
+    }
+
     let phrase_collapsed = collapse_repeated_word_sequences(&parts);
     let token_collapsed: Vec<String> = phrase_collapsed
         .into_iter()
-        .map(|tok| collapse_repeated_token(&tok))
+        .map(|tok| {
+            if likely_needs_token_collapse(&tok) {
+                collapse_repeated_token(&tok)
+            } else {
+                tok
+            }
+        })
         .collect();
 
     token_collapsed.join(" ")
@@ -730,6 +745,58 @@ fn collapse_repeated_token(token: &str) -> String {
     }
 
     token.to_owned()
+}
+
+fn likely_needs_token_collapse(token: &str) -> bool {
+    let char_count = token.chars().count();
+    if !(4..=200).contains(&char_count) {
+        return false;
+    }
+
+    for unit_len in 4..=10 {
+        if unit_len > char_count / 3 {
+            break;
+        }
+
+        let Some((prefix, mut next_start)) = first_n_chars_and_next_start(token, unit_len) else {
+            continue;
+        };
+
+        let mut repeats = 1usize;
+        while let Some((segment, start)) =
+            first_n_chars_and_next_start(&token[next_start..], unit_len)
+        {
+            if segment != prefix {
+                break;
+            }
+            repeats += 1;
+            next_start += start;
+            if repeats >= 3 {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+fn first_n_chars_and_next_start(s: &str, n: usize) -> Option<(&str, usize)> {
+    if n == 0 {
+        return Some(("", 0));
+    }
+
+    let mut iter = s.char_indices();
+    let mut count = 0usize;
+
+    while let Some((idx, ch)) = iter.next() {
+        count += 1;
+        if count == n {
+            let end = idx + ch.len_utf8();
+            return Some((&s[..end], end));
+        }
+    }
+
+    None
 }
 
 struct DialogState {
