@@ -200,13 +200,16 @@ pub fn reflow_cjk_paragraphs(
 
         // Final strong line punct ending check for line text
         let stripped = line_text.trim_end();
-        if !buffer.is_empty() && !dialog_state.is_unclosed() && !buffer_has_unclosed_bracket {
+        if !buffer.is_empty()
+            && !dialog_state.is_unclosed()
+            && (!buffer_has_unclosed_bracket || buffer.len() > 360)
+        {
             if let Some(last) = stripped.chars().rev().next() {
                 if is_strong_sentence_end(last) {
                     buffer.push_str(&line_text);
                     segments.push(std::mem::take(&mut buffer));
                     dialog_state.reset();
-                    dialog_state.update(&line_text);
+                    // dialog_state.update(&line_text);
                     continue;
                 }
             }
@@ -251,7 +254,7 @@ pub fn reflow_cjk_paragraphs(
         // Tolerance for imperfect source text:
         // - normal case: buffer has no bracket issue
         // - local corruption: current line itself has bracket issue (OCR / typo / page split)
-        // - fallback: if the buffer is already long enough (> 120), allow flush at this
+        // - fallback: if the buffer is already long enough (> 360), allow flush at this
         //   strong dialog boundary to stop runaway accumulation caused by missing opening
         //   quotes or cross-page broken quoted text
         if let Some((last_ch, prev_ch)) = last_two_non_whitespace(stripped) {
@@ -269,7 +272,7 @@ pub fn reflow_cjk_paragraphs(
 
                 if !dialog_state.is_unclosed()
                     && punct_before_closer_is_strong
-                    && (!buffer_has_bracket_issue || line_has_bracket_issue || buffer.len() > 120)
+                    && (!buffer_has_bracket_issue || line_has_bracket_issue || buffer.len() > 360)
                 {
                     segments.push(std::mem::take(&mut buffer));
                     dialog_state.reset();
@@ -296,7 +299,7 @@ pub fn reflow_cjk_paragraphs(
         // 8a) Strong sentence boundary (handles 。！？, OCR . / :, “.”)
         if !dialog_state.is_unclosed()
             && ends_with_sentence_boundary(buffer_text)
-            && (!buffer_has_unclosed_bracket || buffer_text.len() > 240)
+            && !buffer_has_unclosed_bracket
         {
             segments.push(std::mem::take(&mut buffer));
             buffer.push_str(&line_text);
