@@ -7,6 +7,7 @@
 use crate::cjk_text::*;
 use crate::punct_sets::*;
 use pyo3::{pyfunction, PyResult};
+use smallvec::SmallVec;
 
 /// Reflow CJK paragraphs from PDF-extracted text.
 ///
@@ -295,7 +296,7 @@ pub fn reflow_cjk_paragraphs(
         // 8a) Strong sentence boundary (handles 。！？, OCR . / :, “.”)
         if !dialog_state.is_unclosed()
             && ends_with_sentence_boundary(buffer_text)
-            && !buffer_has_unclosed_bracket
+            && (!buffer_has_unclosed_bracket || buffer_text.len() > 240)
         {
             segments.push(std::mem::take(&mut buffer));
             buffer.push_str(&line_text);
@@ -625,7 +626,7 @@ fn collapse_repeated_segments(line: &str) -> String {
         return line.to_owned();
     }
 
-    let parts: Vec<&str> = trimmed.split_whitespace().collect();
+    let parts: SmallVec<[&str; 16]> = trimmed.split_whitespace().collect();
     if parts.is_empty() {
         return line.to_owned();
     }
@@ -639,28 +640,31 @@ fn collapse_repeated_segments(line: &str) -> String {
         };
     }
 
-    let phrase_collapsed = collapse_repeated_word_sequences(&parts);
-    let token_collapsed: Vec<String> = phrase_collapsed
-        .into_iter()
-        .map(|tok| {
-            if likely_needs_token_collapse(&tok) {
-                collapse_repeated_token(&tok)
-            } else {
-                tok
-            }
-        })
-        .collect();
+    let collapsed_parts = collapse_repeated_word_sequences(&parts);
+    let mut out = String::with_capacity(trimmed.len());
 
-    token_collapsed.join(" ")
+    for (index, token) in collapsed_parts.iter().enumerate() {
+        if index > 0 {
+            out.push(' ');
+        }
+
+        if likely_needs_token_collapse(token) {
+            out.push_str(&collapse_repeated_token(token));
+        } else {
+            out.push_str(token);
+        }
+    }
+
+    out
 }
 
-fn collapse_repeated_word_sequences(parts: &[&str]) -> Vec<String> {
+fn collapse_repeated_word_sequences<'a>(parts: &[&'a str]) -> SmallVec<[&'a str; 16]> {
     const MIN_REPEATS: usize = 3;
     const MAX_PHRASE_LEN: usize = 8;
 
     let n = parts.len();
     if n < MIN_REPEATS {
-        return parts.iter().map(|s| (*s).to_owned()).collect();
+        return parts.iter().copied().collect();
     }
 
     for start in 0..n {
@@ -691,23 +695,23 @@ fn collapse_repeated_word_sequences(parts: &[&str]) -> Vec<String> {
             }
 
             if count >= MIN_REPEATS {
-                let mut result = Vec::with_capacity(n - (count - 1) * phrase_len);
+                let mut result = SmallVec::<[&str; 16]>::with_capacity(n - (count - 1) * phrase_len);
                 for i in 0..start {
-                    result.push(parts[i].to_owned());
+                    result.push(parts[i]);
                 }
                 for k in 0..phrase_len {
-                    result.push(parts[start + k].to_owned());
+                    result.push(parts[start + k]);
                 }
                 let tail_start = start + count * phrase_len;
                 for i in tail_start..n {
-                    result.push(parts[i].to_owned());
+                    result.push(parts[i]);
                 }
                 return result;
             }
         }
     }
 
-    parts.iter().map(|s| (*s).to_owned()).collect()
+    parts.iter().copied().collect()
 }
 
 fn collapse_repeated_token(token: &str) -> String {

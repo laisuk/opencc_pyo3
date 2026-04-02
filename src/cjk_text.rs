@@ -182,7 +182,7 @@ pub fn ends_with_sentence_boundary(s: &str) -> bool {
     }
 
     // 2) OCR '.' / ':' at line end (mostly-CJK).
-    if (last == '.' || last == ':') && is_ocr_cjk_ascii_punct_at_line_end(s, last_i) {
+    if (last == '.' || last == ':') && is_ocr_cjk_ascii_punct_at_line_end(s, last_i, last) {
         return true;
     }
 
@@ -193,7 +193,7 @@ pub fn ends_with_sentence_boundary(s: &str) -> bool {
             return true;
         }
 
-        if prev == '.' && is_ocr_cjk_ascii_punct_before_closers(s, prev_i) {
+        if prev == '.' && is_ocr_cjk_ascii_punct_before_closers(s, prev_i, prev) {
             return true;
         }
     }
@@ -213,41 +213,43 @@ pub fn ends_with_sentence_boundary(s: &str) -> bool {
 
 /// Strict OCR: punct itself is at end-of-line (only whitespace after it),
 /// and preceded by CJK in a mostly-CJK line.
-fn is_ocr_cjk_ascii_punct_at_line_end(s: &str, punct_index: usize) -> bool {
-    if punct_index == 0 {
-        return false;
-    }
-    if !is_at_line_end_ignoring_whitespace(s, punct_index) {
-        return false;
-    }
-    let prev = nth_char(s, punct_index - 1);
-    is_cjk_bmp(prev) && is_mostly_cjk(s)
+fn is_ocr_cjk_ascii_punct_at_line_end(s: &str, punct_byte_index: usize, punct: char) -> bool {
+    is_at_line_end_ignoring_whitespace(s, punct_byte_index, punct)
+        && char_before_byte(s, punct_byte_index).is_some_and(is_cjk_bmp)
+        && is_mostly_cjk(s)
 }
 
 /// Relaxed OCR: after punct, allow only whitespace and closers (quote/bracket).
 /// This enables `“.”` / `.」` / `.）` to count as sentence boundary.
-fn is_ocr_cjk_ascii_punct_before_closers(s: &str, punct_index: usize) -> bool {
-    if punct_index == 0 {
-        return false;
-    }
-    if !is_at_end_allowing_closers(s, punct_index) {
-        return false;
-    }
-    let prev = nth_char(s, punct_index - 1);
-    is_cjk_bmp(prev) && is_mostly_cjk(s)
+fn is_ocr_cjk_ascii_punct_before_closers(
+    s: &str,
+    punct_byte_index: usize,
+    punct: char,
+) -> bool {
+    is_at_end_allowing_closers(s, punct_byte_index, punct)
+        && char_before_byte(s, punct_byte_index).is_some_and(is_cjk_bmp)
+        && is_mostly_cjk(s)
 }
 
 #[inline]
-fn nth_char(s: &str, idx: usize) -> char {
-    s.chars().nth(idx).unwrap_or('\0')
+fn char_before_byte(s: &str, byte_index: usize) -> Option<char> {
+    if byte_index == 0 {
+        return None;
+    }
+    s.get(..byte_index)?.chars().next_back()
 }
 
-fn is_at_line_end_ignoring_whitespace(s: &str, index: usize) -> bool {
-    s.chars().skip(index + 1).all(|c| c.is_whitespace())
+fn is_at_line_end_ignoring_whitespace(s: &str, byte_index: usize, ch: char) -> bool {
+    s.get(byte_index + ch.len_utf8()..)
+        .is_some_and(|tail| tail.chars().all(|c| c.is_whitespace()))
 }
 
-fn is_at_end_allowing_closers(s: &str, index: usize) -> bool {
-    for ch in s.chars().skip(index + 1) {
+fn is_at_end_allowing_closers(s: &str, byte_index: usize, punct: char) -> bool {
+    let Some(tail) = s.get(byte_index + punct.len_utf8()..) else {
+        return false;
+    };
+
+    for ch in tail.chars() {
         if ch.is_whitespace() {
             continue;
         }
@@ -429,3 +431,16 @@ fn is_ascii_latinish(ch: char) -> bool {
             | '@' | '#' | '$' | '%' | '&' | '*' | '+' | '=' | '<' | '>'
     )
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::ends_with_sentence_boundary;
+
+    #[test]
+    fn ocr_ascii_punctuation_after_cjk_counts_as_sentence_boundary() {
+        assert!(ends_with_sentence_boundary("这是结尾."));
+        assert!(ends_with_sentence_boundary("这是结尾.)"));
+    }
+}
+
