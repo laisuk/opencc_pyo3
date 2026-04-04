@@ -7,6 +7,24 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
+## [0.8.10] - 2026-04-03
+
+### Added
+
+- Add `has_unclosed_dialog_quote()` in reflow_helper.rs
+
+### Changed
+
+- Optimized `reflow_helper`
+- Optimized Python Type Checking
+
+### Fixed
+
+- Fixed XLSX conversion to also process worksheet inline strings (`t="inlineStr"`), preventing missed text conversion in
+  hybrid workbooks that contain both shared strings and inline strings.
+
+---
+
 ## [0.8.9] - 2026-03-03
 
 ### Added
