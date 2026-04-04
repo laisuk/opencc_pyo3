@@ -266,7 +266,7 @@ def _should_mask_fonts(office_format: str, relative_path: Path) -> bool:
         return True
 
     normalized = relative_path.as_posix()
-    return normalized.lower() == "xl/sharedStrings.xml"
+    return normalized.lower() == "xl/sharedstrings.xml"
 
 
 def _is_xlsx_worksheet_path(relative_path: Path) -> bool:
@@ -288,7 +288,7 @@ def _convert_xlsx_xml_part(
     """
     normalized = relative_path.as_posix()
 
-    if normalized.lower() == "xl/sharedStrings.xml":
+    if normalized.lower() == "xl/sharedstrings.xml":
         return converter.convert(xml_content, punctuation=punctuation)
 
     if _is_xlsx_worksheet_path(relative_path):
