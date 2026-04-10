@@ -14,7 +14,8 @@ include = [
     "README.md",
     "/LICENSE",
     "src/**",
-    "opencc_pyo3/**",
+    "opencc_pyo3/*.py",
+    "opencc_pyo3/*.pyi",
     "pdfium/**",
     "tools/**"
 ]
