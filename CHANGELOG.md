@@ -18,6 +18,7 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 - Optimized `reflow_helper`
 - Optimized Python Type Checking
 - Update Rust backend to use `OpenccConfig` Enum
+- Optimized CLI subcommand `office` and `pdf` for handling commandline `config`
 
 ### Fixed
 

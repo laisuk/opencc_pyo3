@@ -3,20 +3,37 @@ from __future__ import print_function
 import argparse
 import sys
 
-from opencc_pyo3 import OpenCC
+from opencc_pyo3 import OpenCC, OpenccConfig
 
 CONFIG_HELP = "Configuration: " + "|".join(OpenCC.supported_configs())
+
+
+def resolve_config(config):
+    if config is None:
+        print("ℹ️  Config not set. Use default: s2t", file=sys.stderr)
+        return "s2t"
+
+    try:
+        return OpenccConfig.parse(config).to_canonical_name()
+    except ValueError:
+        print(f"❌  Invalid OpenCC config: {config}", file=sys.stderr)
+        print(
+            f"   Supported configs: {' | '.join(OpenCC.supported_configs())}",
+            file=sys.stderr,
+        )
+        return None
 
 
 def subcommand_convert(args):
     import io
 
-    if args.config is None:
-        print("ℹ️  Config not specified. Use default 's2t'", file=sys.stderr)
-        args.config = 's2t'
+    config = resolve_config(args.config)
+    if config is None:
+        return 1
+    args.config = config
 
     # Plain text conversion fallback
-    opencc = OpenCC(args.config)
+    opencc = OpenCC(config)
 
     # Prompt user if input is from terminal
     if args.input is None and sys.stdin.isatty():
@@ -46,9 +63,10 @@ def subcommand_office(args):
     from pathlib import Path
     from .office_helper import OFFICE_FORMATS, convert_office_doc
 
-    if args.config is None:
-        print("ℹ️  Config not specified. Use default 's2t'", file=sys.stderr)
-    args.config = 's2t'
+    config = resolve_config(args.config)
+    if config is None:
+        return 1
+    args.config = config
 
     input_file = args.input
     output_file = args.output
@@ -149,6 +167,12 @@ def subcommand_pdf(args) -> int:
     if args.timing:
         t0_total = time.perf_counter()
 
+    config = None if args.extract else resolve_config(args.config)
+    if not args.extract and config is None:
+        return 1
+    if config is not None:
+        args.config = config
+
     # ---------------------------------------------------------
     # PDFium extraction (single source of truth)
     # ---------------------------------------------------------
@@ -189,9 +213,8 @@ def subcommand_pdf(args) -> int:
     # OpenCC Conversion (optional)
     # ---------------------------------------------------------
     if not args.extract:
-        if args.config:
-            opencc = OpenCC(args.config)
-            text = opencc.convert(text, args.punct)
+        opencc = OpenCC(str(config))
+        text = opencc.convert(text, args.punct)
     else:
         if args.config or args.punct:
             print("ℹ️  --extract specified: skipping OpenCC conversion.", file=sys.stderr)
