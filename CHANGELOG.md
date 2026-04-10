@@ -12,6 +12,7 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 ### Added
 
 - Add `has_unclosed_dialog_quote()` in `reflow_helper`
+- Added `py.typed` in module
 
 ### Changed
 
