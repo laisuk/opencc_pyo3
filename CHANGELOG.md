@@ -7,16 +7,17 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
-## [0.8.10] - 2026-04-03
+## [0.8.10] - 2026-04-10
 
 ### Added
 
-- Add `has_unclosed_dialog_quote()` in reflow_helper.rs
+- Add `has_unclosed_dialog_quote()` in `reflow_helper`
 
 ### Changed
 
 - Optimized `reflow_helper`
 - Optimized Python Type Checking
+- Update Rust backend to use `OpenccConfig` Enum
 
 ### Fixed
 
