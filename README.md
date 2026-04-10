@@ -12,10 +12,13 @@ using [OpenCC](https://github.com/BYVoid/OpenCC) algorithms.
 
 ## Features
 
-- Convert between Simplified, Traditional, Hong Kong, Taiwan, and Japanese Kanji Chinese text.
-- Fast and memory-efficient, leveraging Rust's performance.
-- Easy-to-use Python API.
-- Supports punctuation conversion and automatic text code detection.
+- Convert between Simplified, Traditional, Hong Kong, Taiwan, and Japanese Kanji variants with OpenCC-compatible configurations.
+- High-performance Rust + PyO3 backend for fast, memory-efficient Chinese text conversion in Python.
+- Python API with `OpenCC`, `OpenccConfig`, config validation helpers, punctuation conversion, and Chinese text variant detection.
+- Command-line interface for plain text conversion from files or standard input.
+- Office and EPUB document conversion support for `.docx`, `.xlsx`, `.pptx`, `.odt`, `.ods`, `.odp`, and `.epub`.
+- PDF text extraction helpers, including PDFium-based page-by-page extraction utilities.
+- CJK paragraph reflow helper for cleaning PDF-extracted text before conversion.
 
 ## Supported Conversion Configurations
 
@@ -158,19 +161,132 @@ opencc-pyo3 pdf -i input.pdf -o output.txt -c s2t -punct --reflow
 
 ---
 
-## API
+## Python API
 
-### Class: `OpenCC`
+### `OpenccConfig`
 
-- `OpenCC(config: str = "s2t")`
-    - `config`: Conversion configuration (see above).
-- `set_config(config: str)`
-    - Set conversion config dynamically
-- `convert(input: str, punctuation: bool = False) -> str`
-    - Convert text with optional punctuation conversion.
-- `zho_check(input: str) -> int`
-    - Detects the code of the input text.
-    - 1 - Traditional, 2 - Simplified, 0 - others
+`OpenccConfig` is an enum exported from `opencc_pyo3` for config-safe usage:
+
+```python
+from opencc_pyo3 import OpenCC, OpenccConfig
+
+cc = OpenCC(OpenccConfig.S2TW)
+print(cc.convert("汉字"))  # 漢字
+```
+
+Available enum values:
+
+- `OpenccConfig.S2T`
+- `OpenccConfig.T2S`
+- `OpenccConfig.S2TW`
+- `OpenccConfig.TW2S`
+- `OpenccConfig.S2TWP`
+- `OpenccConfig.TW2SP`
+- `OpenccConfig.S2HK`
+- `OpenccConfig.HK2S`
+- `OpenccConfig.T2TW`
+- `OpenccConfig.TW2T`
+- `OpenccConfig.T2TWP`
+- `OpenccConfig.TW2TP`
+- `OpenccConfig.T2HK`
+- `OpenccConfig.HK2T`
+- `OpenccConfig.T2JP`
+- `OpenccConfig.JP2T`
+
+### `OpenCC`
+
+Core converter class backed by the Rust extension module.
+
+- `OpenCC(config: str | OpenccConfig = "s2t")`
+    - Creates a converter using a config string or `OpenccConfig` enum.
+    - Invalid config values fall back to `s2t`.
+- `convert(input_text: str, punctuation: bool = False) -> str`
+    - Converts text using the current config.
+- `set_config(config: str | OpenccConfig) -> None`
+    - Changes the active config.
+- `get_config() -> str`
+    - Returns the current canonical config name.
+- `get_last_error() -> str`
+    - Returns the most recent config error message, or `""` if none.
+- `zho_check(input_text: str) -> int`
+    - Detects the text type.
+    - `1` = Traditional Chinese, `2` = Simplified Chinese, `0` = other / undetermined
+- `OpenCC.supported_configs() -> list[str]`
+    - Returns all supported config names.
+- `OpenCC.is_valid_config(config: str) -> bool`
+    - Validates a config string.
+
+Example:
+
+```python
+from opencc_pyo3 import OpenCC, OpenccConfig
+
+cc = OpenCC(OpenccConfig.S2T)
+print(cc.get_config())  # s2t
+print(cc.convert("汉字", punctuation=True))
+print(cc.zho_check("汉字"))  # 2
+
+cc.set_config("t2jp")
+print(cc.convert("圖書館"))  # 図書館
+
+print(OpenCC.supported_configs())
+print(OpenCC.is_valid_config("s2hk"))  # True
+```
+
+### Reflow helper
+
+- `reflow_cjk_paragraphs(text: str, add_pdf_page_header: bool, compact: bool) -> str`
+    - Reflows PDF-extracted CJK text by merging broken line wraps while preserving paragraph structure.
+    - `add_pdf_page_header=True` keeps explicit page-gap style boundaries.
+    - `compact=True` uses single newlines between paragraphs.
+
+Example:
+
+```python
+from opencc_pyo3.opencc_pyo3 import reflow_cjk_paragraphs
+
+raw_text = "我来到\n无人海边。"
+clean_text = reflow_cjk_paragraphs(raw_text, add_pdf_page_header=False, compact=False)  # 我来到无人海边。
+```
+
+### PDF extraction APIs
+
+The package currently exposes two PDF extraction layers:
+
+1. Rust extension functions in `opencc_pyo3.opencc_pyo3`
+2. PDFium-based helpers in `opencc_pyo3.pdfium_helper`
+
+#### Legacy Rust PDF extract functions
+
+These are still exported, but the type stub marks them as deprecated in favor of the PDFium helper module.
+
+- `extract_pdf_text(path: str) -> str`
+- `extract_pdf_text_pages(path: str) -> list[str]`
+- `extract_pdf_pages_with_callback(path: str, callback: Callable[[int, int, str], Any]) -> None`
+
+#### Recommended PDFium helper functions
+
+Import from `opencc_pyo3.pdfium_helper`:
+
+- `extract_pdf_pages_with_callback_pdfium(path: str, callback, add_page_header: bool = False) -> None`
+- `extract_pdf_text_pdfium_progress(path: str) -> str`
+- `extract_pdf_text_pdfium_silent(path: str) -> str`
+- `extract_pdf_text_pages_pdfium(path: str) -> list[str]`
+- `extract_pdf_text_pages_pdfium_progress(path: str) -> list[str]`
+- `make_progress_collector() -> tuple[callback, list[str]]`
+- `make_silent_collector() -> tuple[callback, list[str]]`
+
+Example:
+
+```python
+from opencc_pyo3 import OpenCC
+from opencc_pyo3.opencc_pyo3 import reflow_cjk_paragraphs
+from opencc_pyo3.pdfium_helper import extract_pdf_text_pdfium_silent
+
+raw = extract_pdf_text_pdfium_silent("input.pdf")
+text = reflow_cjk_paragraphs(raw, add_pdf_page_header=False, compact=False)
+converted = OpenCC("s2t").convert(text, punctuation=True)
+```
 
 ## Development
 
