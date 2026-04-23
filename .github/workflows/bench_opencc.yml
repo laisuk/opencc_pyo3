@@ -1,0 +1,49 @@
+name: Benchmark opencc_pyo3
+
+on:
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    name: Benchmark on ubuntu-latest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install build tooling
+        run: python -m pip install --upgrade pip maturin
+
+      - name: Build and install opencc_pyo3
+        run: maturin develop --release
+
+      - name: Validate zh-Hans benchmark samples
+        run: python bench/opencc_benchmark_md.py --validate-text-only
+
+      - name: Run benchmark
+        run: >-
+          python bench/opencc_benchmark_md.py
+          --ci
+          --configs s2t s2tw s2twp
+          --sizes Small Medium Large XLarge
+          --export md json
+          --output-dir bench/out
+          --github-step-summary
+
+      - name: Upload benchmark artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencc-benchmark-ubuntu-latest
+          path: bench/out/*
+          if-no-files-found: error

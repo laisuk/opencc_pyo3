@@ -6,7 +6,7 @@ Highlights:
 - Defaults to benchmarking the locally built `opencc_pyo3` package.
 - Validates that bundled sample texts are Simplified Chinese before running.
 - Writes stable output filenames so GitHub Actions can upload artifacts easily.
-- Can append a short markdown summary to `$GITHUB_STEP_SUMMARY`.
+- Can append a short Markdown summary to `$GITHUB_STEP_SUMMARY`.
 """
 
 from __future__ import annotations
@@ -198,7 +198,8 @@ class OpenCCBenchmark:
                 f"{result.name:<10} {result.text_size:<8} {result.zho_check:<10} {str(result.roundtrip_equal)}"
             )
 
-    def _measure_memory(self) -> float:
+    @staticmethod
+    def _measure_memory() -> float:
         try:
             import psutil
         except ImportError:
