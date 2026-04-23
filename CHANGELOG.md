@@ -7,6 +7,14 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
+## [0.8.11] 2026-04-24
+
+### Changed
+
+- Update `opencc-fmmseg` to v0.9.2 with conversion dictionary data update.
+
+---
+
 ## [0.8.10] - 2026-04-10
 
 ### Added

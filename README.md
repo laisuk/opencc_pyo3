@@ -12,9 +12,11 @@ using [OpenCC](https://github.com/BYVoid/OpenCC) algorithms.
 
 ## Features
 
-- Convert between Simplified, Traditional, Hong Kong, Taiwan, and Japanese Kanji variants with OpenCC-compatible configurations.
+- Convert between Simplified, Traditional, Hong Kong, Taiwan, and Japanese Kanji variants with OpenCC-compatible
+  configurations.
 - High-performance Rust + PyO3 backend for fast, memory-efficient Chinese text conversion in Python.
-- Python API with `OpenCC`, `OpenccConfig`, config validation helpers, punctuation conversion, and Chinese text variant detection.
+- Python API with `OpenCC`, `OpenccConfig`, config validation helpers, punctuation conversion, and Chinese text variant
+  detection.
 - Command-line interface for plain text conversion from files or standard input.
 - Office and EPUB document conversion support for `.docx`, `.xlsx`, `.pptx`, `.odt`, `.ods`, `.odp`, and `.epub`.
 - PDF text extraction helpers, including PDFium-based page-by-page extraction utilities.
@@ -297,39 +299,44 @@ converted = OpenCC("s2t").convert(text, punctuation=True)
 
 ## Benchmarks
 
+Latest benchmark results for the optimized current `opencc_pyo3` version.
+These replace the much older `v0.7.0` numbers.
+
 ```
 Package: opencc_pyo3
-Python 3.13.5 (tags/v3.13.5:6cb20a2, Jun 11 2025, 16:15:46) [MSC v.1943 64 bit (AMD64)]
-Platform: Windows-11-10.0.26100-SP0
+Python: 3.13.13
+Platform: Windows-11-10.0.26200-SP0
 Processor: Intel64 Family 6 Model 191 Stepping 2, GenuineIntel
+Configs: s2t, s2tw, s2twp
+Text sizes: 100, 1,000, 10,000, 100,000 characters
 ```
 
 ### BENCHMARK RESULTS
 
 ---
 
-| Method         | Config | TextSize |     Mean |   StdDev |      Min |       Max | Ops/sec |  Chars/sec |
-|:---------------|:-------|---------:|---------:|---------:|---------:|----------:|--------:|-----------:|
-| Convert_Small  | s2t    |      100 | 0.118 ms | 0.097 ms | 0.049 ms |  0.811 ms |   8,499 |    849,910 |
-| Convert_Medium | s2t    |    1,000 | 0.250 ms | 0.036 ms | 0.211 ms |  0.509 ms |   4,004 |  4,003,531 |
-| Convert_Large  | s2t    |   10,000 | 0.845 ms | 0.060 ms | 0.775 ms |  1.420 ms |   1,184 | 11,835,419 |
-| Convert_XLarge | s2t    |  100,000 | 4.755 ms | 0.152 ms | 4.515 ms |  5.680 ms |     210 | 21,030,543 |
-| Convert_Small  | s2tw   |      100 | 0.141 ms | 0.027 ms | 0.096 ms |  0.321 ms |   7,111 |    711,093 |
-| Convert_Medium | s2tw   |    1,000 | 0.392 ms | 0.030 ms | 0.355 ms |  0.623 ms |   2,552 |  2,552,127 |
-| Convert_Large  | s2tw   |   10,000 | 1.271 ms | 0.044 ms | 1.191 ms |  1.474 ms |     787 |  7,869,452 |
-| Convert_XLarge | s2tw   |  100,000 | 6.317 ms | 0.139 ms | 6.004 ms |  7.250 ms |     158 | 15,831,322 |
-| Convert_Small  | s2twp  |      100 | 0.204 ms | 0.028 ms | 0.132 ms |  0.380 ms |   4,911 |    491,118 |
-| Convert_Medium | s2twp  |    1,000 | 0.598 ms | 0.039 ms | 0.527 ms |  0.747 ms |   1,671 |  1,671,296 |
-| Convert_Large  | s2twp  |   10,000 | 1.942 ms | 0.061 ms | 1.823 ms |  2.223 ms |     515 |  5,149,357 |
-| Convert_XLarge | s2twp  |  100,000 | 9.937 ms | 0.173 ms | 9.542 ms | 10.707 ms |     101 | 10,063,174 |
+| Method         | Config | TextSize |     Mean |   StdDev |      Min |      Max | Ops/sec |  Chars/sec |
+|:---------------|:-------|---------:|---------:|---------:|---------:|---------:|--------:|-----------:|
+| Convert_Small  | s2t    |      100 | 0.005 ms | 0.003 ms | 0.004 ms | 0.021 ms | 188,442 | 18,844,221 |
+| Convert_Medium | s2t    |    1,000 | 0.038 ms | 0.006 ms | 0.036 ms | 0.066 ms |  26,189 | 26,189,437 |
+| Convert_Large  | s2t    |   10,000 | 0.253 ms | 0.093 ms | 0.171 ms | 0.629 ms |   3,958 | 39,577,314 |
+| Convert_XLarge | s2t    |  100,000 | 1.394 ms | 0.166 ms | 1.156 ms | 1.699 ms |     717 | 71,726,750 |
+| Convert_Small  | s2tw   |      100 | 0.006 ms | 0.003 ms | 0.005 ms | 0.021 ms | 175,953 | 17,595,308 |
+| Convert_Medium | s2tw   |    1,000 | 0.044 ms | 0.005 ms | 0.042 ms | 0.071 ms |  22,808 | 22,808,485 |
+| Convert_Large  | s2tw   |   10,000 | 0.318 ms | 0.086 ms | 0.227 ms | 0.514 ms |   3,141 | 31,411,310 |
+| Convert_XLarge | s2tw   |  100,000 | 1.503 ms | 0.129 ms | 1.355 ms | 1.837 ms |     665 | 66,516,340 |
+| Convert_Small  | s2twp  |      100 | 0.008 ms | 0.003 ms | 0.007 ms | 0.025 ms | 130,435 | 13,043,478 |
+| Convert_Medium | s2twp  |    1,000 | 0.054 ms | 0.006 ms | 0.052 ms | 0.084 ms |  18,378 | 18,377,849 |
+| Convert_Large  | s2twp  |   10,000 | 0.482 ms | 0.249 ms | 0.335 ms | 1.602 ms |   2,075 | 20,746,888 |
+| Convert_XLarge | s2twp  |  100,000 | 1.817 ms | 0.197 ms | 1.649 ms | 2.581 ms |     550 | 55,032,341 |
 
 ---
 
-### Throughput vs Size
+### Reproduce Benchmarks
 
-![Throughput](https://raw.githubusercontent.com/laisuk/opencc_pyo3/master/assets/throughput_vs_size.png)
-
----
+```bash
+python bench/opencc_benchmark_md.py --ci --configs s2t s2tw s2twp --sizes Small Medium Large XLarge --export md json --output-dir bench/out
+```
 
 ## Projects That Use `opencc-pyo3`
 
