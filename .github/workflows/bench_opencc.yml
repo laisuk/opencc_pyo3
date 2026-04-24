@@ -30,8 +30,13 @@ jobs:
           python -m pip install -U pip
           python -m pip install -r bench/requirements.txt
 
-      - name: Build and install opencc_pyo3
-        run: maturin develop --release
+      - name: Build local wheel
+        run: |
+          maturin build --release --out dist
+
+      - name: Install local wheel
+        run: |
+          python -m pip install --force-reinstall dist/*.whl
 
       - name: Validate zh-Hans benchmark samples
         run: python bench/opencc_benchmark_md.py --validate-text-only
