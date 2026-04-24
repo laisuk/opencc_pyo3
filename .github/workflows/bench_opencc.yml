@@ -30,13 +30,19 @@ jobs:
           python -m pip install -U pip
           python -m pip install -r bench/requirements.txt
 
-      - name: Build local wheel
-        run: |
-          maturin build --release --compatibility manylinux2014 --out dist
+#      - name: Build local wheel
+#        run: |
+#          maturin build --release --compatibility manylinux2014 --out dist
 
-      - name: Install local wheel
+#      - name: Install local wheel
+#        run: |
+#          python -m pip install --force-reinstall dist/*.whl
+
+      - name: Install PyPI opencc-pyo3
         run: |
-          python -m pip install --force-reinstall dist/*.whl
+          python -m pip install --force-reinstall "opencc-pyo3==0.8.10"
+          python -m pip show opencc-pyo3
+          python -c "import opencc_pyo3; print(opencc_pyo3.__file__)"
 
       - name: Validate zh-Hans benchmark samples
         run: python bench/opencc_benchmark_md.py --validate-text-only
