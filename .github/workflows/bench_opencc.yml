@@ -44,17 +44,8 @@ jobs:
 
       - name: Verify opencc_pyo3 import
         run: |
-          python - << 'PY'
-          import os
-          import subprocess
-          import sys
-
-          subprocess.check_call([
-              sys.executable,
-              "-c",
-              "import opencc_pyo3; print(opencc_pyo3.__file__)",
-          ], cwd="/tmp")
-          PY
+          cd /tmp
+          python -c "import opencc_pyo3; print(opencc_pyo3.__file__)"
 
       - name: Validate zh-Hans benchmark samples
         run: python bench/opencc_benchmark_md.py --validate-text-only
