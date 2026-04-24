@@ -32,7 +32,7 @@ jobs:
 
       - name: Build local wheel
         run: |
-          maturin build --release --out dist
+          maturin build --release --compatibility manylinux2014 --out dist
 
       - name: Install local wheel
         run: |
