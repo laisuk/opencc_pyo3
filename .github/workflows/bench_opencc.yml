@@ -25,11 +25,30 @@ jobs:
       - name: Install build tooling
         run: python -m pip install --upgrade pip maturin
 
+      - name: Install benchmark dependencies
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r bench/requirements.txt
+
       - name: Build and install opencc_pyo3
         run: maturin develop --release
 
       - name: Validate zh-Hans benchmark samples
         run: python bench/opencc_benchmark_md.py --validate-text-only
+
+      - name: Collect runner environment info
+        run: |
+          echo "## CI Environment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Key | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
+
+          echo "| OS | $(uname -a) |" >> $GITHUB_STEP_SUMMARY
+          echo "| CPU | $(lscpu | grep 'Model name' | sed 's/Model name:\s*//') |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cores | $(nproc) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Memory | $(free -h | awk '/Mem:/ {print $2}') |" >> $GITHUB_STEP_SUMMARY
+          echo "| Python | $(python --version) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Rust | $(rustc --version) |" >> $GITHUB_STEP_SUMMARY
 
       - name: Run benchmark
         run: >-

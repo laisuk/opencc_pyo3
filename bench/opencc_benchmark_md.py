@@ -99,6 +99,32 @@ def get_opencc() -> Type[Any]:
     return OPENCC_MODULE
 
 
+def get_system_info() -> dict:
+    return {
+        "platform": platform.platform(),
+        "python": platform.python_version(),
+        "cpu": get_cpu_name() or "Unknown",
+        "machine": platform.machine(),
+        "cores": os.cpu_count() or 0,
+    }
+
+
+def get_cpu_name() -> str:
+    cpu = platform.processor()
+    if cpu:
+        return cpu
+
+    try:
+        with open("/proc/cpuinfo", "r", encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("model name"):
+                    return line.split(":", 1)[1].strip()
+    except (FileNotFoundError, PermissionError, OSError):
+        pass
+
+    return "Unknown"
+
+
 class OpenCCBenchmark:
     """OpenCC benchmarking suite."""
 
@@ -419,12 +445,16 @@ class OpenCCBenchmark:
         raise ValueError(f"Unsupported export format: {export_format}")
 
     def _build_markdown_report(self) -> str:
+        sysinfo = get_system_info()
+
         lines = [
             f"# Benchmark Results for `{PACKAGE_NAME}`",
             "",
             f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-            f"**Platform:** {platform.platform()}",
-            f"**Python:** {platform.python_version()}",
+            f"**Platform:** {sysinfo['platform']}",
+            f"**CPU:** {sysinfo['cpu']}",
+            f"**Cores:** {sysinfo['cores']}",
+            f"**Python:** {sysinfo['python']}",
             "",
             "## Text Validation",
             "",
