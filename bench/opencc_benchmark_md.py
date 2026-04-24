@@ -24,7 +24,7 @@ import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional, Type, Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -37,7 +37,7 @@ SUPPORTED_PACKAGES = {
 }
 
 PACKAGE_NAME = "opencc_pyo3"
-OPENCC_MODULE = None
+OPENCC_MODULE: Optional[Type[Any]] = None
 OPENCC_AVAILABLE = False
 
 
@@ -91,6 +91,12 @@ class TextValidationResult:
     text_size: int
     zho_check: int
     roundtrip_equal: bool
+
+
+def get_opencc() -> Type[Any]:
+    if OPENCC_MODULE is None:
+        raise RuntimeError("OpenCC module not initialized")
+    return OPENCC_MODULE
 
 
 class OpenCCBenchmark:
@@ -165,8 +171,8 @@ class OpenCCBenchmark:
         if not OPENCC_AVAILABLE:
             raise ImportError("OpenCC package is not available")
 
-        checker = OPENCC_MODULE("s2t")
-        reverse = OPENCC_MODULE("t2s")
+        checker = get_opencc()("s2t")
+        reverse = get_opencc()("t2s")
         validations: List[TextValidationResult] = []
 
         for name, text in self.test_texts.items():
@@ -209,17 +215,17 @@ class OpenCCBenchmark:
         return process.memory_info().rss / 1024 / 1024
 
     def _run_single_benchmark(
-        self,
-        config: str,
-        text: str,
-        text_size_name: str,
-        iterations: int,
-        warmup: int,
+            self,
+            config: str,
+            text: str,
+            text_size_name: str,
+            iterations: int,
+            warmup: int,
     ) -> BenchmarkResult:
         if not OPENCC_AVAILABLE:
             raise ImportError("OpenCC package is not available")
 
-        converter = OPENCC_MODULE(config)
+        converter = get_opencc()(config)
 
         sample = text[: min(256, len(text))]
         for _ in range(max(warmup, 0)):
@@ -263,12 +269,12 @@ class OpenCCBenchmark:
         )
 
     def run_benchmarks(
-        self,
-        configs: Optional[Iterable[str]] = None,
-        text_sizes: Optional[Iterable[str]] = None,
-        iterations: int = 100,
-        warmup: int = 5,
-        fail_fast: bool = False,
+            self,
+            configs: Optional[Iterable[str]] = None,
+            text_sizes: Optional[Iterable[str]] = None,
+            iterations: int = 100,
+            warmup: int = 5,
+            fail_fast: bool = False,
     ) -> List[BenchmarkResult]:
         if not OPENCC_AVAILABLE:
             raise ImportError("OpenCC package is not available")
@@ -478,7 +484,8 @@ def append_github_step_summary(summary_path: Path, benchmark: OpenCCBenchmark, m
     for result in benchmark.validation_results:
         lines.append(f"| {result.name} | {result.zho_check} | {result.roundtrip_equal} |")
 
-    lines.extend(["", "### Fastest Results", "", "| Config | Text | Mean (ms) | Chars/sec |", "|--------|------|----------:|----------:|"])
+    lines.extend(["", "### Fastest Results", "", "| Config | Text | Mean (ms) | Chars/sec |",
+                  "|--------|------|----------:|----------:|"])
 
     for result in sorted(benchmark.results, key=lambda item: item.mean_time)[: min(5, len(benchmark.results))]:
         lines.append(
