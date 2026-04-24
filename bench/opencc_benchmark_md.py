@@ -19,7 +19,6 @@ import json
 import os
 import platform
 import statistics
-import sys
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
