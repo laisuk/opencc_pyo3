@@ -42,6 +42,10 @@ jobs:
       #          python -m pip install --force-reinstall "opencc-pyo3==0.8.10"
       #          python -m pip show opencc-pyo3
 
+      - name: Verify opencc_pyo3 import
+        run: |
+          python -c "import opencc_pyo3; print(opencc_pyo3.__file__)"
+
       - name: Validate zh-Hans benchmark samples
         run: python bench/opencc_benchmark_md.py --validate-text-only
 
