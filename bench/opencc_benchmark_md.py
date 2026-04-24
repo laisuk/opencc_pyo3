@@ -26,9 +26,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Type, Any
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+# REPO_ROOT = Path(__file__).resolve().parents[1]
+# if str(REPO_ROOT) not in sys.path:
+#     sys.path.insert(0, str(REPO_ROOT))
 
 SUPPORTED_PACKAGES = {
     "opencc_pyo3": "opencc_pyo3",
@@ -59,11 +59,11 @@ def setup_opencc_package(package_name: str = "opencc_pyo3") -> None:
         OPENCC_MODULE = getattr(module, "OpenCC")
         OPENCC_AVAILABLE = True
         print(f"Using package: {package_name}")
-    except ImportError as exc:
+    except (ImportError, ModuleNotFoundError) as exc:
         OPENCC_AVAILABLE = False
         OPENCC_MODULE = None
         raise ImportError(
-            f"Unable to import '{package_name}'. Install it first or run the benchmark from a built checkout."
+            f"Unable to import '{package_name}' via module '{module_name}': {exc}"
         ) from exc
 
 
