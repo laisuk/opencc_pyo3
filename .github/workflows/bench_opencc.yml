@@ -23,22 +23,21 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install build tooling
-        run: python -m pip install --upgrade pip maturin
+        run: python -m pip install -U pip maturin
 
       - name: Install benchmark dependencies
         run: |
-          python -m pip install -U pip
           python -m pip install -r bench/requirements.txt
 
       - name: Build local wheel
         run: |
           maturin build --release --out dist
 
-      - name: Install local wheel
+      - name: Install local wheel (for development package)
         run: |
           python -m pip install --force-reinstall dist/*.whl
 
-      #      - name: Install PyPI opencc-pyo3
+      #      - name: Install PyPI opencc-pyo3 (for published package)
       #        run: |
       #          python -m pip install --force-reinstall "opencc-pyo3==0.8.10"
       #          python -m pip show opencc-pyo3
@@ -54,7 +53,7 @@ jobs:
           echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
 
           echo "| OS | $(uname -a) |" >> $GITHUB_STEP_SUMMARY
-          echo "| CPU | $(lscpu | grep 'Model name' | sed 's/Model name:\s*//') |" >> $GITHUB_STEP_SUMMARY
+          echo "| CPU | $(lscpu | awk -F: '/Model name/ {print $2}' | xargs) |" >> $GITHUB_STEP_SUMMARY
           echo "| Cores | $(nproc) |" >> $GITHUB_STEP_SUMMARY
           echo "| Memory | $(free -h | awk '/Mem:/ {print $2}') |" >> $GITHUB_STEP_SUMMARY
           echo "| Python | $(python --version) |" >> $GITHUB_STEP_SUMMARY
@@ -66,6 +65,7 @@ jobs:
           --ci
           --configs s2t s2tw s2twp
           --sizes Small Medium Large XLarge
+          --iterations 50
           --export md json
           --output-dir bench/out
           --github-step-summary
