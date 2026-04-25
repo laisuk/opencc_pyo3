@@ -1,12 +1,18 @@
+import sys
 import unittest
 from unittest import mock
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from python.opencc_pyo3 import OpenCC
-from python.opencc_pyo3 import pdfium_loader
-from python.opencc_pyo3.office_helper import convert_office_doc
+ROOT_DIR = Path(__file__).resolve().parents[1]
+PYTHON_SRC_DIR = ROOT_DIR / "python"
+if str(PYTHON_SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(PYTHON_SRC_DIR))
+
+from opencc_pyo3 import OpenCC
+from opencc_pyo3 import pdfium_loader
+from opencc_pyo3.office_helper import convert_office_doc
 
 
 class TestOpenCC(unittest.TestCase):
