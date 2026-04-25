@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 def _detect_platform_folder() -> str:
-    is_64bit = sys.maxsize > 2**32
+    is_64bit = sys.maxsize > 2 ** 32
 
     if sys.platform.startswith(("win32", "cygwin")):
         arch = "x64" if is_64bit else "x86"
@@ -26,6 +26,41 @@ def _detect_platform_folder() -> str:
         raise RuntimeError(f"Unsupported platform: {sys.platform}")
 
 
+def _module_file_dir() -> Path:
+    return Path(os.path.abspath(__file__)).parent
+
+
+def _candidate_module_dirs() -> list[Path]:
+    """
+    Return candidate package roots that may contain bundled runtime assets.
+
+    Preference order preserves the current tested PyInstaller layout first,
+    then falls back to module-relative and flatter frozen layouts.
+    """
+    candidates: list[Path] = []
+    meipass = getattr(sys, "_MEIPASS", None)
+    module_dir = _module_file_dir()
+
+    if getattr(sys, "frozen", False) and meipass:
+        meipass_path = Path(meipass)
+        candidates.extend([
+            meipass_path / "opencc_pyo3",
+            module_dir,
+            meipass_path,
+        ])
+    else:
+        candidates.append(module_dir)
+
+    deduped: list[Path] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = os.path.normcase(os.path.normpath(str(candidate)))
+        if key not in seen:
+            seen.add(key)
+            deduped.append(candidate)
+    return deduped
+
+
 def _module_dir() -> Path:
     """
     Return the physical directory of the installed ``opencc_pyo3`` package.
@@ -41,17 +76,15 @@ def _module_dir() -> Path:
     - PyInstaller (onefile & onedir builds via ``sys._MEIPASS``)
     - Nuitka standalone / onefile builds
 
-    In frozen applications (PyInstaller), package files are extracted
-    into a temporary directory referenced by ``sys._MEIPASS``.
-    In all other cases (including Nuitka), ``__file__`` remains valid.
+    In frozen applications, prefer the current tested package-preserving layout
+    first, but fall back to module-relative or flatter extraction layouts when
+    assets are bundled differently.
     """
-    # PyInstaller
-    meipass = getattr(sys, "_MEIPASS", None)
-    if getattr(sys, "frozen", False) and meipass:
-        return Path(meipass) / "opencc_pyo3"
-
-    # Nuitka and normal execution
-    return Path(os.path.abspath(__file__)).parent
+    candidates = _candidate_module_dirs()
+    for candidate in candidates:
+        if (candidate / "pdfium").exists():
+            return candidate
+    return candidates[0]
 
 
 def load_pdfium() -> ctypes.CDLL:
@@ -70,8 +103,8 @@ def load_pdfium() -> ctypes.CDLL:
         try:
             os.add_dll_directory(str(path_dir))
         except (AttributeError, FileNotFoundError):
-            # AttributeError → Python < 3.8
-            # FileNotFoundError → directory missing (handled below)
+            # AttributeError -> Python < 3.8
+            # FileNotFoundError -> directory missing (handled below)
             pass
     elif sys.platform.startswith("linux"):
         libname = "libpdfium.so"
@@ -83,10 +116,15 @@ def load_pdfium() -> ctypes.CDLL:
     lib_path = path_dir / libname
 
     if not lib_path.exists():
+        searched = "\n".join(
+            f"- {candidate / 'pdfium' / platform_folder / libname}"
+            for candidate in _candidate_module_dirs()
+        )
         raise RuntimeError(
             f"PDFium native library missing: {lib_path}\n"
             f"Expected platform folder: {platform_folder}\n"
-            f"module_dir={_module_dir()}"
+            f"module_dir={_module_dir()}\n"
+            f"Searched:\n{searched}"
         )
 
     try:

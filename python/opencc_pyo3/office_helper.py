@@ -46,7 +46,7 @@ _XLSX_TEXT_NODE_RE: re.Pattern[str] = re.compile(
 
 def convert_office_doc(
         input_path: str,
-        output_path: str,
+        output_path: Optional[str],
         office_format: str,
         converter: OpenCC,
         punctuation: bool = False,
@@ -58,7 +58,8 @@ def convert_office_doc(
 
     Args:
         input_path: Path to input .docx, .xlsx, .pptx, .odt, .epub, etc.
-        output_path: Path for the output converted document.
+        output_path: Path for the output converted document. If None, a sibling
+            file named "<input>_converted.<ext>" is created.
         office_format: One of 'docx', 'xlsx', 'pptx', 'odt', 'ods', 'odp', 'epub'.
         converter: An object with a method `convert(text, punctuation=True|False)`.
         punctuation: Whether to convert punctuation.
@@ -68,7 +69,7 @@ def convert_office_doc(
         (success: bool, message: str)
     """
     input_path = str(Path(input_path))
-    output_path = str(Path(output_path))
+    output_path = _normalize_output_path(input_path, output_path, office_format)
     office_format = office_format.lower()
 
     temp_root = _normalized_temp_root()
@@ -180,6 +181,20 @@ def convert_office_doc(
 def _normalized_temp_root() -> str:
     # Normalize temp root path string to avoid Windows resolve() issues (e.g., R:\Temp)
     return os.path.normpath(os.path.abspath(tempfile.gettempdir()))
+
+
+
+def _normalize_output_path(
+        input_path: str,
+        output_path: Optional[str],
+        office_format: str,
+) -> str:
+    if output_path is not None:
+        return str(Path(output_path))
+
+    input_file = Path(input_path)
+    input_ext = input_file.suffix or f".{office_format.lower()}"
+    return str(input_file.with_name(f"{input_file.stem}_converted{input_ext}"))
 
 
 def _safe_zip_join(base_dir: str, member: str) -> Path:
@@ -366,3 +381,5 @@ def create_epub_zip_with_spec(source_dir: Path, output_path: Path) -> Tuple[bool
         return True, "✅ EPUB archive created successfully."
     except Exception as ex:
         return False, f"❌ Failed to create EPUB: {ex}"
+
+

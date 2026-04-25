@@ -7,11 +7,18 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
-## [0.8.11] 2026-04-24
+## [0.8.11] 2026-04-26
 
 ### Changed
 
 - Update `opencc-fmmseg` to v0.9.2 with conversion dictionary data update.
+
+### Fixed
+
+- Refactored `office_helper.convert_office_doc()` to accept a null output path and auto-generate a sibling
+  `*_converted.<ext>` file for direct Python callers, matching the CLI `office` subcommand behavior.
+- Made `pdfium_loader` more tolerant in frozen apps by preserving the current `_MEIPASS/opencc_pyo3` lookup
+  first, then falling back to module-relative and flatter extracted layouts for PyInstaller/Nuitka packaging.
 
 ---
 
