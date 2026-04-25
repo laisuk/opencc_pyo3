@@ -57,9 +57,11 @@ class TestOpenCC(unittest.TestCase):
 
         cc.set_config("nonexistent")
         self.assertEqual(cc.get_config(), "s2t")
-        # v0.9.2 C API reports invalid-config origin during construction,
-        # while apply_config fallback no longer populates last_error.
-        self.assertEqual(cc.get_last_error(), "")
+        self.assertIn("Invalid config", cc.get_last_error())
+
+        cc.apply_config("nonexistent")
+        self.assertEqual(cc.get_config(), "s2t")
+        self.assertIn("Invalid config", cc.get_last_error())
 
     def test_convert_office_doc_generates_output_when_none(self):
         converter = OpenCC("s2t")
