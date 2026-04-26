@@ -183,7 +183,6 @@ def _normalized_temp_root() -> str:
     return os.path.normpath(os.path.abspath(tempfile.gettempdir()))
 
 
-
 def _normalize_output_path(
         input_path: str,
         output_path: Optional[str],
@@ -381,5 +380,3 @@ def create_epub_zip_with_spec(source_dir: Path, output_path: Path) -> Tuple[bool
         return True, "✅ EPUB archive created successfully."
     except Exception as ex:
         return False, f"❌ Failed to create EPUB: {ex}"
-
-

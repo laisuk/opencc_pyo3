@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 def _detect_platform_folder() -> str:
-    is_64bit = sys.maxsize > 2 ** 32
+    is_64bit = sys.maxsize > 2**32
 
     if sys.platform.startswith(("win32", "cygwin")):
         arch = "x64" if is_64bit else "x86"
