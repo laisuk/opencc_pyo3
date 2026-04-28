@@ -3,9 +3,11 @@ import os
 import sys
 from pathlib import Path
 
+from typing import List, Set
+
 
 def _detect_platform_folder() -> str:
-    is_64bit = sys.maxsize > 2**32
+    is_64bit = sys.maxsize > 2 ** 32
 
     if sys.platform.startswith(("win32", "cygwin")):
         arch = "x64" if is_64bit else "x86"
@@ -30,18 +32,18 @@ def _module_file_dir() -> Path:
     return Path(os.path.abspath(__file__)).parent
 
 
-def _candidate_module_dirs() -> list[Path]:
+def _candidate_module_dirs() -> List[Path]:
     """
     Return candidate package roots that may contain bundled runtime assets.
 
     Preference order preserves the current tested PyInstaller layout first,
     then falls back to module-relative and flatter frozen layouts.
     """
-    candidates: list[Path] = []
+    candidates: List[Path] = []
     meipass = getattr(sys, "_MEIPASS", None)
     module_dir = _module_file_dir()
 
-    if getattr(sys, "frozen", False) and meipass:
+    if getattr(sys, "frozen", False) and isinstance(meipass, str):
         meipass_path = Path(meipass)
         candidates.extend([
             meipass_path / "opencc_pyo3",
@@ -51,8 +53,8 @@ def _candidate_module_dirs() -> list[Path]:
     else:
         candidates.append(module_dir)
 
-    deduped: list[Path] = []
-    seen: set[str] = set()
+    deduped: List[Path] = []
+    seen: Set[str] = set()
     for candidate in candidates:
         key = os.path.normcase(os.path.normpath(str(candidate)))
         if key not in seen:

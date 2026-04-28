@@ -7,6 +7,28 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
+## [0.8.12] - 2026-04-29
+
+### Fixed
+
+- Fix Python 3.8 compatibility issue in `pdfium_loader` (`TypeError: 'type' object is not subscriptable`)
+  - Replace `list[Path]` / `set[str]` with `typing.List` / `typing.Set`
+- Fix runtime error when importing `opencc_pyo3.pdfium_helper` on older Python versions
+- Improve `_MEIPASS` handling for frozen environments (PyInstaller / Nuitka)
+  - Avoid incorrect string conversion (`str(None)`)
+  - Add safe type check with `isinstance(meipass, str)`
+
+### Improved
+
+- Harden runtime asset path detection logic for bundled PDFium
+- Ensure consistent behavior across:
+  - Standard Python environments
+  - Virtual environments
+  - PyInstaller builds (onefile / onedir)
+  - Nuitka builds
+
+---
+
 ## [0.8.11] 2026-04-26
 
 ### Changed
