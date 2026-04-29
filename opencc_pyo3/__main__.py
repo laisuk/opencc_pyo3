@@ -109,7 +109,7 @@ def subcommand_office(args):
             print(f"❌  Invalid Office file extension: {file_ext}", file=sys.stderr)
             print("   Valid extensions: .docx | .xlsx | .pptx | .odt | .ods | .odp | .epub", file=sys.stderr)
             return 1
-        office_format = file_ext[1:]
+        office_format = str(file_ext[1:])
 
     # Auto-append extension to output file if needed
     if auto_ext and output_file and not os.path.splitext(output_file)[1] and office_format in OFFICE_FORMATS:
@@ -188,9 +188,19 @@ def subcommand_pdf(args) -> int:
         print(msg.ljust(width), end="\r", flush=True)
         pages.append(chunk)
 
+    def print_done(total: int) -> None:
+        msg = f"Completed [{total}/{total}] (100%) ✓"
+        width = 70
+        if len(msg) < width:
+            msg += " " * (width - len(msg))
+
+        sys.stdout.write("\r" + msg + "\n")
+        sys.stdout.flush()
+
     print(f"Extracting PDF page-by-page with PDFium: {p}")
     extract_pdf_pages_with_callback_pdfium(input_path_str, _on_page, args.header)
-    print()  # newline after progress
+    # print()  # newline after progress
+    print_done(len(pages))
 
     text = "".join(pages)
 

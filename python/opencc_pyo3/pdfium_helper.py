@@ -232,6 +232,7 @@ def extract_pdf_pages_with_callback_pdfium(
             count = _pdfium.FPDFText_CountChars(textpage)
 
             if count > 0:
+                # noinspection PyCallingNonCallable
                 buf = (ctypes.c_uint16 * (count + 1))()
                 extracted = _pdfium.FPDFText_GetText(textpage, 0, count, buf)
                 if extracted > 0:
