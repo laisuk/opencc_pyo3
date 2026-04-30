@@ -1,0 +1,81 @@
+# Makefile (Linux / macOS)
+#
+# Command: make -f makefile.linux <subcommand>
+#
+# Scope:
+# - Native Linux/macOS builds only
+# - No Windows / Win7 / MSVC targets
+# - Compatible with local maturin CLI
+#
+# ------------------------------------------------------------
+
+SHELL := /bin/bash
+
+.PHONY: build develop build-stable develop-stable clean check help
+
+# -------------------------
+# Normal builds
+# -------------------------
+
+build:
+	@set -euo pipefail; \
+	old_rustflags="$${RUSTFLAGS-}"; \
+	old_toolchain="$${RUSTUP_TOOLCHAIN-}"; \
+	unset RUSTFLAGS || true; \
+	unset RUSTUP_TOOLCHAIN || true; \
+	maturin build --release; \
+	if [ -n "$$old_rustflags" ]; then export RUSTFLAGS="$$old_rustflags"; else unset RUSTFLAGS || true; fi; \
+	if [ -n "$$old_toolchain" ]; then export RUSTUP_TOOLCHAIN="$$old_toolchain"; else unset RUSTUP_TOOLCHAIN || true; fi
+
+develop:
+	@set -euo pipefail; \
+	old_rustflags="$${RUSTFLAGS-}"; \
+	old_toolchain="$${RUSTUP_TOOLCHAIN-}"; \
+	unset RUSTFLAGS || true; \
+	unset RUSTUP_TOOLCHAIN || true; \
+	maturin develop --release; \
+	if [ -n "$$old_rustflags" ]; then export RUSTFLAGS="$$old_rustflags"; else unset RUSTFLAGS || true; fi; \
+	if [ -n "$$old_toolchain" ]; then export RUSTUP_TOOLCHAIN="$$old_toolchain"; else unset RUSTUP_TOOLCHAIN || true; fi
+
+# -------------------------
+# Stable toolchain builds
+# -------------------------
+
+build-stable:
+	@set -euo pipefail; \
+	old_rustflags="$${RUSTFLAGS-}"; \
+	old_toolchain="$${RUSTUP_TOOLCHAIN-}"; \
+	unset RUSTFLAGS || true; \
+	export RUSTUP_TOOLCHAIN=stable; \
+	maturin build --release; \
+	if [ -n "$$old_rustflags" ]; then export RUSTFLAGS="$$old_rustflags"; else unset RUSTFLAGS || true; fi; \
+	if [ -n "$$old_toolchain" ]; then export RUSTUP_TOOLCHAIN="$$old_toolchain"; else unset RUSTUP_TOOLCHAIN || true; fi
+
+develop-stable:
+	@set -euo pipefail; \
+	old_rustflags="$${RUSTFLAGS-}"; \
+	old_toolchain="$${RUSTUP_TOOLCHAIN-}"; \
+	unset RUSTFLAGS || true; \
+	export RUSTUP_TOOLCHAIN=stable; \
+	maturin develop --release; \
+	if [ -n "$$old_rustflags" ]; then export RUSTFLAGS="$$old_rustflags"; else unset RUSTFLAGS || true; fi; \
+	if [ -n "$$old_toolchain" ]; then export RUSTUP_TOOLCHAIN="$$old_toolchain"; else unset RUSTUP_TOOLCHAIN || true; fi
+
+# -------------------------
+# Utilities
+# -------------------------
+
+clean:
+	rm -rf build/ dist/ target/ *.egg-info
+
+check:
+	twine check --strict dist/*
+
+help:
+	@echo "Available targets:"
+	@echo "  build           Build release wheel (native)"
+	@echo "  develop         Develop install (maturin develop)"
+	@echo "  build-stable    Build using stable Rust toolchain"
+	@echo "  develop-stable  Develop install using stable toolchain"
+	@echo "  clean           Remove build artifacts"
+	@echo "  check           twine check on dist/*"
