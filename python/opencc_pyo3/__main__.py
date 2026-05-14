@@ -53,7 +53,7 @@ def subcommand_convert(args):
     in_from = args.input if args.input else "<stdin>"
     out_to = args.output if args.output else "stdout"
     if sys.stderr.isatty():
-        if output_str and not output_str.endswith("\n"):
+        if not args.output and output_str and not output_str.endswith("\n"):
             print()
         print(f"Conversion completed ({args.config}): {in_from} -> {out_to}", file=sys.stderr)
 
@@ -84,6 +84,9 @@ def subcommand_office(args):
         return 1
     if not input_file:
         print("❌  Input file is missing.", file=sys.stderr)
+        return 1
+    if not Path(input_file).is_file():
+        print(f"❌ Input file not found: {input_file}", file=sys.stderr)
         return 1
 
     # If output file is not specified, generate one based on input file

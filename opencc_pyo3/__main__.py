@@ -85,6 +85,9 @@ def subcommand_office(args):
     if not input_file:
         print("❌  Input file is missing.", file=sys.stderr)
         return 1
+    if not Path(input_file).is_file():
+        print(f"❌ Input file not found: {input_file}", file=sys.stderr)
+        return 1
 
     # If output file is not specified, generate one based on input file
     if not output_file:
