@@ -33,16 +33,15 @@ smallvec = "1.15"
 #time = "=0.3.41"
 #rangemap = "=1.6.0"
 #indexmap = "=2.11.4"
+
 # MSRV 1.75 guard:
 # cc 1.2.48 pulls jobserver 0.1.34 -> wit-bindgen 0.57.1,
 # which requires edition2024 and breaks cargo +1.75.0.
 # Re-enable if Cargo.lock is accidentally updated:
 # cc = "=1.2.47"
-# OPTIONAL pdf-extract
-pdf-extract = { version = "=0.8", optional = true }
 
 [features]
-# Default: minimal, no PDF engines
+# Default: Rust core only. PDF support is handled by Python-side PDFium loading.
 default = []
 gen-import-lib = ["pyo3/generate-import-lib"]
 
@@ -50,8 +49,6 @@ gen-import-lib = ["pyo3/generate-import-lib"]
 # Do NOT enable by default: `cargo test` builds a standalone executable
 # which must link against libpython and will fail in extension-module mode (Linux).
 extension-module = ["pyo3/extension-module"]
-# Opt-in legacy PDF text extraction (slow, inaccurate, deprecated path)
-pdf-extract = ["dep:pdf-extract"]
 
 [lib]
 name = "opencc_pyo3"

@@ -393,20 +393,7 @@ clean_text = reflow_cjk_paragraphs(raw_text, add_pdf_page_header=False, compact=
 
 ### PDF extraction APIs
 
-The package currently exposes two PDF extraction layers:
-
-1. Rust extension functions in `opencc_pyo3.opencc_pyo3`
-2. PDFium-based helpers in `opencc_pyo3.pdfium_helper`
-
-#### Legacy Rust PDF extract functions
-
-These are still exported, but the type stub marks them as deprecated in favor of the PDFium helper module.
-
-- `extract_pdf_text(path: str) -> str`
-- `extract_pdf_text_pages(path: str) -> list[str]`
-- `extract_pdf_pages_with_callback(path: str, callback: Callable[[int, int, str], Any]) -> None`
-
-#### Recommended PDFium helper functions
+The package exposes PDFium-based PDF extraction helpers in `opencc_pyo3.pdfium_helper`.
 
 Import from `opencc_pyo3.pdfium_helper`:
 

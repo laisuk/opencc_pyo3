@@ -34,6 +34,22 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 - Native PyO3 methods now expose Python default signatures directly via `#[pyo3(signature = ...)]`.
 - Improved Python typing hints and documentation for custom dictionary APIs.
 - Improved compatibility between Python frontend wrappers and native PyO3-returned OpenCC instances.
+- Simplified PDF support architecture by standardizing on Python-side PDFium loading/runtime integration.
+- Reduced dependency graph size and MSRV pressure by removing deprecated fallback PDF extraction dependencies.
+
+### Removed
+
+- Removed deprecated Rust `pdf-extract` fallback PDF extraction support.
+- Removed deprecated `lopdf`-based PDF extraction path.
+- Removed legacy fallback PDF extraction APIs and helper modules.
+- Removed transitive dependency chain related to:
+    - `pdf-extract`
+    - `lopdf`
+    - `flate2`
+    - `rangemap`
+    - `indexmap`
+    - `time`
+- Removed deprecated fallback PDF extraction test/helper scripts.
 
 ---
 
@@ -129,11 +145,8 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ### Changed
 
-- Deprecated legacy PDF extraction via the `pdf-extract` crate.
 - PDFium is now the single source of truth for all PDF-related features.
-- Legacy `pdf-extract` remains available when building from source with the `pdf-extract` feature enabled.
 - Improved Pdfium native synchronization logic for wheel packaging.
-- Improved transition error messages to clearly guide users to PDFium-based APIs.
 
 ### Fixed
 

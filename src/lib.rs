@@ -1,5 +1,4 @@
 mod cjk_text;
-mod pdf_extract_helper;
 mod punct_sets;
 mod reflow_helper;
 
@@ -7,9 +6,6 @@ use opencc_fmmseg;
 use opencc_fmmseg::{
     CustomDictFileSpec, CustomDictMode, CustomDictSpec, DictSlot, DictionaryMaxlength,
     OpenCC as _OpenCC, OpenccConfig,
-};
-use pdf_extract_helper::{
-    extract_pdf_pages_with_callback, extract_pdf_text, extract_pdf_text_pages,
 };
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -487,9 +483,6 @@ fn parse_config_or_default(config: Option<&str>) -> (OpenccConfig, String) {
 fn opencc_pyo3(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<OpenCC>()?;
     m.add_function(wrap_pyfunction!(reflow_cjk_paragraphs, m)?)?;
-    m.add_function(wrap_pyfunction!(extract_pdf_text, m)?)?;
-    m.add_function(wrap_pyfunction!(extract_pdf_text_pages, m)?)?;
-    m.add_function(wrap_pyfunction!(extract_pdf_pages_with_callback, m)?)?;
 
     Ok(())
 }
@@ -515,57 +508,6 @@ mod tests {
         let expected: Vec<_> = OpenccConfig::ALL.iter().map(|c| c.as_str()).collect();
         let actual: Vec<_> = configs.into_iter().collect();
         assert_eq!(actual, expected);
-    }
-
-    /// Test PDF text extraction using a known CJK PDF.
-    /// Saves *reflowed* text to `tests/简体字_output.txt` for manual inspection.
-    #[cfg(feature = "pdf-extract")]
-    #[test]
-    fn test_extract_pdf_text() {
-        use std::fs;
-        use std::io::Write;
-        use std::path::Path;
-
-        // PDF input (relative to crate root)
-        let input_path = "tests/简体字.pdf";
-
-        assert!(
-            Path::new(input_path).exists(),
-            "Test PDF not found at: {}. Make sure the file exists.",
-            input_path
-        );
-
-        // Extract text
-        let text = extract_pdf_text(input_path).expect("Failed to extract text from test PDF");
-
-        // Sanity check: extracted text should not be empty
-        assert!(
-            !text.trim().is_empty(),
-            "PDF extraction returned empty text"
-        );
-
-        // Ensure some CJK characters appear (adjust if your sample PDF differs)
-        assert!(
-            text.contains("字") || text.contains("简") || text.contains("体"),
-            "Extracted text does not contain expected CJK characters.\nGot: {}",
-            text
-        );
-
-        // 🔹 Reflow CJK paragraphs before saving
-        // add_pdf_page_header = false, compact = false (blank line between paragraphs)
-        let reflowed =
-            reflow_cjk_paragraphs(&text, false, false).expect("Failed to reflow CJK paragraphs");
-
-        // Save output to file for manual review
-        let output_path = "tests/简体字_output.txt";
-        let mut file = fs::File::create(output_path).expect("Failed to create output .txt file");
-
-        file.write_all(reflowed.as_bytes())
-            .expect("Failed to write extracted text to output file");
-
-        // Optional: check output file exists and is non-empty
-        let out_meta = fs::metadata(output_path).expect("Failed to stat output file");
-        assert!(out_meta.len() > 0, "Output text file is empty");
     }
 
     #[test]
