@@ -199,6 +199,7 @@ jobs:
     name: Publish to PyPI
     needs: build
     runs-on: ubuntu-latest
+    if: ${{ !contains(github.ref_name, '-beta') }}
     permissions:
       contents: read
 
@@ -229,3 +230,28 @@ jobs:
           args: >-
             --non-interactive
             final_dist/*.whl
+
+  github-beta-release:
+    name: Publish beta GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ contains(github.ref_name, '-beta') }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Merge wheels
+        run: |
+          mkdir -p final_dist
+          find dist -name '*.whl' -exec mv {} final_dist/ \;
+
+      - name: Create beta GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          files: final_dist/*.whl
