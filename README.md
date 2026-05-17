@@ -202,6 +202,10 @@ Core converter class backed by the Rust extension module.
 - `OpenCC(config: str | OpenccConfig = "s2t")`
     - Creates a converter using a config string or `OpenccConfig` enum.
     - Invalid config values fall back to `s2t`.
+- `OpenCC.from_dicts(config="s2t", specs=None) -> OpenCC`
+    - Creates a converter with programmatic, in-memory custom dictionary entries.
+- `OpenCC.from_dict_files(config="s2t", specs=None) -> OpenCC`
+    - Creates a converter with OpenCC-style custom dictionary files.
 - `convert(input_text: str, punctuation: bool = False) -> str`
     - Converts text using the current config.
 - `set_config(config: str | OpenccConfig) -> None`
@@ -234,6 +238,142 @@ print(cc.convert("圖書館"))  # 図書館
 print(OpenCC.supported_configs())
 print(OpenCC.is_valid_config("s2hk"))  # True
 ```
+
+---
+
+### Custom Dictionaries
+
+`OpenCC("s2t")` remains the recommended API for normal use and continues to use the built-in embedded dictionaries.
+Use custom dictionaries only when you need project-specific terms or overrides.
+
+Custom dictionaries are applied during construction. The backend first loads the default embedded zstd dictionaries,
+then
+applies post-load customization with `DictionaryMaxlength::from_zstd()?.with_custom_dicts(...)` or
+`DictionaryMaxlength::from_zstd()?.with_custom_dict_files(...)`. The final `OpenCC` instance remains immutable and
+optimized after construction. Runtime hot reload is not supported; rebuild a new `OpenCC` instance if dictionaries need
+to change.
+
+#### In-memory custom dictionaries
+
+Use `OpenCC.from_dicts()` for programmatic terms:
+
+```python
+from typing import List
+
+from opencc_pyo3 import OpenCC, CustomDictSpec
+
+specs: List[CustomDictSpec] = [
+    {
+        "slot": "STPhrases",
+        "pairs": [("帕兰蒂尔", "柏蘭蒂爾")],
+        "mode": "append",
+    }
+]
+
+cc = OpenCC.from_dicts("s2t", specs)
+
+print(cc.convert("帕兰蒂尔是一家公司"))
+# 柏蘭蒂爾是一家公司
+```
+
+#### File-based custom dictionaries
+
+Use `OpenCC.from_dict_files()` for OpenCC-style dictionary files:
+
+```python
+from typing import List
+
+from opencc_pyo3 import OpenCC, CustomDictFileSpec
+
+specs: List[CustomDictFileSpec] = [
+    {
+        "slot": "STPhrases",
+        "files": ["custom_st_phrases.txt"],
+        "mode": "append",
+    }
+]
+
+cc = OpenCC.from_dict_files("s2t", specs)
+```
+
+Custom dictionary files use one mapping per line:
+
+```text
+source<TAB>target
+```
+
+Example:
+
+```text
+帕兰蒂尔	柏蘭蒂爾
+```
+
+#### Merge modes
+
+- `append`: add custom entries to the existing dictionary slot. Duplicate keys follow the backend "last wins" behavior.
+- `override`: replace the entire target dictionary slot with the custom entries or files.
+
+#### Supported dictionary slots
+
+Use canonical slot names without `.txt`, such as `STPhrases`, not `STPhrases.txt`. The Python wrapper may tolerate
+`.txt`, but the documented API uses canonical names only.
+
+| Slot                    | Purpose                                                 | Original OpenCC file        |
+|:------------------------|:--------------------------------------------------------|:----------------------------|
+| `STCharacters`          | Simplified → Traditional character mappings             | `STCharacters.txt`          |
+| `STPhrases`             | Simplified → Traditional phrase mappings                | `STPhrases.txt`             |
+| `STPunctuations`        | Simplified → Traditional punctuation mappings           | `STPunctuations.txt`        |
+| `TSCharacters`          | Traditional → Simplified character mappings             | `TSCharacters.txt`          |
+| `TSPhrases`             | Traditional → Simplified phrase mappings                | `TSPhrases.txt`             |
+| `TSPunctuations`        | Traditional → Simplified punctuation mappings           | `TSPunctuations.txt`        |
+| `TWPhrases`             | Traditional → Taiwan phrase mappings                    | `TWPhrases.txt`             |
+| `TWPhrasesRev`          | Taiwan → Traditional reverse phrase mappings            | `TWPhrasesRev.txt`          |
+| `TWVariants`            | Traditional → Taiwan regional variant mappings          | `TWVariants.txt`            |
+| `TWVariantsRev`         | Taiwan → Traditional reverse variant mappings           | `TWVariantsRev.txt`         |
+| `TWVariantsRevPhrases`  | Taiwan → Traditional reverse phrase variant mappings    | `TWVariantsRevPhrases.txt`  |
+| `HKVariants`            | Traditional → Hong Kong regional variant mappings       | `HKVariants.txt`            |
+| `HKVariantsRev`         | Hong Kong → Traditional reverse variant mappings        | `HKVariantsRev.txt`         |
+| `HKVariantsRevPhrases`  | Hong Kong → Traditional reverse phrase variant mappings | `HKVariantsRevPhrases.txt`  |
+| `JPShinjitaiCharacters` | Japanese Shinjitai character mappings                   | `JPShinjitaiCharacters.txt` |
+| `JPShinjitaiPhrases`    | Japanese Shinjitai phrase mappings                      | `JPShinjitaiPhrases.txt`    |
+| `JPVariants`            | Traditional → Japanese variant mappings                 | `JPVariants.txt`            |
+| `JPVariantsRev`         | Japanese → Traditional reverse variant mappings         | `JPVariantsRev.txt`         |
+
+Custom dictionary behavior follows the same OpenCC dictionary-slot model. Choosing the wrong slot may have no effect or
+may affect a different conversion path. For `s2t`, use `STCharacters` or `STPhrases`. For `t2s`, use `TSCharacters` or
+`TSPhrases`. For regional variants, use the relevant `TW`, `HK`, or `JP` slots.
+
+#### Typing helpers
+
+`CustomDictSpec` and `CustomDictFileSpec` are exported for typed Python code:
+
+```python
+from typing import List
+from opencc_pyo3 import OpenCC, CustomDictSpec
+
+specs: List[CustomDictSpec] = [
+    {
+        "slot": "STPhrases",
+        "pairs": [("帕兰蒂尔", "柏蘭蒂爾")],
+        "mode": "append",
+    }
+]
+
+cc = OpenCC.from_dicts("s2t", specs)
+```
+
+Notes:
+
+- Custom dictionaries are loaded at construction time.
+- Existing `OpenCC` objects are immutable after construction.
+- Runtime hot reload is not supported.
+- Rebuild a new `OpenCC` instance if dictionaries need to change.
+- Invalid slots, invalid modes, malformed lines, or unreadable files raise errors.
+- `OpenCC("s2t")` remains the recommended API for normal users.
+- Use `from_dicts()` for programmatic or in-memory custom terms.
+- Use `from_dict_files()` for OpenCC-style dictionary files.
+
+---
 
 ### Reflow helper
 
