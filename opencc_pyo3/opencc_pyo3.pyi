@@ -13,18 +13,17 @@ class OpenCC:
             "t2tw", "tw2t", "t2twp", "tw2tp", "t2hk", "hk2t", "t2jp", "jp2t".
 
     Attributes:
-        self.config (str): Current OpenCC config string.
-        self.last_error (str): Last error message, if any.
+        config (str): Current OpenCC config string.
     """
 
-    def __init__(self, config: str) -> None:
+    config: str
+
+    def __init__(self, config: Optional[str] = "s2t") -> None:
         """
         Initialize a new OpenCC instance.
         Args:
             config (str): Conversion config string.
         """
-        self.config: str
-        self.last_error: str
         ...
 
     @classmethod
@@ -41,7 +40,7 @@ class OpenCC:
         """
         ...
 
-    def convert(self, input_text: str, punctuation: bool) -> str:
+    def convert(self, input_text: str, punctuation: bool = False) -> str:
         """
         Convert Chinese text using the current OpenCC config.
         :param input_text: Input text.
@@ -73,14 +72,16 @@ class OpenCC:
         """
         ...
 
-    def supported_configs(self) -> List[str]:
+    @staticmethod
+    def supported_configs() -> List[str]:
         """
         Get the supported Config list.
         :return: List of supported config strings.
         """
         ...
 
-    def is_valid_config(self, config: str) -> bool:
+    @staticmethod
+    def is_valid_config(config: str) -> bool:
         """
         Check validity of the config string.
         :param config: Config string to be checked.

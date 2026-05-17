@@ -6,7 +6,7 @@ from .opencc_pyo3 import (
 )
 
 
-class OpenccConfig(Enum):
+class OpenccConfig(str, Enum):
     S2T = "s2t"
     T2S = "t2s"
     S2TW = "s2tw"
@@ -91,9 +91,8 @@ class OpenCC(_OpenCC):
     CONFIG_LIST = [c.value for c in OpenccConfig]
 
     def __init__(self, config: _ConfigLike = "s2t"):
-        # Normalize config to string, validate, then init native core
-        cfg = self._normalize_config(config)
-        self.config = cfg  # keep a Python-side mirror (optional but handy)
+        # Native initialization is owned by the PyO3 backend.
+        _ = config
 
     @classmethod
     def from_dicts(
@@ -113,9 +112,7 @@ class OpenCC(_OpenCC):
         """
         cfg = cls._normalize_config(config)
         native_specs = cast(_CustomDictSpecNative, [] if specs is None else specs)
-        obj = super(OpenCC, cls).from_dicts(cfg, native_specs)
-        obj.config = cfg
-        return obj
+        return _OpenCC.from_dicts(cfg, native_specs)
 
     @classmethod
     def from_dict_files(
@@ -135,9 +132,7 @@ class OpenCC(_OpenCC):
         """
         cfg = cls._normalize_config(config)
         native_specs = cast(_CustomDictSpecNative, [] if specs is None else specs)
-        obj = super(OpenCC, cls).from_dict_files(cfg, native_specs)
-        obj.config = cfg
-        return obj
+        return _OpenCC.from_dict_files(cfg, native_specs)
 
     @staticmethod
     def _normalize_config(config: _ConfigLike) -> str:
