@@ -4,12 +4,18 @@ mod punct_sets;
 mod reflow_helper;
 
 use opencc_fmmseg;
-use opencc_fmmseg::{OpenCC as _OpenCC, OpenccConfig};
+use opencc_fmmseg::{
+    CustomDictFileSpec, CustomDictMode, CustomDictSpec, DictSlot, DictionaryMaxlength,
+    OpenCC as _OpenCC, OpenccConfig,
+};
 use pdf_extract_helper::{
     extract_pdf_pages_with_callback, extract_pdf_text, extract_pdf_text_pages,
 };
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use pyo3::types::PyType;
 use reflow_helper::reflow_cjk_paragraphs;
+use std::path::PathBuf;
 
 impl OpenCC {
     #[inline]
@@ -56,17 +62,7 @@ impl OpenCC {
     #[pyo3(signature = (config=None))]
     fn new(config: Option<&str>) -> Self {
         let opencc = _OpenCC::new();
-
-        let (config_enum, error_str) = match config {
-            Some(c) => match OpenccConfig::try_from(c) {
-                Ok(cfg) => (cfg, String::new()),
-                Err(_) => (
-                    OpenccConfig::S2t,
-                    format!("Invalid config '{}', reverted to 's2t'", c),
-                ),
-            },
-            None => (OpenccConfig::S2t, String::new()),
-        };
+        let (config_enum, error_str) = parse_config_or_default(config);
 
         OpenCC {
             opencc,
@@ -170,6 +166,7 @@ impl OpenCC {
     ///
     /// # Returns
     /// The converted string.
+    #[pyo3(signature = (input_text, punctuation=false))]
     fn convert(&self, input_text: &str, punctuation: bool) -> String {
         self.opencc.convert(input_text, &self.config, punctuation)
     }
@@ -184,6 +181,303 @@ impl OpenCC {
     /// 1 - Traditional Chinese, 2 - Simplified Chinese, 0 - Others
     fn zho_check(&self, input_text: &str) -> i32 {
         self.opencc.zho_check(input_text)
+    }
+
+    /// Creates an [`OpenCC`] instance with in-memory custom dictionaries.
+    ///
+    /// This method loads the default embedded OpenCC dictionaries and then
+    /// applies additional custom dictionary entries before constructing the
+    /// final immutable OpenCC conversion engine.
+    ///
+    /// Custom dictionaries are applied during initialization only.
+    /// Runtime hot-reload is not currently supported.
+    ///
+    /// # Parameters
+    ///
+    /// - `config`:
+    ///   OpenCC conversion configuration such as `"s2t"` or `"t2tw"`.
+    ///
+    /// - `specs`:
+    ///   Optional list of custom dictionary specifications.
+    ///
+    /// # Supported custom dictionary modes
+    ///
+    /// - `append`
+    /// - `override`
+    ///
+    /// # Example (Python)
+    ///
+    /// ```python
+    /// from opencc_pyo3 import OpenCC
+    ///
+    /// cc = OpenCC.from_dicts(
+    ///     "s2t",
+    ///     [
+    ///         {
+    ///             "slot": "STPhrases",
+    ///             "pairs": [("帕兰蒂尔", "柏蘭蒂爾")],
+    ///             "mode": "append",
+    ///         }
+    ///     ],
+    /// )
+    ///
+    /// print(cc.convert("帕兰蒂尔是一家公司"))
+    /// ```
+    ///
+    /// # Notes
+    ///
+    /// Dictionary slots use canonical OpenCC slot names such as:
+    ///
+    /// - `STPhrases`
+    /// - `TWPhrases`
+    /// - `HKVariantsRevPhrases`
+    #[classmethod]
+    #[pyo3(signature = (config=None, specs=None))]
+    fn from_dicts(
+        _cls: &Bound<'_, PyType>,
+        config: Option<&str>,
+        specs: Option<Vec<PyCustomDictSpec>>,
+    ) -> PyResult<Self> {
+        opencc_from_dicts(config, specs)
+    }
+
+    /// Creates an [`OpenCC`] instance with external custom dictionary files.
+    ///
+    /// This method loads the default embedded OpenCC dictionaries and then
+    /// merges additional user-provided dictionary files before constructing
+    /// the final immutable OpenCC conversion engine.
+    ///
+    /// Custom dictionary files must follow the standard OpenCC text dictionary
+    /// format:
+    ///
+    /// ```text
+    /// source<TAB>target
+    /// ```
+    ///
+    /// # Parameters
+    ///
+    /// - `config`:
+    ///   OpenCC conversion configuration such as `"s2t"` or `"t2tw"`.
+    ///
+    /// - `specs`:
+    ///   Optional list of custom dictionary file specifications.
+    ///
+    /// # Supported custom dictionary modes
+    ///
+    /// - `append`
+    /// - `override`
+    ///
+    /// # Example (Python)
+    ///
+    /// ```python
+    /// from opencc_pyo3 import OpenCC
+    ///
+    /// cc = OpenCC.from_dict_files(
+    ///     "s2t",
+    ///     [
+    ///         {
+    ///             "slot": "STPhrases",
+    ///             "files": ["custom_st_phrases.txt"],
+    ///             "mode": "append",
+    ///         }
+    ///     ],
+    /// )
+    ///
+    /// print(cc.convert("帕兰蒂尔是一家公司"))
+    /// ```
+    ///
+    /// # Notes
+    ///
+    /// Dictionary slots use canonical OpenCC slot names such as:
+    ///
+    /// - `STPhrases`
+    /// - `TWPhrases`
+    /// - `HKVariantsRevPhrases`
+    #[classmethod]
+    #[pyo3(signature = (config=None, specs=None))]
+    fn from_dict_files(
+        _cls: &Bound<'_, PyType>,
+        config: Option<&str>,
+        specs: Option<Vec<PyCustomDictFileSpec>>,
+    ) -> PyResult<Self> {
+        opencc_from_dict_files(config, specs)
+    }
+}
+
+// New: strut + helpers - Custom Dictionary
+#[derive(FromPyObject)]
+struct PyCustomDictSpec {
+    #[pyo3(item)]
+    slot: String,
+
+    #[pyo3(item)]
+    pairs: Vec<(String, String)>,
+
+    #[pyo3(item)]
+    mode: Option<String>,
+}
+
+#[derive(FromPyObject)]
+struct PyCustomDictFileSpec {
+    #[pyo3(item)]
+    slot: String,
+
+    #[pyo3(item)]
+    files: Vec<String>,
+
+    #[pyo3(item)]
+    mode: Option<String>,
+}
+
+/// Builds an [`OpenCC`] instance from the default embedded dictionaries plus
+/// in-memory custom dictionary specifications.
+///
+/// This is the shared internal implementation behind the Python
+/// `OpenCC.from_dicts()` class method.
+///
+/// The default dictionaries are loaded first via
+/// [`DictionaryMaxlength::from_zstd`], then custom mappings are applied with
+/// `with_custom_dicts()`.
+///
+/// Invalid custom dictionary slots or modes return a Python `ValueError`.
+fn opencc_from_dicts(
+    config: Option<&str>,
+    specs: Option<Vec<PyCustomDictSpec>>,
+) -> PyResult<OpenCC> {
+    let (config_enum, error_str) = parse_config_or_default(config);
+
+    let rust_specs = specs
+        .unwrap_or_default()
+        .into_iter()
+        .map(|s| {
+            Ok(CustomDictSpec {
+                slot: parse_slot(&s.slot)?,
+                pairs: s.pairs,
+                mode: parse_mode(s.mode.as_deref())?,
+            })
+        })
+        .collect::<PyResult<Vec<_>>>()?;
+
+    let dict = DictionaryMaxlength::from_zstd()
+        .map_err(to_py_value_error)?
+        .with_custom_dicts(&rust_specs)
+        .map_err(to_py_value_error)?;
+
+    Ok(OpenCC {
+        opencc: _OpenCC::from_dictionary(dict),
+        config: config_enum.as_str().to_string(),
+        last_error: error_str,
+    })
+}
+
+/// Builds an [`OpenCC`] instance from the default embedded dictionaries plus
+/// external custom dictionary files.
+///
+/// This is the shared internal implementation behind the Python
+/// `OpenCC.from_dict_files()` class method.
+///
+/// The default dictionaries are loaded first via
+/// [`DictionaryMaxlength::from_zstd`], then user-provided dictionary files are
+/// applied with `with_custom_dict_files()`.
+///
+/// Invalid custom dictionary slots, modes, file paths, or malformed dictionary
+/// lines return a Python `ValueError`.
+fn opencc_from_dict_files(
+    config: Option<&str>,
+    specs: Option<Vec<PyCustomDictFileSpec>>,
+) -> PyResult<OpenCC> {
+    let (config_enum, error_str) = parse_config_or_default(config);
+
+    let rust_specs = specs
+        .unwrap_or_default()
+        .into_iter()
+        .map(|s| {
+            Ok(CustomDictFileSpec {
+                slot: parse_slot(&s.slot)?,
+                files: s.files.into_iter().map(PathBuf::from).collect(),
+                mode: parse_mode(s.mode.as_deref())?,
+            })
+        })
+        .collect::<PyResult<Vec<_>>>()?;
+
+    let dict = DictionaryMaxlength::from_zstd()
+        .map_err(to_py_value_error)?
+        .with_custom_dict_files(&rust_specs)
+        .map_err(to_py_value_error)?;
+
+    Ok(OpenCC {
+        opencc: _OpenCC::from_dictionary(dict),
+        config: config_enum.as_str().to_string(),
+        last_error: error_str,
+    })
+}
+
+fn to_py_value_error<E: std::fmt::Display>(err: E) -> PyErr {
+    PyValueError::new_err(err.to_string())
+}
+
+/// Parses a custom dictionary merge mode.
+///
+/// Supported modes:
+///
+/// - `append`
+/// - `override`
+///
+/// Invalid modes return a Python `ValueError`.
+fn parse_mode(mode: Option<&str>) -> PyResult<CustomDictMode> {
+    match mode
+        .unwrap_or("append")
+        .trim()
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "append" => Ok(CustomDictMode::Append),
+        "override" => Ok(CustomDictMode::Override),
+        other => Err(PyValueError::new_err(format!(
+            "Invalid custom dict mode: {other}. Expected: append|override"
+        ))),
+    }
+}
+
+/// Parses a custom dictionary slot name into a [`DictSlot`].
+///
+/// Canonical OpenCC slot names such as `STPhrases`,
+/// `TWPhrasesRev`, and `HKVariantsRevPhrases` are supported.
+///
+/// Optional `.txt` suffixes are accepted for compatibility.
+///
+/// Invalid slot names return a Python `ValueError`.
+fn parse_slot(slot: &str) -> PyResult<DictSlot> {
+    let trimmed = slot.trim();
+
+    let normalized = if trimmed.to_ascii_lowercase().ends_with(".txt") {
+        &trimmed[..trimmed.len() - 4]
+    } else {
+        trimmed
+    };
+
+    DictSlot::try_from(normalized).map_err(|_| {
+        PyValueError::new_err(format!(
+            "Invalid custom dictionary slot: {slot}. \
+             Expected canonical slot name like 'STPhrases', 'TWPhrasesRev', or 'HKVariantsRevPhrases'."
+        ))
+    })
+}
+
+/// Parses an OpenCC configuration string.
+///
+/// Invalid configurations automatically fall back to `s2t`
+/// and return an associated warning message.
+fn parse_config_or_default(config: Option<&str>) -> (OpenccConfig, String) {
+    match config {
+        Some(c) => match OpenccConfig::try_from(c) {
+            Ok(cfg) => (cfg, String::new()),
+            Err(_) => (
+                OpenccConfig::S2t,
+                format!("Invalid config '{}', reverted to 's2t'", c),
+            ),
+        },
+        None => (OpenccConfig::S2t, String::new()),
     }
 }
 
@@ -307,5 +601,46 @@ mod tests {
 
         // Keep test "real"
         assert!(!output.is_empty());
+    }
+
+    /// Test custom in-memory dictionary injection for STPhrases.
+    #[test]
+    fn test_from_dicts_custom_st_phrases_palantir() {
+        let specs = vec![PyCustomDictSpec {
+            slot: "STPhrases".to_string(),
+            pairs: vec![("帕兰蒂尔".to_string(), "柏蘭蒂爾".to_string())],
+            mode: Some("append".to_string()),
+        }];
+
+        let opencc = opencc_from_dicts(None, Some(specs))
+            .expect("from_dicts should create OpenCC with custom STPhrases");
+
+        let output = opencc.convert("帕兰蒂尔是一家公司", false);
+
+        assert_eq!(output, "柏蘭蒂爾是一家公司");
+    }
+
+    /// Test custom dictionary file injection for STPhrases.
+    #[test]
+    fn test_from_dict_files_custom_st_phrases_palantir() {
+        let file_path = std::env::temp_dir().join("opencc_pyo3_custom_st_phrases_palantir.txt");
+
+        std::fs::write(&file_path, "帕兰蒂尔\t柏蘭蒂爾\n")
+            .expect("failed to write temporary custom dictionary file");
+
+        let specs = vec![PyCustomDictFileSpec {
+            slot: "STPhrases".to_string(),
+            files: vec![file_path.to_string_lossy().to_string()],
+            mode: Some("append".to_string()),
+        }];
+
+        let opencc = opencc_from_dict_files(None, Some(specs))
+            .expect("from_dict_files should create OpenCC with custom STPhrases");
+
+        let output = opencc.convert("帕兰蒂尔是一家公司", false);
+
+        assert_eq!(output, "柏蘭蒂爾是一家公司");
+
+        let _ = std::fs::remove_file(file_path);
     }
 }

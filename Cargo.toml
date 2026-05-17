@@ -1,6 +1,6 @@
 [package]
 name = "opencc-pyo3"         # Cargo uses dash
-version = "0.8.12"
+version = "0.9.0"
 edition = "2021"
 authors = ["laisuk <laisuk@yahoo.com>"]
 license = "MIT"
@@ -16,6 +16,7 @@ include = [
     "src/**",
     "opencc_pyo3/*.py",
     "opencc_pyo3/*.pyi",
+    "opencc_pyo3/py.typed",
     "pdfium/**",
     "tools/**"
 ]
@@ -24,8 +25,8 @@ include = [
 
 [dependencies]
 #opencc-fmmseg = { git = "https://github.com/laisuk/opencc-fmmseg.git", branch = "master" }
-opencc-fmmseg = "0.9.2"
-#opencc-fmmseg = { path = "../opencc-fmmseg" }
+#opencc-fmmseg = "0.9.2"
+opencc-fmmseg = { path = "../opencc-fmmseg" }
 pyo3 = { version = "=0.27", features = ["abi3-py38"] }
 smallvec = "1.15"
 #time = "=0.3.41"

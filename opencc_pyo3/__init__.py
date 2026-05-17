@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Union
+from typing import Union, Optional, List, Tuple, TypedDict, Dict, Any, cast
 
 from .opencc_pyo3 import (
     OpenCC as _OpenCC,
@@ -32,10 +32,59 @@ class OpenccConfig(Enum):
 
     @classmethod
     def parse(cls, s: str) -> "OpenccConfig":
+        """Parse a config string into an OpenccConfig enum value."""
         return cls(s.lower())
 
 
 _ConfigLike = Union[str, OpenccConfig]
+_CustomDictPair = Tuple[str, str]
+_CustomDictSpecNative = List[Dict[str, Any]]
+
+
+class CustomDictSpec(TypedDict, total=False):
+    """
+    In-memory custom dictionary specification for OpenCC.
+
+    Fields:
+        slot:
+            Target OpenCC dictionary slot name such as
+            "STPhrases", "TWPhrases", or "HKVariantsRevPhrases".
+
+        pairs:
+            List of (source, target) dictionary mappings.
+
+        mode:
+            Merge mode:
+                - "append"   : Append entries to existing dictionary slot.
+                - "override" : Replace the entire dictionary slot.
+    """
+
+    slot: str
+    pairs: List[_CustomDictPair]
+    mode: str
+
+
+class CustomDictFileSpec(TypedDict, total=False):
+    """
+    File-based custom dictionary specification for OpenCC.
+
+    Fields:
+        slot:
+            Target OpenCC dictionary slot name such as
+            "STPhrases", "TWPhrases", or "HKVariantsRevPhrases".
+
+        files:
+            List of custom dictionary file paths.
+
+        mode:
+            Merge mode:
+                - "append"   : Append entries to existing dictionary slot.
+                - "override" : Replace the entire dictionary slot.
+    """
+
+    slot: str
+    files: List[str]
+    mode: str
 
 
 class OpenCC(_OpenCC):
@@ -45,6 +94,50 @@ class OpenCC(_OpenCC):
         # Normalize config to string, validate, then init native core
         cfg = self._normalize_config(config)
         self.config = cfg  # keep a Python-side mirror (optional but handy)
+
+    @classmethod
+    def from_dicts(
+            cls,
+            config: _ConfigLike = "s2t",
+            specs: Optional[List[CustomDictSpec]] = None,
+    ) -> "OpenCC":
+        """
+        Create an OpenCC instance with in-memory custom dictionaries.
+
+        Example spec:
+            {
+                "slot": "STPhrases",
+                "pairs": [("帕兰蒂尔", "柏蘭蒂爾")],
+                "mode": "append",
+            }
+        """
+        cfg = cls._normalize_config(config)
+        native_specs = cast(_CustomDictSpecNative, [] if specs is None else specs)
+        obj = super(OpenCC, cls).from_dicts(cfg, native_specs)
+        obj.config = cfg
+        return obj
+
+    @classmethod
+    def from_dict_files(
+            cls,
+            config: _ConfigLike = "s2t",
+            specs: Optional[List[CustomDictFileSpec]] = None,
+    ) -> "OpenCC":
+        """
+        Create an OpenCC instance with custom dictionary files.
+
+        Example spec:
+            {
+                "slot": "STPhrases",
+                "files": ["custom_st_phrases.txt"],
+                "mode": "append",
+            }
+        """
+        cfg = cls._normalize_config(config)
+        native_specs = cast(_CustomDictSpecNative, [] if specs is None else specs)
+        obj = super(OpenCC, cls).from_dict_files(cfg, native_specs)
+        obj.config = cfg
+        return obj
 
     @staticmethod
     def _normalize_config(config: _ConfigLike) -> str:
@@ -112,3 +205,11 @@ class OpenCC(_OpenCC):
         :return: Converted string or error message
         """
         return super().convert(input_text, punctuation)
+
+
+__all__ = [
+    "OpenCC",
+    "OpenccConfig",
+    "CustomDictSpec",
+    "CustomDictFileSpec",
+]

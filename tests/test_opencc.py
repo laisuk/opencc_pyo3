@@ -5,12 +5,14 @@ import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from typing import List
+
 ROOT_DIR = Path(__file__).resolve().parents[1]
 PYTHON_SRC_DIR = ROOT_DIR / "python"
 if str(PYTHON_SRC_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_SRC_DIR))
 
-from opencc_pyo3 import OpenCC
+from opencc_pyo3 import OpenCC, CustomDictSpec, CustomDictFileSpec
 from opencc_pyo3 import pdfium_loader
 from opencc_pyo3.office_helper import convert_office_doc
 
@@ -116,6 +118,39 @@ class TestOpenCC(unittest.TestCase):
                                                                                                       create=True), mock.patch.object(
                 pdfium_loader, "__file__", str(module_root / "pdfium_loader.py")):
                 self.assertEqual(pdfium_loader._module_dir(), module_root)
+
+    # Test Custom Dicts
+    def test_from_dicts_custom_st_phrases_palantir(self):
+        specs: List[CustomDictSpec] = [
+            {
+                "slot": "STPhrases",
+                "pairs": [("帕兰蒂尔", "柏蘭蒂爾")],
+                "mode": "append",
+            }
+        ]
+
+        cc = OpenCC.from_dicts("s2t", specs)
+
+        self.assertEqual(cc.get_config(), "s2t")
+        self.assertEqual(cc.convert("帕兰蒂尔是一家公司"), "柏蘭蒂爾是一家公司")
+
+    def test_from_dict_files_custom_st_phrases_palantir(self):
+        with TemporaryDirectory() as tmpdir:
+            dict_path = Path(tmpdir) / "custom_st_phrases.txt"
+            dict_path.write_text("帕兰蒂尔\t柏蘭蒂爾\n", encoding="utf-8")
+
+            specs: List[CustomDictFileSpec] = [
+                {
+                    "slot": "STPhrases",
+                    "files": [str(dict_path)],
+                    "mode": "append",
+                }
+            ]
+
+            cc = OpenCC.from_dict_files("s2t", specs)
+
+            self.assertEqual(cc.get_config(), "s2t")
+            self.assertEqual(cc.convert("帕兰蒂尔是一家公司"), "柏蘭蒂爾是一家公司")
 
 
 if __name__ == '__main__':

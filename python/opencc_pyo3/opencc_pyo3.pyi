@@ -1,4 +1,4 @@
-from typing import List, Callable, Any
+from typing import List, Callable, Any, Optional, Dict
 
 
 class OpenCC:
@@ -25,6 +25,20 @@ class OpenCC:
         """
         self.config: str
         self.last_error: str
+        ...
+
+    @classmethod
+    def from_dicts(cls, config: str = "s2t", specs: Optional[List[Dict[str, Any]]] = None) -> "OpenCC":
+        """
+        Create an OpenCC instance with in-memory custom dictionaries.
+        """
+        ...
+
+    @classmethod
+    def from_dict_files(cls, config: str = "s2t", specs: Optional[List[Dict[str, Any]]] = None) -> "OpenCC":
+        """
+        Create an OpenCC instance with custom dictionary files.
+        """
         ...
 
     def convert(self, input_text: str, punctuation: bool) -> str:

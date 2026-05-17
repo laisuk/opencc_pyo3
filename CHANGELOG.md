@@ -7,25 +7,55 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
+## [0.9.0-beta1] - unreleased
+
+### Added
+
+- Added `OpenCC.from_dicts()` for creating OpenCC instances with in-memory custom dictionaries.
+- Added `OpenCC.from_dict_files()` for loading external custom dictionary files during OpenCC construction.
+- Added Python `CustomDictSpec` and `CustomDictFileSpec` typed dictionary helpers for IDE typing and auto-completion.
+- Added support for OpenCC custom dictionary merge modes:
+    - `append`
+    - `override`
+- Added support for canonical OpenCC dictionary slots such as:
+    - `STPhrases`
+    - `TWPhrases`
+    - `HKVariantsRevPhrases`
+    - `JPVariants`
+- Added strict `DictSlot::try_from(&str)` parsing support in the Rust backend.
+- Added unit tests for:
+    - in-memory custom dictionary injection
+    - file-based custom dictionary injection
+    - custom ST phrase conversion (`帕兰蒂尔` → `柏蘭蒂爾`)
+
+### Changed
+
+- Refactored backend configuration parsing to use centralized helper logic.
+- Native PyO3 methods now expose Python default signatures directly via `#[pyo3(signature = ...)]`.
+- Improved Python typing hints and documentation for custom dictionary APIs.
+- Improved compatibility between Python frontend wrappers and native PyO3-returned OpenCC instances.
+
+---
+
 ## [0.8.12] - 2026-04-29
 
 ### Fixed
 
 - Fix Python 3.8 compatibility issue in `pdfium_loader` (`TypeError: 'type' object is not subscriptable`)
-  - Replace `list[Path]` / `set[str]` with `typing.List` / `typing.Set`
+    - Replace `list[Path]` / `set[str]` with `typing.List` / `typing.Set`
 - Fix runtime error when importing `opencc_pyo3.pdfium_helper` on older Python versions
 - Improve `_MEIPASS` handling for frozen environments (PyInstaller / Nuitka)
-  - Avoid incorrect string conversion (`str(None)`)
-  - Add safe type check with `isinstance(meipass, str)`
+    - Avoid incorrect string conversion (`str(None)`)
+    - Add safe type check with `isinstance(meipass, str)`
 
 ### Improved
 
 - Harden runtime asset path detection logic for bundled PDFium
 - Ensure consistent behavior across:
-  - Standard Python environments
-  - Virtual environments
-  - PyInstaller builds (onefile / onedir)
-  - Nuitka builds
+    - Standard Python environments
+    - Virtual environments
+    - PyInstaller builds (onefile / onedir)
+    - Nuitka builds
 
 ---
 
