@@ -6,6 +6,8 @@ import shutil
 import sys
 from pathlib import Path
 
+from typing import Optional
+
 ROOT = Path(os.path.abspath(__file__)).parents[1]
 SRC = ROOT / "pdfium"
 DST = ROOT / "opencc_pyo3" / "pdfium"
@@ -41,7 +43,7 @@ def detect_target() -> str:
             return "win-arm64"
 
         # Fallback: Python bitness
-        return "win-x64" if sys.maxsize > 2**32 else "win-x86"
+        return "win-x64" if sys.maxsize > 2 ** 32 else "win-x86"
 
     if sys_name == "linux":
         if mach in ("aarch64", "arm64") or mach.startswith("armv8"):
@@ -55,7 +57,7 @@ def detect_target() -> str:
     raise SystemExit  # unreachable
 
 
-def parse_args(argv: list[str]) -> tuple[str, str | None]:
+def parse_args(argv: list[str]) -> tuple[str, Optional[str]]:
     """
     Modes:
       - default / CI: strict + destructive (requires CI=true)
@@ -65,7 +67,7 @@ def parse_args(argv: list[str]) -> tuple[str, str | None]:
       - --target <name> : override platform folder to copy (e.g. macos-x64)
     """
     mode = "ci"
-    target_override: str | None = None
+    target_override: Optional[str] = None
 
     i = 1
     while i < len(argv):
