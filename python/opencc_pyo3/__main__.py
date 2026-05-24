@@ -246,7 +246,7 @@ def subcommand_pdf(args) -> int:
     if args.extract:
         print("🧾 Mode  : extract-only (no OpenCC)")
     elif args.config:
-        print(f"🧾 Config: {args.config} (punct={'on' if args.punct else 'off'})")
+        print(f"🧾 Config: {args.config} (punct: {'on' if args.punct else 'off'})")
 
     return 0
 
