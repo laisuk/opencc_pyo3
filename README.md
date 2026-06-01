@@ -426,7 +426,7 @@ converted = OpenCC("s2t").convert(text, punctuation=True)
 
 ## Benchmarks
 
-Latest benchmark results for the optimized current `opencc_pyo3` version.
+Latest benchmark results for the optimized current `opencc_pyo3` version (`v0.9.0`).
 These replace the much older `v0.7.0` numbers.
 
 ```
