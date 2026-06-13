@@ -95,7 +95,7 @@ class OpenCC:
         """
         ...
 
-    def detofu(self, text: str, level: str = "ExtB") -> str:
+    def detofu(self, text: str, level: str = "all") -> str:
         """
         Convert non-BMP CJK extension characters to display-safe fallbacks.
 
@@ -104,9 +104,9 @@ class OpenCC:
         detection, or punctuation conversion.
 
         :param text: Input text.
-        :param level: CJK extension threshold: "ExtB", "ExtC", ..., "ExtI".
+        :param level: CJK extension threshold: "all", "ExtB", "ExtC", ..., "ExtI".
                       Compact forms "B"..."I" are also accepted.
-                      "ExtB" replaces ExtB and above; "ExtI" replaces ExtI only.
+                      "all"/"ExtB" replaces ExtB and above; "ExtI" replaces ExtI only.
         :return: Display-safe text.
         """
         ...
@@ -114,8 +114,8 @@ class OpenCC:
     def detofu_with_custom_file(
             self,
             text: str,
-            path: str,
-            level: str = "ExtB",
+            level: str = "all",
+            path: str = ...,
     ) -> str:
         """
         Convert non-BMP CJK extension characters using built-in detofu mappings
@@ -132,15 +132,15 @@ class OpenCC:
     def detofu_with_custom_pairs(
             self,
             text: str,
-            pairs: List[Tuple[str, str]],
-            level: str = "ExtB",
+            level: str = "all",
+            pairs: List[Tuple[str, str]] = ...,
     ) -> str:
         """
         Convert non-BMP CJK extension characters using built-in detofu mappings
         plus custom fallback character pairs.
 
         Example:
-            cc.detofu_with_custom_pairs("𣭲毛", [("𣭲", "氄")])
+            cc.detofu_with_custom_pairs("𣭲毛", "all", [("𣭲", "氄")])
         """
         ...
 

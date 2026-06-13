@@ -82,7 +82,7 @@ Sub-Commands are:
 
 ```bash
 python -m opencc_pyo3 convert --help
-usage: opencc-pyo3 convert [-h] [-i <file>] [-o <file>] [-c <conversion>] [-p] [--in-enc <encoding>] [--out-enc <encoding>]
+usage: opencc-pyo3 convert [-h] [-i <file>] [-o <file>] [-c <conversion>] [-p] [--detofu [<level>]] [--detofu-file <file>] [--in-enc <encoding>] [--out-enc <encoding>]
 
 options:
   -h, --help            show this help message and exit
@@ -91,6 +91,8 @@ options:
   -c, --config <conversion>
                         Conversion configuration: s2t|s2tw|s2twp|s2hk|t2s|tw2s|tw2sp|hk2s|jp2t|t2jp
   -p, --punct           Enable punctuation conversion. (Default: False)
+  --detofu [<level>]    Apply tofu-safe fallback after conversion. Levels: all/ExtB, ExtC, ExtD, ExtE, ExtF, ExtG, ExtH, ExtI.
+  --detofu-file <file>  Load additional detofu fallback mappings from a UTF-8 text file. Custom mappings override built-in mappings; requires --detofu.
   --in-enc <encoding>   Encoding for input. (Default: UTF-8)
   --out-enc <encoding>  Encoding for output. (Default: UTF-8)
 ```
@@ -154,6 +156,8 @@ options:
 ```sh
 python -m opencc_pyo3 convert -i input.txt -o output.txt -c s2t --punct
 
+python -m opencc_pyo3 convert -i input.txt -o output.txt -c s2t --detofu all --detofu-file custom_detofu.txt
+
 python -m opencc_pyo3 office -c s2t --punct -i input.docx -o output.docx --keep-font
 
 opencc-pyo3 office -c s2tw -p -i input.epub -o output.epub
@@ -208,6 +212,12 @@ Core converter class backed by the Rust extension module.
     - Creates a converter with OpenCC-style custom dictionary files.
 - `convert(input_text: str, punctuation: bool = False) -> str`
     - Converts text using the current config.
+- `detofu(text: str, level: str = "all") -> str`
+    - Replaces rare CJK extension characters with display-safe fallback characters.
+- `detofu_with_custom_file(text: str, level: str = "all", path: str) -> str`
+    - Applies DeTofu with additional UTF-8 fallback mappings from a file.
+- `detofu_with_custom_pairs(text: str, level: str = "all", pairs: list[tuple[str, str]]) -> str`
+    - Applies DeTofu with additional in-memory fallback character pairs.
 - `set_config(config: str | OpenccConfig) -> None`
     - Changes the active config.
 - `get_config() -> str`
@@ -237,6 +247,29 @@ print(cc.convert("圖書館"))  # 図書館
 
 print(OpenCC.supported_configs())
 print(OpenCC.is_valid_config("s2hk"))  # True
+```
+
+### DeTofu Display Fallbacks
+
+DeTofu can replace rare CJK extension characters with more widely displayable fallback characters after normal OpenCC
+conversion. The canonical argument order is always input text, level, then custom source. `level="all"` is equivalent to
+`ExtB` and replaces ExtB and later extension characters; compact and CLI-friendly spellings such as `B`, `ExtC`, and
+`ext-c` are accepted.
+
+```python
+from opencc_pyo3 import OpenCC
+
+cc = OpenCC("s2t")
+
+print(cc.detofu("𠉂𪠟𫝈𫬐", "all"))
+print(cc.detofu_with_custom_file("𣭲毛", "all", "custom_detofu.txt"))
+print(cc.detofu_with_custom_pairs("𣭲毛", "all", [("𣭲", "氄")]))
+```
+
+Custom DeTofu files use one mapping per line:
+
+```text
+𣭲	氄	B
 ```
 
 ---

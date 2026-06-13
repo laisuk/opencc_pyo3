@@ -203,7 +203,7 @@ class OpenCC(_OpenCC):
         """
         return super().convert(input_text, punctuation)
 
-    def detofu(self, text: str, level: str = "ExtB") -> str:
+    def detofu(self, text: str, level: str = "all") -> str:
         """
         Convert non-BMP CJK extension characters to display-safe fallbacks.
 
@@ -212,9 +212,9 @@ class OpenCC(_OpenCC):
         detection, or punctuation conversion.
 
         :param text: Input text.
-        :param level: CJK extension threshold: "ExtB", "ExtC", ..., "ExtI".
+        :param level: CJK extension threshold: "all", "ExtB", "ExtC", ..., "ExtI".
                       Compact forms "B"..."I" are also accepted.
-                      "ExtB" replaces ExtB and above; "ExtI" replaces ExtI only.
+                      "all"/"ExtB" replaces ExtB and above; "ExtI" replaces ExtI only.
         :return: Display-safe text.
         """
         return super().detofu(text, level)
@@ -222,8 +222,8 @@ class OpenCC(_OpenCC):
     def detofu_with_custom_file(
             self,
             text: str,
-            path: str,
-            level: str = "ExtB",
+            level: str = "all",
+            path: Optional[str] = None,
     ) -> str:
         """
         Convert non-BMP CJK extension characters using built-in detofu mappings
@@ -233,24 +233,30 @@ class OpenCC(_OpenCC):
             tofu_char<TAB>fallback_char<TAB>extension
 
         Example:
-            𣭲    氄    B
+            cc.detofu_with_custom_file("𣭲毛", "all", "/path/to/custom.txt")
         """
-        return super().detofu_with_custom_file(text, path, level)
+        if path is None:
+            raise TypeError("detofu_with_custom_file() missing required argument: 'path'")
+
+        return super().detofu_with_custom_file(text, level, path)
 
     def detofu_with_custom_pairs(
             self,
             text: str,
-            pairs: List[Tuple[str, str]],
-            level: str = "ExtB",
+            level: str = "all",
+            pairs: Optional[List[Tuple[str, str]]] = None,
     ) -> str:
         """
         Convert non-BMP CJK extension characters using built-in detofu mappings
         plus custom fallback character pairs.
 
         Example:
-            cc.detofu_with_custom_pairs("𣭲毛", [("𣭲", "氄")])
+            cc.detofu_with_custom_pairs("𣭲毛", "all", [("𣭲", "氄")])
         """
-        return super().detofu_with_custom_pairs(text, pairs, level)
+        if pairs is None:
+            raise TypeError("detofu_with_custom_pairs() missing required argument: 'pairs'")
+
+        return super().detofu_with_custom_pairs(text, level, pairs)
 
 
 __all__ = [

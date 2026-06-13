@@ -301,14 +301,53 @@ impl OpenCC {
 
     // DeTofu
 
-    #[pyo3(signature = (text, level = "ExtB"))]
+    /// Convert rare CJK extension characters to display-safe fallback characters.
+    ///
+    /// Python signature:
+    ///
+    /// ```python
+    /// detofu(text, level="all")
+    /// ```
+    ///
+    /// The `level` argument selects the lowest CJK extension block to replace.
+    /// `"all"` is the public default and is equivalent to `"ExtB"`, replacing
+    /// ExtB and later extension characters. Higher levels such as `"ExtC"`
+    /// leave earlier extension blocks untouched.
+    #[pyo3(signature = (text, level = "all"))]
     fn detofu(&self, text: &str, level: &str) -> PyResult<String> {
         let level = parse_detofu_level(level)?;
         Ok(opencc_fmmseg::detofu::detofu(text, level))
     }
 
-    #[pyo3(signature = (text, path, level = "ExtB"))]
-    fn detofu_with_custom_file(&self, text: &str, path: &str, level: &str) -> PyResult<String> {
+    /// Convert text with built-in DeTofu mappings plus a custom fallback file.
+    ///
+    /// Python signature:
+    ///
+    /// ```python
+    /// detofu_with_custom_file(text, level="all", path)
+    /// ```
+    ///
+    /// The positional order is intentionally `text`, `level`, then custom
+    /// source, matching the other DeTofu APIs. The custom UTF-8 file uses one
+    /// mapping per line:
+    ///
+    /// ```text
+    /// tofu_char<TAB>fallback_char<TAB>extension
+    /// ```
+    ///
+    /// Custom mappings override the built-in mapping for the same tofu
+    /// character. A missing `path` is reported as a Python `ValueError` by the
+    /// native binding.
+    #[pyo3(signature = (text, level = "all", path = None))]
+    fn detofu_with_custom_file(
+        &self,
+        text: &str,
+        level: &str,
+        path: Option<&str>,
+    ) -> PyResult<String> {
+        let path = path.ok_or_else(|| {
+            PyValueError::new_err("detofu_with_custom_file requires a custom file path")
+        })?;
         let level = parse_detofu_level(level)?;
 
         let map = DetofuMap::builtin(level)
@@ -318,13 +357,29 @@ impl OpenCC {
         Ok(map.detofu(text))
     }
 
-    #[pyo3(signature = (text, pairs, level = "ExtB"))]
+    /// Convert text with built-in DeTofu mappings plus in-memory custom pairs.
+    ///
+    /// Python signature:
+    ///
+    /// ```python
+    /// detofu_with_custom_pairs(text, level="all", pairs)
+    /// ```
+    ///
+    /// The positional order is intentionally `text`, `level`, then custom
+    /// source. Each pair is a `(tofu_char, fallback_char)` tuple. Custom pairs
+    /// override built-in mappings for the same tofu character. A missing
+    /// `pairs` argument is reported as a Python `ValueError` by the native
+    /// binding.
+    #[pyo3(signature = (text, level = "all", pairs = None))]
     fn detofu_with_custom_pairs(
         &self,
         text: &str,
-        pairs: Vec<(char, char)>,
         level: &str,
+        pairs: Option<Vec<(char, char)>>,
     ) -> PyResult<String> {
+        let pairs = pairs.ok_or_else(|| {
+            PyValueError::new_err("detofu_with_custom_pairs requires custom character pairs")
+        })?;
         let level = parse_detofu_level(level)?;
 
         Ok(DetofuMap::builtin(level)
@@ -510,8 +565,23 @@ fn parse_config_or_default(config: Option<&str>) -> (OpenccConfig, String) {
     }
 }
 
+/// Parse a Python/CLI DeTofu level string into the backend `DetofuLevel`.
+///
+/// This parser is deliberately permissive at the public API boundary:
+///
+/// - case-insensitive input is accepted;
+/// - hyphens and underscores are ignored, so `ext-c`, `ext_c`, and `ExtC`
+///   all resolve to `DetofuLevel::ExtC`;
+/// - compact block names `B` through `I` are accepted;
+/// - `all` is accepted as the public default and resolves to
+///   `DetofuLevel::ExtB`, meaning ExtB and every later extension block.
+///
+/// Invalid values become a Python `ValueError` with the original input
+/// preserved in the error message.
 fn parse_detofu_level(level: &str) -> PyResult<DetofuLevel> {
-    match level.to_ascii_lowercase().as_str() {
+    let normalized = level.to_ascii_lowercase().replace(['-', '_'], "");
+    match normalized.as_str() {
+        "all" => Ok(DetofuLevel::ExtB),
         "b" | "extb" => Ok(DetofuLevel::ExtB),
         "c" | "extc" => Ok(DetofuLevel::ExtC),
         "d" | "extd" => Ok(DetofuLevel::ExtD),
@@ -521,7 +591,7 @@ fn parse_detofu_level(level: &str) -> PyResult<DetofuLevel> {
         "h" | "exth" => Ok(DetofuLevel::ExtH),
         "i" | "exti" => Ok(DetofuLevel::ExtI),
         _ => Err(PyValueError::new_err(format!(
-            "Invalid detofu level '{}'. Expected ExtB, ExtC, ExtD, ExtE, ExtF, ExtG, ExtH, or ExtI.",
+            "Invalid detofu level '{}'. Expected all, ExtB, ExtC, ExtD, ExtE, ExtF, ExtG, ExtH, or ExtI.",
             level
         ))),
     }

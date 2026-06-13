@@ -7,6 +7,7 @@ from unittest import mock
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 
 from typing import List
 
@@ -16,6 +17,7 @@ if str(PYTHON_SRC_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_SRC_DIR))
 
 from opencc_pyo3 import OpenCC, CustomDictSpec, CustomDictFileSpec
+from opencc_pyo3.__main__ import subcommand_convert
 from opencc_pyo3 import pdfium_loader
 from opencc_pyo3.office_helper import convert_office_doc
 
@@ -161,6 +163,8 @@ class TestOpenCC(unittest.TestCase):
 
         assert cc.detofu(input_text, "ExtE") == "𠉂𪠟𫝈㘔"
         assert cc.detofu(input_text, "ExtB") == "㒓㓄㑮㘔"
+        assert cc.detofu(input_text, "all") == "㒓㓄㑮㘔"
+        assert cc.detofu(input_text, "ext-c") == "𠉂㓄㑮㘔"
 
     def test_opencc_t2s_detofu_default_level(self):
         cc = OpenCC("t2s")
@@ -186,8 +190,8 @@ class TestOpenCC(unittest.TestCase):
 
             result = cc.detofu_with_custom_file(
                 "𣭲毛",
+                "all",
                 temp_path,
-                "ExtB",
             )
 
             assert result == "氄毛"
@@ -201,11 +205,11 @@ class TestOpenCC(unittest.TestCase):
 
         output = cc.detofu_with_custom_pairs(
             "𣭲毛 骖𬴂",
+            "all",
             [
                 ("𣭲", "氄"),
                 ("𬴂", "騑"),
             ],
-            "ExtB",
         )
 
         assert output == "氄毛 骖騑"
@@ -215,11 +219,77 @@ class TestOpenCC(unittest.TestCase):
 
         output = cc.detofu_with_custom_pairs(
             "𬴂",
+            "all",
             [("𬴂", "马")],
-            "ExtB",
         )
 
         assert output == "马"
+
+    def test_cli_detofu_all(self):
+        output = self._run_convert_cli("𠉂𪠟𫝈𫬐", detofu="all")
+
+        assert output == "㒓㓄㑮㘔"
+
+    def test_cli_detofu_ext_c(self):
+        input_text = "𠉂𪠟𫝈𫬐"
+        expected = OpenCC("s2t").detofu(OpenCC("s2t").convert(input_text), "ext-c")
+        output = self._run_convert_cli(input_text, detofu="ext-c")
+
+        assert output == expected
+
+    def test_cli_detofu_all_with_custom_file(self):
+        with TemporaryDirectory() as tmpdir:
+            custom_path = Path(tmpdir) / "custom.txt"
+            custom_path.write_text("𣭲\t氄\tB\n", encoding="utf-8")
+
+            output = self._run_convert_cli(
+                "𣭲毛",
+                detofu="all",
+                detofu_file=str(custom_path),
+            )
+
+        assert output == "氄毛"
+
+    def test_cli_detofu_file_requires_detofu(self):
+        with TemporaryDirectory() as tmpdir:
+            input_path = Path(tmpdir) / "input.txt"
+            output_path = Path(tmpdir) / "output.txt"
+            custom_path = Path(tmpdir) / "custom.txt"
+            input_path.write_text("𣭲毛", encoding="utf-8")
+            custom_path.write_text("𣭲\t氄\tB\n", encoding="utf-8")
+
+            rc = subcommand_convert(SimpleNamespace(
+                config="s2t",
+                input=str(input_path),
+                output=str(output_path),
+                punct=False,
+                detofu=None,
+                detofu_file=str(custom_path),
+                in_enc="UTF-8",
+                out_enc="UTF-8",
+            ))
+
+        assert rc == 1
+
+    def _run_convert_cli(self, text: str, detofu: str, detofu_file: str = None) -> str:
+        with TemporaryDirectory() as tmpdir:
+            input_path = Path(tmpdir) / "input.txt"
+            output_path = Path(tmpdir) / "output.txt"
+            input_path.write_text(text, encoding="utf-8")
+
+            rc = subcommand_convert(SimpleNamespace(
+                config="s2t",
+                input=str(input_path),
+                output=str(output_path),
+                punct=False,
+                detofu=detofu,
+                detofu_file=detofu_file,
+                in_enc="UTF-8",
+                out_enc="UTF-8",
+            ))
+
+            assert rc == 0
+            return output_path.read_text(encoding="utf-8")
 
 
 if __name__ == '__main__':

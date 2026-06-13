@@ -52,13 +52,13 @@ def subcommand_convert(args):
         return 1
 
     if args.detofu:
-        level = "ExtB" if args.detofu.lower() == "all" else args.detofu
+        level = args.detofu
 
         if args.detofu_file:
             output_str = opencc.detofu_with_custom_file(
                 output_str,
-                args.detofu_file,
                 level,
+                args.detofu_file,
             )
         else:
             output_str = opencc.detofu(output_str, level)
@@ -313,21 +313,9 @@ def main():
         help="Enable punctuation conversion. (Default: False)",
     )
     parser_convert.add_argument(
-        "--in-enc",
-        metavar="<encoding>",
-        default="UTF-8",
-        help="Encoding for input. (Default: UTF-8)",
-    )
-    parser_convert.add_argument(
-        "--out-enc",
-        metavar="<encoding>",
-        default="UTF-8",
-        help="Encoding for output. (Default: UTF-8)",
-    )
-    parser_convert.add_argument(
         "--detofu",
         nargs="?",
-        const="ExtB",
+        const="all",
         default=None,
         metavar="<level>",
         help=(
@@ -342,6 +330,18 @@ def main():
             "Load additional detofu fallback mappings from a UTF-8 text file. "
             "Custom mappings override built-in mappings; requires --detofu."
         ),
+    )
+    parser_convert.add_argument(
+        "--in-enc",
+        metavar="<encoding>",
+        default="UTF-8",
+        help="Encoding for input. (Default: UTF-8)",
+    )
+    parser_convert.add_argument(
+        "--out-enc",
+        metavar="<encoding>",
+        default="UTF-8",
+        help="Encoding for output. (Default: UTF-8)",
     )
     parser_convert.set_defaults(func=subcommand_convert)
 
