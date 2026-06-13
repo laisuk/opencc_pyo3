@@ -9,7 +9,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 
-from typing import List
+from typing import List, Optional
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 PYTHON_SRC_DIR = ROOT_DIR / "python"
@@ -271,7 +271,12 @@ class TestOpenCC(unittest.TestCase):
 
         assert rc == 1
 
-    def _run_convert_cli(self, text: str, detofu: str, detofu_file: str = None) -> str:
+    def _run_convert_cli(
+            self,
+            text: str,
+            detofu: str,
+            detofu_file: Optional[str] = None,
+    ) -> str:
         with TemporaryDirectory() as tmpdir:
             input_path = Path(tmpdir) / "input.txt"
             output_path = Path(tmpdir) / "output.txt"
