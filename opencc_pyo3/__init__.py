@@ -23,6 +23,8 @@ class OpenccConfig(str, Enum):
     HK2T = "hk2t"
     T2JP = "t2jp"
     JP2T = "jp2t"
+    S2HKP = "s2hkp"
+    HK2SP = "hk2sp"
 
     value: str
 
@@ -200,6 +202,55 @@ class OpenCC(_OpenCC):
         :return: Converted string or error message
         """
         return super().convert(input_text, punctuation)
+
+    def detofu(self, text: str, level: str = "ExtB") -> str:
+        """
+        Convert non-BMP CJK extension characters to display-safe fallbacks.
+
+        This is a display compatibility pass. It does not affect OpenCC
+        conversion dictionaries, phrase matching, regional variants, script
+        detection, or punctuation conversion.
+
+        :param text: Input text.
+        :param level: CJK extension threshold: "ExtB", "ExtC", ..., "ExtI".
+                      Compact forms "B"..."I" are also accepted.
+                      "ExtB" replaces ExtB and above; "ExtI" replaces ExtI only.
+        :return: Display-safe text.
+        """
+        return super().detofu(text, level)
+
+    def detofu_with_custom_file(
+            self,
+            text: str,
+            path: str,
+            level: str = "ExtB",
+    ) -> str:
+        """
+        Convert non-BMP CJK extension characters using built-in detofu mappings
+        plus a custom UTF-8 fallback file.
+
+        File format:
+            tofu_char<TAB>fallback_char<TAB>extension
+
+        Example:
+            𣭲    氄    B
+        """
+        return super().detofu_with_custom_file(text, path, level)
+
+    def detofu_with_custom_pairs(
+            self,
+            text: str,
+            pairs: List[Tuple[str, str]],
+            level: str = "ExtB",
+    ) -> str:
+        """
+        Convert non-BMP CJK extension characters using built-in detofu mappings
+        plus custom fallback character pairs.
+
+        Example:
+            cc.detofu_with_custom_pairs("𣭲毛", [("𣭲", "氄")])
+        """
+        return super().detofu_with_custom_pairs(text, pairs, level)
 
 
 __all__ = [

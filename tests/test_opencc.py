@@ -1,3 +1,6 @@
+import os
+import tempfile
+
 import sys
 import unittest
 from unittest import mock
@@ -151,6 +154,72 @@ class TestOpenCC(unittest.TestCase):
 
             self.assertEqual(cc.get_config(), "s2t")
             self.assertEqual(cc.convert("帕兰蒂尔是一家公司"), "柏蘭蒂爾是一家公司")
+
+    def test_opencc_detofu(self):
+        cc = OpenCC()
+        input_text = "𠉂𪠟𫝈𫬐"
+
+        assert cc.detofu(input_text, "ExtE") == "𠉂𪠟𫝈㘔"
+        assert cc.detofu(input_text, "ExtB") == "㒓㓄㑮㘔"
+
+    def test_opencc_t2s_detofu_default_level(self):
+        cc = OpenCC("t2s")
+
+        output = cc.detofu(
+            cc.convert("儼驂騑於上路，訪風景於崇阿")
+        )
+
+        assert output == "俨骖騑于上路，访风景于崇阿"
+
+    def test_detofu_with_custom_file(self):
+        with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                suffix=".txt",
+                delete=False,
+        ) as f:
+            f.write("𣭲\t氄\tB\n")
+            temp_path = f.name
+
+        try:
+            cc = OpenCC()
+
+            result = cc.detofu_with_custom_file(
+                "𣭲毛",
+                temp_path,
+                "ExtB",
+            )
+
+            assert result == "氄毛"
+
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    def test_opencc_detofu_with_custom_pairs(self):
+        cc = OpenCC()
+
+        output = cc.detofu_with_custom_pairs(
+            "𣭲毛 骖𬴂",
+            [
+                ("𣭲", "氄"),
+                ("𬴂", "騑"),
+            ],
+            "ExtB",
+        )
+
+        assert output == "氄毛 骖騑"
+
+    def test_opencc_detofu_custom_pairs_override_builtin(self):
+        cc = OpenCC()
+
+        output = cc.detofu_with_custom_pairs(
+            "𬴂",
+            [("𬴂", "马")],
+            "ExtB",
+        )
+
+        assert output == "马"
 
 
 if __name__ == '__main__':

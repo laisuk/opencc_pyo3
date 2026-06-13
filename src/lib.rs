@@ -4,10 +4,10 @@ mod reflow_helper;
 
 use opencc_fmmseg;
 use opencc_fmmseg::{
-    CustomDictFileSpec, CustomDictMode, CustomDictSpec, DictSlot, DictionaryMaxlength,
-    OpenCC as _OpenCC, OpenccConfig,
+    CustomDictFileSpec, CustomDictMode, CustomDictSpec, DetofuLevel, DetofuMap, DictSlot,
+    DictionaryMaxlength, OpenCC as _OpenCC, OpenccConfig,
 };
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyIOError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyType;
 use reflow_helper::reflow_cjk_paragraphs;
@@ -298,6 +298,39 @@ impl OpenCC {
     ) -> PyResult<Self> {
         opencc_from_dict_files(config, specs)
     }
+
+    // DeTofu
+
+    #[pyo3(signature = (text, level = "ExtB"))]
+    fn detofu(&self, text: &str, level: &str) -> PyResult<String> {
+        let level = parse_detofu_level(level)?;
+        Ok(opencc_fmmseg::detofu::detofu(text, level))
+    }
+
+    #[pyo3(signature = (text, path, level = "ExtB"))]
+    fn detofu_with_custom_file(&self, text: &str, path: &str, level: &str) -> PyResult<String> {
+        let level = parse_detofu_level(level)?;
+
+        let map = DetofuMap::builtin(level)
+            .with_custom_file(path)
+            .map_err(|e| PyIOError::new_err(e.to_string()))?;
+
+        Ok(map.detofu(text))
+    }
+
+    #[pyo3(signature = (text, pairs, level = "ExtB"))]
+    fn detofu_with_custom_pairs(
+        &self,
+        text: &str,
+        pairs: Vec<(char, char)>,
+        level: &str,
+    ) -> PyResult<String> {
+        let level = parse_detofu_level(level)?;
+
+        Ok(DetofuMap::builtin(level)
+            .with_custom_pairs(&pairs)
+            .detofu(text))
+    }
 }
 
 // New: strut + helpers - Custom Dictionary
@@ -474,6 +507,23 @@ fn parse_config_or_default(config: Option<&str>) -> (OpenccConfig, String) {
             ),
         },
         None => (OpenccConfig::S2t, String::new()),
+    }
+}
+
+fn parse_detofu_level(level: &str) -> PyResult<DetofuLevel> {
+    match level.to_ascii_lowercase().as_str() {
+        "b" | "extb" => Ok(DetofuLevel::ExtB),
+        "c" | "extc" => Ok(DetofuLevel::ExtC),
+        "d" | "extd" => Ok(DetofuLevel::ExtD),
+        "e" | "exte" => Ok(DetofuLevel::ExtE),
+        "f" | "extf" => Ok(DetofuLevel::ExtF),
+        "g" | "extg" => Ok(DetofuLevel::ExtG),
+        "h" | "exth" => Ok(DetofuLevel::ExtH),
+        "i" | "exti" => Ok(DetofuLevel::ExtI),
+        _ => Err(PyValueError::new_err(format!(
+            "Invalid detofu level '{}'. Expected ExtB, ExtC, ExtD, ExtE, ExtF, ExtG, ExtH, or ExtI.",
+            level
+        ))),
     }
 }
 

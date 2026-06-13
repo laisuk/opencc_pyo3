@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 
 
 class OpenCC:
@@ -92,6 +92,55 @@ class OpenCC:
         """
         Get the last error message from the converter.
         :return str: Error message, or an empty string if no error occurred.
+        """
+        ...
+
+    def detofu(self, text: str, level: str = "ExtB") -> str:
+        """
+        Convert non-BMP CJK extension characters to display-safe fallbacks.
+
+        This is a display compatibility pass. It does not affect OpenCC
+        conversion dictionaries, phrase matching, regional variants, script
+        detection, or punctuation conversion.
+
+        :param text: Input text.
+        :param level: CJK extension threshold: "ExtB", "ExtC", ..., "ExtI".
+                      Compact forms "B"..."I" are also accepted.
+                      "ExtB" replaces ExtB and above; "ExtI" replaces ExtI only.
+        :return: Display-safe text.
+        """
+        ...
+
+    def detofu_with_custom_file(
+            self,
+            text: str,
+            path: str,
+            level: str = "ExtB",
+    ) -> str:
+        """
+        Convert non-BMP CJK extension characters using built-in detofu mappings
+        plus a custom UTF-8 fallback file.
+
+        File format:
+            tofu_char<TAB>fallback_char<TAB>extension
+
+        Example:
+            𣭲    氄    B
+        """
+        ...
+
+    def detofu_with_custom_pairs(
+            self,
+            text: str,
+            pairs: List[Tuple[str, str]],
+            level: str = "ExtB",
+    ) -> str:
+        """
+        Convert non-BMP CJK extension characters using built-in detofu mappings
+        plus custom fallback character pairs.
+
+        Example:
+            cc.detofu_with_custom_pairs("𣭲毛", [("𣭲", "氄")])
         """
         ...
 

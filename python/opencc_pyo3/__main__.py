@@ -46,6 +46,23 @@ def subcommand_convert(args):
     # Perform conversion
     output_str = opencc.convert(input_str, args.punct)
 
+    # Optional DeTofu display-safe fallback
+    if args.detofu_file and not args.detofu:
+        print("❌  --detofu-file requires --detofu", file=sys.stderr)
+        return 1
+
+    if args.detofu:
+        level = "ExtB" if args.detofu.lower() == "all" else args.detofu
+
+        if args.detofu_file:
+            output_str = opencc.detofu_with_custom_file(
+                output_str,
+                args.detofu_file,
+                level,
+            )
+        else:
+            output_str = opencc.detofu(output_str, level)
+
     # Write output text (to file or stdout)
     with io.open(args.output if args.output else 1, 'w', encoding=args.out_enc) as f:
         f.write(output_str)
@@ -55,7 +72,12 @@ def subcommand_convert(args):
     if sys.stderr.isatty():
         if not args.output and output_str and not output_str.endswith("\n"):
             print()
-        print(f"Conversion completed ({args.config}): {in_from} -> {out_to}", file=sys.stderr)
+        # print(f"Conversion completed ({args.config}): {in_from} -> {out_to}", file=sys.stderr)
+        status = f"Conversion completed ({args.config}"
+        if args.detofu:
+            status += f", detofu:{args.detofu}"
+        status += f"): {in_from} -> {out_to}"
+        print(status, file=sys.stderr)
 
     return 0
 
@@ -301,6 +323,25 @@ def main():
         metavar="<encoding>",
         default="UTF-8",
         help="Encoding for output. (Default: UTF-8)",
+    )
+    parser_convert.add_argument(
+        "--detofu",
+        nargs="?",
+        const="ExtB",
+        default=None,
+        metavar="<level>",
+        help=(
+            "Apply tofu-safe fallback after conversion. "
+            "Levels: all/ExtB, ExtC, ExtD, ExtE, ExtF, ExtG, ExtH, ExtI."
+        ),
+    )
+    parser_convert.add_argument(
+        "--detofu-file",
+        metavar="<file>",
+        help=(
+            "Load additional detofu fallback mappings from a UTF-8 text file. "
+            "Custom mappings override built-in mappings; requires --detofu."
+        ),
     )
     parser_convert.set_defaults(func=subcommand_convert)
 
