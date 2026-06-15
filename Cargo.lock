@@ -142,7 +142,7 @@ checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 [[package]]
 name = "opencc-fmmseg"
 version = "0.11.0"
-source = "git+https://github.com/laisuk/opencc-fmmseg.git?branch=master#5ea6464965fe814f50f1859c04ea2f13f4415481"
+source = "git+https://github.com/laisuk/opencc-fmmseg.git?branch=master#754b8c38513bf43f11e82ec89e6c27083771e979"
 dependencies = [
  "rayon",
  "rayon-core",
@@ -155,7 +155,7 @@ dependencies = [
 
 [[package]]
 name = "opencc-pyo3"
-version = "0.9.1"
+version = "0.10.0"
 dependencies = [
  "opencc-fmmseg",
  "pyo3",

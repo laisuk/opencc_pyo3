@@ -7,7 +7,7 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
-## [Unreleased]
+## [0.10.0] - Unreleased
 
 ### Changed
 
@@ -16,14 +16,7 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
   `detofu_with_custom_pairs(text, level="all", pairs)`.
 - Updated the CLI DeTofu path to accept `all` directly, require `--detofu` when `--detofu-file` is used, and call custom
   file fallback with the canonical argument order.
-
----
-
-## [0.9.1] - 2026-06-01
-
-### Changed
-
-- Update opencc-fmmseg to v0.10.1
+- Update `opencc-fmmseg` to v0.11.0
 
 ---
 
