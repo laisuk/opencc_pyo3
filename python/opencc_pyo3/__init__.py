@@ -92,9 +92,20 @@ class CustomDictFileSpec(TypedDict, total=False):
 class OpenCC(_OpenCC):
     CONFIG_LIST = [c.value for c in OpenccConfig]
 
-    def __init__(self, config: _ConfigLike = "s2t"):
+    def __init__(
+            self,
+            config: _ConfigLike = "s2t",
+            preserve_ids: bool = False,
+    ) -> None:
+        """Initialize a converter.
+
+        Args:
+            config: OpenCC conversion configuration.
+            preserve_ids: Preserve characters inside Unicode IDS structures.
+        """
         # Native initialization is owned by the PyO3 backend.
         _ = config
+        _ = preserve_ids
 
     @classmethod
     def from_dicts(

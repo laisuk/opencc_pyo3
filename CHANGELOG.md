@@ -7,6 +7,15 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
+## [0.10.1] - Unreleased
+
+### Added
+
+- Added the optional `preserve_ids` parameter to `OpenCC` for preserving characters inside Unicode IDS structures during
+  conversion.
+
+---
+
 ## [0.10.0] - 2026-06-17
 
 ### Changed

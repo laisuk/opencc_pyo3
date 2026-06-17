@@ -18,11 +18,16 @@ class OpenCC:
 
     config: str
 
-    def __init__(self, config: Optional[str] = "s2t") -> None:
+    def __init__(
+        self,
+        config: Optional[str] = "s2t",
+        preserve_ids: bool = False,
+    ) -> None:
         """
         Initialize a new OpenCC instance.
         Args:
             config (str): Conversion config string.
+            preserve_ids (bool): Preserve characters inside Unicode IDS structures.
         """
         ...
 

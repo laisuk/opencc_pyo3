@@ -142,8 +142,6 @@ checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 [[package]]
 name = "opencc-fmmseg"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea7c457912475223aa441287a6062af3d9fff14d90d22fcf29e12cf4f946f7f8"
 dependencies = [
  "rayon",
  "rayon-core",
@@ -156,7 +154,7 @@ dependencies = [
 
 [[package]]
 name = "opencc-pyo3"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "opencc-fmmseg",
  "pyo3",

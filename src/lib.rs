@@ -54,10 +54,14 @@ impl OpenCC {
     /// # Arguments
     /// - `config` (optional): The conversion configuration string.
     ///   If not provided or invalid, defaults to "s2t".
+    /// - `preserve_ids` (optional): Preserve characters inside Unicode IDS
+    ///   structures during conversion. Defaults to `false`.
     #[new]
-    #[pyo3(signature = (config=None))]
-    fn new(config: Option<&str>) -> Self {
-        let opencc = _OpenCC::new();
+    #[pyo3(signature = (config=None, preserve_ids=false))]
+    fn new(config: Option<&str>, preserve_ids: bool) -> Self {
+        let mut opencc = _OpenCC::new();
+        opencc.set_preserve_ids(preserve_ids);
+
         let (config_enum, error_str) = parse_config_or_default(config);
 
         OpenCC {
@@ -614,7 +618,7 @@ mod tests {
     /// Test for the zho_check method.
     #[test]
     fn test_zho_check() {
-        let opencc = OpenCC::new(Option::from(""));
+        let opencc = OpenCC::new(Option::from(""), false);
         let text = "春眠不觉晓，处处闻啼鸟";
         let text_code = opencc.zho_check(text);
         let expected = 2;

@@ -203,9 +203,10 @@ Available enum values:
 
 Core converter class backed by the Rust extension module.
 
-- `OpenCC(config: str | OpenccConfig = "s2t")`
-    - Creates a converter using a config string or `OpenccConfig` enum.
-    - Invalid config values fall back to `s2t`.
+- `OpenCC(config: str | OpenccConfig = "s2t", preserve_ids: bool = False)`
+    - `config`: OpenCC conversion configuration. Invalid values fall back to `s2t`.
+    - `preserve_ids`: Preserve characters inside Unicode IDS (Ideographic Description Sequence) structures such as `⿰`,
+      `⿱`, and `⿲` during conversion. Default is `False`.
 - `OpenCC.from_dicts(config="s2t", specs=None) -> OpenCC`
     - Creates a converter with programmatic, in-memory custom dictionary entries.
 - `OpenCC.from_dict_files(config="s2t", specs=None) -> OpenCC`
@@ -241,6 +242,9 @@ cc = OpenCC(OpenccConfig.S2T)
 print(cc.get_config())  # s2t
 print(cc.convert("汉字", punctuation=True))
 print(cc.zho_check("汉字"))  # 2
+
+cc = OpenCC("t2s", preserve_ids=True)
+print(cc.convert("漢字 ⿰氵漢 馬"))  # 汉字 ⿰氵漢 马
 
 cc.set_config("t2jp")
 print(cc.convert("圖書館"))  # 図書館
@@ -351,29 +355,29 @@ Example:
 Use canonical slot names without `.txt`, such as `STPhrases`, not `STPhrases.txt`. The Python wrapper may tolerate
 `.txt`, but the documented API uses canonical names only.
 
-| Slot                   | Purpose                                                 | OpenCC dictionary file           |
-|:-----------------------|:--------------------------------------------------------|:---------------------------------|
-| `STCharacters`         | Simplified → Traditional character mappings             | `STCharacters.txt`               |
-| `STPhrases`            | Simplified → Traditional phrase mappings                | `STPhrases.txt`                  |
-| `STPunctuations`       | Simplified → Traditional punctuation mappings           | `STPunctuations.txt`             |
-| `TSCharacters`         | Traditional → Simplified character mappings             | `TSCharacters.txt`               |
-| `TSPhrases`            | Traditional → Simplified phrase mappings                | `TSPhrases.txt`                  |
-| `TSPunctuations`       | Traditional → Simplified punctuation mappings           | `TSPunctuations.txt`             |
-| `TWPhrases`            | Traditional → Taiwan phrase mappings                    | `TWPhrases.txt`                  |
-| `TWPhrasesRev`         | Taiwan → Traditional reverse phrase mappings            | `TWPhrasesRev.txt`               |
-| `HKPhrases`            | Traditional → Hong Kong phrase mappings                 | `HKPhrases.txt`                  |
-| `HKPhrasesRev`         | Hong Kong → Traditional reverse phrase mappings         | `HKPhrasesRev.txt`               |
-| `TWVariants`           | Traditional → Taiwan regional character variants        | `TWVariants.txt`                 |
-| `TWVariantsPhrases`    | Traditional → Taiwan regional phrase variants           | `TWVariantsPhrases.txt`          |
-| `TWVariantsRev`        | Taiwan → Traditional reverse character variants         | `TWVariantsRev.txt`              |
-| `TWVariantsRevPhrases` | Taiwan → Traditional reverse phrase variants            | `TWVariantsRevPhrases.txt`       |
-| `HKVariants`           | Traditional → Hong Kong regional character variants     | `HKVariants.txt`                 |
-| `HKVariantsPhrases`    | Traditional → Hong Kong regional phrase variants        | `HKVariantsPhrases.txt`          |
-| `HKVariantsRev`        | Hong Kong → Traditional reverse character variants      | `HKVariantsRev.txt`              |
-| `HKVariantsRevPhrases` | Hong Kong → Traditional reverse phrase variants         | `HKVariantsRevPhrases.txt`       |
-| `JPSCharacters`        | Japanese Shinjitai character mappings                   | `JPShinjitaiCharacters.txt`      |
-| `JPSCharactersRev`     | Japanese Shinjitai reverse character mappings           | `JPShinjitaiCharactersRev.txt`   |
-| `JPSPhrases`           | Japanese Shinjitai phrase mappings                      | `JPShinjitaiPhrases.txt`         |
+| Slot                   | Purpose                                             | OpenCC dictionary file         |
+|:-----------------------|:----------------------------------------------------|:-------------------------------|
+| `STCharacters`         | Simplified → Traditional character mappings         | `STCharacters.txt`             |
+| `STPhrases`            | Simplified → Traditional phrase mappings            | `STPhrases.txt`                |
+| `STPunctuations`       | Simplified → Traditional punctuation mappings       | `STPunctuations.txt`           |
+| `TSCharacters`         | Traditional → Simplified character mappings         | `TSCharacters.txt`             |
+| `TSPhrases`            | Traditional → Simplified phrase mappings            | `TSPhrases.txt`                |
+| `TSPunctuations`       | Traditional → Simplified punctuation mappings       | `TSPunctuations.txt`           |
+| `TWPhrases`            | Traditional → Taiwan phrase mappings                | `TWPhrases.txt`                |
+| `TWPhrasesRev`         | Taiwan → Traditional reverse phrase mappings        | `TWPhrasesRev.txt`             |
+| `HKPhrases`            | Traditional → Hong Kong phrase mappings             | `HKPhrases.txt`                |
+| `HKPhrasesRev`         | Hong Kong → Traditional reverse phrase mappings     | `HKPhrasesRev.txt`             |
+| `TWVariants`           | Traditional → Taiwan regional character variants    | `TWVariants.txt`               |
+| `TWVariantsPhrases`    | Traditional → Taiwan regional phrase variants       | `TWVariantsPhrases.txt`        |
+| `TWVariantsRev`        | Taiwan → Traditional reverse character variants     | `TWVariantsRev.txt`            |
+| `TWVariantsRevPhrases` | Taiwan → Traditional reverse phrase variants        | `TWVariantsRevPhrases.txt`     |
+| `HKVariants`           | Traditional → Hong Kong regional character variants | `HKVariants.txt`               |
+| `HKVariantsPhrases`    | Traditional → Hong Kong regional phrase variants    | `HKVariantsPhrases.txt`        |
+| `HKVariantsRev`        | Hong Kong → Traditional reverse character variants  | `HKVariantsRev.txt`            |
+| `HKVariantsRevPhrases` | Hong Kong → Traditional reverse phrase variants     | `HKVariantsRevPhrases.txt`     |
+| `JPSCharacters`        | Japanese Shinjitai character mappings               | `JPShinjitaiCharacters.txt`    |
+| `JPSCharactersRev`     | Japanese Shinjitai reverse character mappings       | `JPShinjitaiCharactersRev.txt` |
+| `JPSPhrases`           | Japanese Shinjitai phrase mappings                  | `JPShinjitaiPhrases.txt`       |
 
 Custom dictionary behavior follows the same OpenCC dictionary-slot model. Choosing the wrong slot may have no effect or
 may affect a different conversion path. For `s2t`, use `STCharacters` or `STPhrases`. For `t2s`, use `TSCharacters` or
