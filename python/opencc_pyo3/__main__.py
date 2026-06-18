@@ -377,6 +377,7 @@ def main():
         help="Target Office format (e.g., docx, xlsx, pptx, odt, ods, odp, epub)",
     )
     parser_office.add_argument(
+        "-k",
         "--keep-font",
         action="store_true",
         default=False,
