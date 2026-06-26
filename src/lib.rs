@@ -529,27 +529,67 @@ fn parse_mode(mode: Option<&str>) -> PyResult<CustomDictMode> {
 
 /// Parses a custom dictionary slot name into a [`DictSlot`].
 ///
-/// Canonical OpenCC slot names such as `STPhrases`,
-/// `TWPhrasesRev`, and `HKVariantsRevPhrases` are supported.
-///
-/// Optional `.txt` suffixes are accepted for compatibility.
+/// Accepts canonical OpenCC slot names (for example `STPhrases`,
+/// `TWPhrasesRev`, and `HKVariantsRevPhrases`) in a
+/// case-insensitive manner. An optional `.txt` suffix is also
+/// accepted for compatibility.
 ///
 /// Invalid slot names return a Python `ValueError`.
 fn parse_slot(slot: &str) -> PyResult<DictSlot> {
     let trimmed = slot.trim();
 
-    let normalized = if trimmed.to_ascii_lowercase().ends_with(".txt") {
+    let without_txt = if trimmed.to_ascii_lowercase().ends_with(".txt") {
         &trimmed[..trimmed.len() - 4]
     } else {
         trimmed
     };
 
-    DictSlot::try_from(normalized).map_err(|_| {
+    let normalized = normalize_dict_slot_name(without_txt);
+
+    DictSlot::try_from(normalized.as_str()).map_err(|_| {
         PyValueError::new_err(format!(
             "Invalid custom dictionary slot: {slot}. \
              Expected canonical slot name like 'STPhrases', 'TWPhrasesRev', or 'HKVariantsRevPhrases'."
         ))
     })
+}
+
+/// Normalizes a user-supplied custom dictionary slot name.
+///
+/// Converts supported slot names to their canonical OpenCC spelling
+/// (for example, `stphrases` → `STPhrases`). Unknown names are
+/// returned unchanged after trimming.
+fn normalize_dict_slot_name(s: &str) -> String {
+    match s.trim().to_ascii_lowercase().as_str() {
+        "stcharacters" => "STCharacters",
+        "stphrases" => "STPhrases",
+        "stpunctuations" => "STPunctuations",
+
+        "tscharacters" => "TSCharacters",
+        "tsphrases" => "TSPhrases",
+        "tspunctuations" => "TSPunctuations",
+
+        "twphrases" => "TWPhrases",
+        "twphrasesrev" => "TWPhrasesRev",
+        "twvariants" => "TWVariants",
+        "twvariantsphrases" => "TWVariantsPhrases",
+        "twvariantsrev" => "TWVariantsRev",
+        "twvariantsrevphrases" => "TWVariantsRevPhrases",
+
+        "hkphrases" => "HKPhrases",
+        "hkphrasesrev" => "HKPhrasesRev",
+        "hkvariants" => "HKVariants",
+        "hkvariantsphrases" => "HKVariantsPhrases",
+        "hkvariantsrev" => "HKVariantsRev",
+        "hkvariantsrevphrases" => "HKVariantsRevPhrases",
+
+        "jpscharacters" => "JPSCharacters",
+        "jpscharactersrev" => "JPSCharactersRev",
+        "jpsphrases" => "JPSPhrases",
+
+        _ => s.trim(),
+    }
+        .to_string()
 }
 
 /// Parses an OpenCC configuration string.

@@ -3,7 +3,7 @@ from __future__ import print_function
 import argparse
 import sys
 
-from opencc_pyo3 import OpenCC, OpenccConfig
+from opencc_pyo3 import OpenCC, OpenccConfig, CustomDictFileSpec
 
 CONFIG_HELP = "Configuration: " + "|".join(OpenCC.supported_configs())
 
@@ -24,6 +24,28 @@ def resolve_config(config):
         return None
 
 
+def parse_custom_dict_spec(spec: str) -> CustomDictFileSpec:
+    parts = spec.split(":", 2)
+    if len(parts) != 3:
+        raise ValueError("Expected custom dictionary spec: slot:mode:path")
+
+    slot, mode, path = (p.strip() for p in parts)
+
+    if not slot:
+        raise ValueError("Custom dictionary slot is empty.")
+    if not mode:
+        raise ValueError("Custom dictionary mode is empty.")
+    if not path:
+        raise ValueError("Custom dictionary path is empty.")
+
+    result: CustomDictFileSpec = {
+        "slot": slot,
+        "mode": mode,
+        "files": [path],
+    }
+    return result
+
+
 def subcommand_convert(args):
     import io
 
@@ -33,7 +55,13 @@ def subcommand_convert(args):
     args.config = config
 
     # Plain text conversion fallback
-    opencc = OpenCC(config)
+    # opencc = OpenCC(config)
+    try:
+        specs = [parse_custom_dict_spec(s) for s in (args.custom_dict or [])]
+        opencc = OpenCC.from_dict_files(config, specs) if specs else OpenCC(config)
+    except Exception as ex:
+        print(f"❌  Invalid --custom-dict: {ex}", file=sys.stderr)
+        return 1
 
     # Prompt user if input is from terminal
     if args.input is None and sys.stdin.isatty():
@@ -136,12 +164,19 @@ def subcommand_office(args):
         print(f"ℹ️  Auto-extension applied: {output_file}", file=sys.stderr)
 
     try:
+        specs = [parse_custom_dict_spec(s) for s in (args.custom_dict or [])]
+        opencc = OpenCC.from_dict_files(config, specs) if specs else OpenCC(config)
+    except Exception as ex:
+        print(f"❌  Invalid --custom-dict: {ex}", file=sys.stderr)
+        return 1
+
+    try:
         # Perform Office document conversion
         success, message = convert_office_doc(
             input_file,
             output_file,
             office_format,
-            OpenCC(config),
+            opencc,
             punct,
             keep_font,
         )
@@ -242,7 +277,18 @@ def subcommand_pdf(args) -> int:
     # OpenCC Conversion (optional)
     # ---------------------------------------------------------
     if not args.extract:
-        opencc = OpenCC(str(config))
+        # opencc = OpenCC(str(config))
+        config = str(config)
+        try:
+            specs = [parse_custom_dict_spec(s) for s in (args.custom_dict or [])]
+            opencc = OpenCC.from_dict_files(config, specs) if specs else OpenCC(config)
+        except Exception as ex:
+            print(
+                f"⚠️  Invalid --custom-dict: {ex}\n"
+                "   Skipping custom dictionaries and continuing with embedded dictionaries.",
+                file=sys.stderr,
+            )
+            opencc = OpenCC(config)
         text = opencc.convert(text, args.punct)
     else:
         if args.config or args.punct:
@@ -256,11 +302,24 @@ def subcommand_pdf(args) -> int:
 
     print(f"📄 Input : {p}")
     print(f"📁 Output: {output_path}")
-    print("⚙️ Engine : pdfium")
+    print("⚙️ Engine: pdfium")
+
     if args.extract:
         print("🧾 Mode  : extract-only (no OpenCC)")
-    elif args.config:
+    else:
         print(f"🧾 Config: {args.config} (punct: {'on' if args.punct else 'off'})")
+
+    if args.reflow:
+        options = []
+        if args.compact:
+            options.append("compact")
+        if args.header:
+            options.append("headers")
+
+        suffix = f" ({', '.join(options)})" if options else ""
+        print(f"📑 Reflow: on{suffix}")
+    else:
+        print("📑 Reflow: off")
 
     return 0
 
@@ -324,6 +383,16 @@ def main():
         ),
     )
     parser_convert.add_argument(
+        "--custom-dict",
+        action="append",
+        metavar="<slot:mode:path>",
+        help=(
+            "Load custom dictionary file. "
+            "Format: slot:mode:path, e.g. STPhrases:append:custom.txt. "
+            "Can be used multiple times."
+        ),
+    )
+    parser_convert.add_argument(
         "--in-enc",
         metavar="<encoding>",
         default="UTF-8",
@@ -335,6 +404,7 @@ def main():
         default="UTF-8",
         help="Encoding for output. (Default: UTF-8)",
     )
+
     parser_convert.set_defaults(func=subcommand_convert)
 
     # -----------------
@@ -383,6 +453,17 @@ def main():
         default=False,
         help="Preserve font-family information in Office content",
     )
+    parser_office.add_argument(
+        "--custom-dict",
+        action="append",
+        metavar="<slot:mode:path>",
+        help=(
+            "Load custom dictionary file. "
+            "Format: slot:mode:path, e.g. STPhrases:append:custom.txt. "
+            "Can be used multiple times."
+        ),
+    )
+
     parser_office.set_defaults(func=subcommand_office)
 
     # -------------
@@ -440,6 +521,7 @@ def main():
         help="Enable CJK-aware paragraph reflow before conversion.",
     )
     parser_pdf.add_argument(
+        "-C",
         "--compact",
         action="store_true",
         default=False,
@@ -457,6 +539,16 @@ def main():
         action="store_true",
         default=False,
         help="Extract PDF text only (skip OpenCC conversion).",
+    )
+    parser_pdf.add_argument(
+        "--custom-dict",
+        action="append",
+        metavar="<slot:mode:path>",
+        help=(
+            "Load custom dictionary file. "
+            "Format: slot:mode:path, e.g. STPhrases:append:custom.txt. "
+            "Can be used multiple times."
+        ),
     )
 
     parser_pdf.set_defaults(func=subcommand_pdf)

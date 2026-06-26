@@ -82,19 +82,25 @@ Sub-Commands are:
 
 ```bash
 python -m opencc_pyo3 convert --help
-usage: opencc-pyo3 convert [-h] [-i <file>] [-o <file>] [-c <conversion>] [-p] [--detofu [<level>]] [--detofu-file <file>] [--in-enc <encoding>] [--out-enc <encoding>]
+usage: opencc-pyo3 convert [-h] [-i <file>] [-o <file>] [-c <conversion>] [-p] [--detofu [<level>]] [--detofu-file <file>] [--custom-dict <slot:mode:path>]      
+                           [--in-enc <encoding>] [--out-enc <encoding>]
 
-options:
+optional arguments:
   -h, --help            show this help message and exit
-  -i, --input <file>    Read original text from <file>.
-  -o, --output <file>   Write converted text to <file>.
-  -c, --config <conversion>
-                        Conversion configuration: s2t|s2tw|s2twp|s2hk|t2s|tw2s|tw2sp|hk2s|jp2t|t2jp
-  -p, --punct           Enable punctuation conversion. (Default: False)
-  --detofu [<level>]    Apply tofu-safe fallback after conversion. Levels: all/ExtB, ExtC, ExtD, ExtE, ExtF, ExtG, ExtH, ExtI.
+  -i <file>, --input <file>
+                        Read original text from <file>. (default: None)
+  -o <file>, --output <file>
+                        Write converted text to <file>. (default: None)
+  -c <conversion>, --config <conversion>
+                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|jp2t|t2jp (default: None)
+  -p, --punct           Enable punctuation conversion. (Default: False) (default: False)
+  --detofu [<level>]    Apply tofu-safe fallback after conversion. Levels: all/ExtB, ExtC, ExtD, ExtE, ExtF, ExtG, ExtH, ExtI. (default: None)
   --detofu-file <file>  Load additional detofu fallback mappings from a UTF-8 text file. Custom mappings override built-in mappings; requires --detofu.
-  --in-enc <encoding>   Encoding for input. (Default: UTF-8)
-  --out-enc <encoding>  Encoding for output. (Default: UTF-8)
+                        (default: None)
+  --custom-dict <slot:mode:path>
+                        Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times. (default: None)
+  --in-enc <encoding>   Encoding for input. (Default: UTF-8) (default: UTF-8)
+  --out-enc <encoding>  Encoding for output. (Default: UTF-8) (default: UTF-8)
 ```
 
 ---
@@ -105,19 +111,22 @@ Support OpenOffice documents and Epub (`.docx`, `.xlsx`, `.pptx`, `.odt`, `.ods`
 
 ```bash
 python -m opencc_pyo3 office --help                                         
-usage: opencc-pyo3 office [-h] [-i <file>] [-o <file>] [-c <conversion>] [-p] [-f <format>] [--auto-ext] [--keep-font]
+usage: opencc-pyo3 office [-h] [-i <file>] [-o <file>] [-c <conversion>] [-p] [-f <format>] [-k] [--custom-dict <slot:mode:path>]                                
 
-options:
+optional arguments:
   -h, --help            show this help message and exit
-  -i, --input <file>    Input Office document from <file>.
-  -o, --output <file>   Output Office document to <file>.
-  -c, --config <conversion>
-                        conversion: s2t|s2tw|s2twp|s2hk|t2s|tw2s|tw2sp|hk2s|jp2t|t2jp
-  -p, --punct           Enable punctuation conversion. (Default: False)
-  -f, --format <format>
-                        Target Office format (e.g., docx, xlsx, pptx, odt, ods, odp, epub)
-  --auto-ext            Auto-append extension to output file
-  --keep-font           Preserve font-family information in Office content
+  -i <file>, --input <file>
+                        Input Office document from <file>. (default: None)
+  -o <file>, --output <file>
+                        Output Office document to <file>. (default: None)
+  -c <conversion>, --config <conversion>
+                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|jp2t|t2jp (default: None)
+  -p, --punct           Enable punctuation conversion. (Default: False) (default: False)
+  -f <format>, --format <format>
+                        Target Office format (e.g., docx, xlsx, pptx, odt, ods, odp, epub) (default: None)
+  -k, --keep-font       Preserve font-family information in Office content (default: False)
+  --custom-dict <slot:mode:path>
+                        Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times. (default: None)
 ```
 
 ---
@@ -136,21 +145,24 @@ and convert the result using OpenCC configurations.
 
 ```bash
 python -m opencc_pyo3 pdf --help
+usage: opencc-pyo3 pdf [-h] -i <file> [-o <file>] [-c <conversion>] [-p] [-H] [-r] [-C] [--timing] [-e] [--custom-dict <slot:mode:path>]
 
-usage: __main__.py pdf [-h] -i <file> [-o <file>] [-c <conversion>] [-p] [-H] [-r] [--compact] [--timing] [-e]
-
-options:
+optional arguments:
   -h, --help            show this help message and exit
-  -i, --input <file>    Input PDF file.
-  -o, --output <file>   Output text file (UTF-8). If omitted, defaults to "<input>_converted.txt".
-  -c, --config <conversion>
-                        Conversion configuration: s2t|s2tw|s2twp|s2hk|t2s|tw2s|tw2sp|hk2s|jp2t|t2jp
-  -p, --punct           Enable punctuation conversion. (Default: False)
-  -H, --header          Preserve page-break-like gaps when reflowing CJK paragraphs (passed as add_pdf_page_header to reflow_cjk_paragraphs).
-  -r, --reflow          Enable CJK-aware paragraph reflow before conversion.
-  --compact             Use compact paragraph mode (single newline between paragraphs).
-  --timing              Show time use for each process workflow.
-  -e, --extract         Extract PDF text only (skip OpenCC conversion).
+  -i <file>, --input <file>
+                        Input PDF file. (default: None)
+  -o <file>, --output <file>
+                        Output text file (UTF-8). If omitted, defaults to "<input>_converted.txt". (default: None)
+  -c <conversion>, --config <conversion>
+                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|jp2t|t2jp (default: None)
+  -p, --punct           Enable punctuation conversion. (Default: False) (default: False)
+  -H, --header          Preserve page-break-like gaps when reflowing CJK paragraphs (passed as add_pdf_page_header to reflow_cjk_paragraphs). (default: False)
+  -r, --reflow          Enable CJK-aware paragraph reflow before conversion. (default: False)
+  -C, --compact         Use compact paragraph mode (single newline between paragraphs). (default: False)
+  --timing              Show time use for each process workflow. (default: False)
+  -e, --extract         Extract PDF text only (skip OpenCC conversion). (default: False)
+  --custom-dict <slot:mode:path>
+                        Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times. (default: None)
 ```
 
 ```sh
@@ -158,11 +170,20 @@ python -m opencc_pyo3 convert -i input.txt -o output.txt -c s2t --punct
 
 python -m opencc_pyo3 convert -i input.txt -o output.txt -c s2t --detofu all --detofu-file custom_detofu.txt
 
+echo "這個細路哥很靈活" | python -m opencc_pyo3 convert -c hk2sp --custom-dict hkphrasesrev:append:my_hk_dict.txt 
+// output: 这个小男孩很灵活
+ 
 python -m opencc_pyo3 office -c s2t --punct -i input.docx -o output.docx --keep-font
 
 opencc-pyo3 office -c s2tw -p -i input.epub -o output.epub
 
 opencc-pyo3 pdf -i input.pdf -o output.txt -c s2t -punct --reflow
+```
+
+my_hk_dict.txt:
+
+```text
+細路哥	小男孩
 ```
 
 ---

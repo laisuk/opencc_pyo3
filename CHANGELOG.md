@@ -13,6 +13,8 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 - Added the optional `preserve_ids` parameter to `OpenCC` for preserving characters inside Unicode IDS structures during
   conversion.
+- CLI: Added custom dictionary usage feature `--custom-dict` for `opencc-pyo3 convert`, `opencc-pyo3 office` and
+  `opencc-pyo3 pdf`.
 
 ### Changed
 
