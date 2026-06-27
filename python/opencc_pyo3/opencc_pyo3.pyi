@@ -3,14 +3,17 @@ from typing import List, Optional, Dict, Any, Tuple
 
 class OpenCC:
     """
-    Python binding for OpenCC and Jieba functionalities.
+    Python binding for OpenCC text conversion.
 
-    Provides Chinese text conversion (Simplified/Traditional), segmentation, and keyword extraction.
+    Provides Chinese text conversion between Simplified, Traditional,
+    Hong Kong, Taiwan, and Japanese Kanji variants using OpenCC-compatible
+    configurations.
 
     Args:
         config (str): Optional conversion config (default: "s2t"). Must be one of:
             "s2t", "t2s", "s2tw", "tw2s", "s2twp", "tw2sp", "s2hk", "hk2s",
-            "t2tw", "tw2t", "t2twp", "tw2tp", "t2hk", "hk2t", "t2jp", "jp2t".
+            "s2hkp", "hk2sp", "t2tw", "tw2t", "t2twp", "tw2tp", "t2hk",
+            "hk2t", "t2jp", "jp2t".
 
     Attributes:
         config (str): Current OpenCC config string.

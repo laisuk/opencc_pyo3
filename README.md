@@ -24,8 +24,8 @@ using [OpenCC](https://github.com/BYVoid/OpenCC) algorithms.
 
 ## Supported Conversion Configurations
 
-- `s2t`, `t2s`, `s2tw`, `tw2s`, `s2twp`, `tw2sp`, `s2hk`, `hk2s`, `t2tw`, `tw2t`, `t2twp`, `tw2tp`, `t2hk`, `hk2t`,
-  `t2jp`, `jp2t`
+- `s2t`, `t2s`, `s2tw`, `tw2s`, `s2twp`, `tw2sp`, `s2hk`, `hk2s`, `s2hkp`, `hk2sp`, `t2tw`, `tw2t`, `t2twp`,
+  `tw2tp`, `t2hk`, `hk2t`, `t2jp`, `jp2t`
 
 ## Installation
 
@@ -219,6 +219,8 @@ Available enum values:
 - `OpenccConfig.HK2T`
 - `OpenccConfig.T2JP`
 - `OpenccConfig.JP2T`
+- `OpenccConfig.S2HKP`
+- `OpenccConfig.HK2SP`
 
 ### `OpenCC`
 

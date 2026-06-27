@@ -207,10 +207,10 @@ class OpenCC(_OpenCC):
 
     def convert(self, input_text, punctuation=False):
         """
-        Automatically dispatch to the appropriate conversion method based on `self.config.
+        Convert text using the current OpenCC config.
         :param input_text: The string to convert
         :param punctuation: Whether to apply punctuation conversion
-        :return: Converted string or error message
+        :return: Converted string
         """
         return super().convert(input_text, punctuation)
 

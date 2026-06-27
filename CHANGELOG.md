@@ -7,7 +7,7 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
-## [0.10.1] - Unreleased
+## [0.10.1] - 2026-06-27
 
 ### Added
 
@@ -19,6 +19,7 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 ### Changed
 
 - CLI: Optimized subcommand `office`
+- Update `opencc-fmmseg` core to v0.11.1
 
 ---
 

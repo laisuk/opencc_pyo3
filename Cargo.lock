@@ -142,6 +142,8 @@ checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 [[package]]
 name = "opencc-fmmseg"
 version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e31a6b502e1517776d5787c6907e53216bd313450b88f43a75f66a4f67d7cab"
 dependencies = [
  "rayon",
  "rayon-core",
