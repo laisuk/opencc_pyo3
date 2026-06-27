@@ -3,7 +3,7 @@ requires = ["maturin>=1,<2"]
 build-backend = "maturin"
 
 [project]
-name = "opencc_pyo3"
+name = "opencc-pyo3"
 dynamic = ["version"]
 authors = [
     { name="laisuk", email="laisuk@yahoo.com" },
@@ -36,11 +36,3 @@ ChangeLog = "https://github.com/laisuk/opencc_pyo3/blob/master/CHANGELOG.md"
 
 [project.scripts]
 opencc-pyo3 = "opencc_pyo3.__main__:main"
-
-[tool.maturin]
-include = [
-    "opencc_pyo3/pdfium/**/*",
-]
-sdist-include = [
-    "opencc_pyo3/pdfium/**/*",
-]
