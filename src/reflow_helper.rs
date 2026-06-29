@@ -200,23 +200,80 @@ pub fn reflow_cjk_paragraphs(
 
         // Final strong line punct ending check for line text
         let stripped = line_text.trim_end();
-        if !buffer.is_empty()
-            && !dialog_state.is_unclosed()
-            && (!buffer_has_unclosed_bracket || buffer.len() > 360)
-        {
-            if let Some(last) = stripped.chars().rev().next() {
-                if is_strong_sentence_end(last) {
-                    buffer.push_str(&line_text);
-                    segments.push(std::mem::take(&mut buffer));
-                    dialog_state.reset();
-                    // dialog_state.update(&line_text);
-                    continue;
-                }
+
+        let current_is_dialog_start = begins_with_dialog_opener(&line_text);
+        let stripped_ends_with_dialog_closer = ends_with_dialog_closer(stripped);
+        let stripped_has_unclosed_bracket = has_unclosed_bracket(stripped);
+
+        let stripped_ends_with_strong_sentence_end = stripped
+            .chars()
+            .rev()
+            .next()
+            .is_some_and(is_strong_sentence_end);
+
+        // 9a-0) Complete single-line dialog.
+        if current_is_dialog_start && stripped_ends_with_dialog_closer {
+            if !buffer.is_empty() {
+                segments.push(std::mem::take(&mut buffer));
+                dialog_state.reset();
             }
+
+            segments.push(line_text.clone());
+            dialog_state.reset();
+            continue;
         }
 
-        // 7) Dialog detection
-        let current_is_dialog_start = begins_with_dialog_opener(&line_text);
+        // 9a) Dialog start, unfinished dialog.
+        if current_is_dialog_start {
+            let trimmed_buffer = buffer_text.trim_end();
+            let last = trimmed_buffer.chars().rev().next();
+
+            let should_flush_prev = match last {
+                Some(ch) => {
+                    !is_comma_like(ch)
+                        && !is_cjk_bmp(ch)
+                        && !dialog_state.is_unclosed()
+                        && !buffer_has_unclosed_bracket
+                }
+                None => !buffer.is_empty(),
+            };
+
+            if should_flush_prev {
+                segments.push(std::mem::take(&mut buffer));
+            }
+
+            buffer.push_str(&line_text);
+            dialog_state.reset();
+            dialog_state.update(&line_text);
+            continue;
+        }
+
+        // 7) Final strong line punct ending check.
+        // Exclude dialog closer lines; let 9b handle them.
+        if !buffer.is_empty()
+            && !stripped_ends_with_dialog_closer
+            && !dialog_state.is_unclosed()
+            && (!buffer_has_unclosed_bracket || buffer.len() > 360)
+            && stripped_ends_with_strong_sentence_end
+        {
+            buffer.push_str(&line_text);
+            segments.push(std::mem::take(&mut buffer));
+            dialog_state.reset();
+            continue;
+        }
+
+        // 7b) Complete standalone sentence line.
+        // If buffer is empty and this line is already a complete sentence,
+        // emit it directly instead of waiting for the next line.
+        if buffer.is_empty()
+            && !stripped_ends_with_dialog_closer
+            && !stripped_has_unclosed_bracket
+            && stripped_ends_with_strong_sentence_end
+        {
+            segments.push(line_text.clone());
+            dialog_state.reset();
+            continue;
+        }
 
         // First line of a new paragraph
         if buffer.is_empty() {
@@ -224,27 +281,6 @@ pub fn reflow_cjk_paragraphs(
             dialog_state.reset();
             dialog_state.update(&line_text);
             continue;
-        }
-
-        // If previous line ends with comma, do NOT flush even if new line starts dialog
-        if current_is_dialog_start {
-            let trimmed_buffer = buffer_text.trim_end();
-            let last = trimmed_buffer.chars().rev().next();
-            if let Some(ch) = last {
-                if !is_comma_like(ch) && !is_cjk_bmp(ch) {
-                    segments.push(std::mem::take(&mut buffer));
-                    buffer.push_str(&line_text);
-                    dialog_state.reset();
-                    dialog_state.update(&line_text);
-                    continue;
-                }
-            } else {
-                segments.push(std::mem::take(&mut buffer));
-                buffer.push_str(&line_text);
-                dialog_state.reset();
-                dialog_state.update(&line_text);
-                continue;
-            }
         }
 
         // 🔸 9b) Dialog end line: ends with a dialog closer.
@@ -259,14 +295,11 @@ pub fn reflow_cjk_paragraphs(
         //   quotes or cross-page broken quoted text
         if let Some((last_ch, prev_ch)) = last_two_non_whitespace(stripped) {
             if is_dialog_closer(last_ch) {
-                // Check punctuation right before the closer (e.g. “？” / “。”)
                 let punct_before_closer_is_strong = is_clause_or_end_punct(prev_ch);
 
-                // Snapshot bracket safety BEFORE appending current line
                 let buffer_has_bracket_issue = buffer_has_unclosed_bracket;
-                let line_has_bracket_issue = has_unclosed_bracket(stripped);
+                let line_has_bracket_issue = stripped_has_unclosed_bracket;
 
-                // Append current line into buffer, then update dialog state
                 buffer.push_str(stripped);
                 dialog_state.update(stripped);
 
@@ -698,7 +731,8 @@ fn collapse_repeated_word_sequences<'a>(parts: &[&'a str]) -> SmallVec<[&'a str;
             }
 
             if count >= MIN_REPEATS {
-                let mut result = SmallVec::<[&str; 16]>::with_capacity(n - (count - 1) * phrase_len);
+                let mut result =
+                    SmallVec::<[&str; 16]>::with_capacity(n - (count - 1) * phrase_len);
                 for i in 0..start {
                     result.push(parts[i]);
                 }

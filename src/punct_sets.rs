@@ -437,3 +437,11 @@ pub fn begins_with_dialog_opener(s: &str) -> bool {
         .next()
         .is_some_and(|ch| is_dialog_opener(ch))
 }
+
+#[inline]
+pub fn ends_with_dialog_closer(s: &str) -> bool {
+    s.chars()
+        .rev()
+        .find(|c| !c.is_whitespace())
+        .is_some_and(is_dialog_closer)
+}

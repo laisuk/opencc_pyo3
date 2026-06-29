@@ -7,6 +7,16 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
+[0.10.2] - Unreleased
+
+### Changed
+
+- Refactored CJK PDF reflow newline finalization so dialog-start and dialog-closer lines are handled before generic
+  strong-sentence flushing, preserving complete single-line dialogs and allowing dialog closers to reach the dedicated
+  finalizer path.
+
+---
+
 ## [0.10.1] - 2026-06-27
 
 ### Added
