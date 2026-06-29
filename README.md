@@ -176,6 +176,9 @@ python -m opencc_pyo3 convert -i input.txt -o output.txt -c s2t --detofu all --d
 
 echo "這個細路哥很靈活" | python -m opencc_pyo3 convert -c hk2sp --custom-dict HKVariantsRevPhrases:append:my_hk_dict.txt
 # output: 这个小男孩很灵活
+
+echo "天龍八部書裡的喬峰是契丹人" | opencc-pyo3 convert -c t2s --norm-compat
+# output: 天龙八部书里的乔峰是契丹人
  
 python -m opencc_pyo3 office -c s2t --punct -i input.docx -o output.docx --keep-font
 
@@ -186,7 +189,9 @@ opencc-pyo3 pdf -i input.pdf -o output.txt -c s2t --punct --reflow --norm-compat
 
 my_hk_dict.txt:
 
-`--custom-dict` accepts `slot:mode:path` and can be passed more than once. The token is validated before conversion: `slot`, `mode`, and `path` must all be present. Supported merge modes are `append` and `override`; common slots include `STPhrases`, `TWPhrases`, `HKVariantsRevPhrases`, and `JPVariants`.
+`--custom-dict` accepts `slot:mode:path` and can be passed more than once. The token is validated before conversion:
+`slot`, `mode`, and `path` must all be present. Supported merge modes are `append` and `override`; common slots include
+`STPhrases`, `TWPhrases`, `HKVariantsRevPhrases`, and `JPVariants`.
 
 ```text
 細路哥	小男孩
