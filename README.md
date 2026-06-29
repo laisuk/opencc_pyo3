@@ -82,7 +82,7 @@ Sub-Commands are:
 
 ```bash
 python -m opencc_pyo3 convert --help
-usage: opencc-pyo3 convert [-h] [-i <file>] [-o <file>] [-c <conversion>] [-p] [--detofu [<level>]] [--detofu-file <file>] [--custom-dict <slot:mode:path>]      
+usage: opencc-pyo3 convert [-h] [-i <file>] [-o <file>] [-c <conversion>] [-p] [-n] [--detofu [<level>]] [--detofu-file <file>] [--custom-dict <slot:mode:path>]
                            [--in-enc <encoding>] [--out-enc <encoding>]
 
 optional arguments:
@@ -94,6 +94,7 @@ optional arguments:
   -c <conversion>, --config <conversion>
                         Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|jp2t|t2jp (default: None)
   -p, --punct           Enable punctuation conversion. (Default: False) (default: False)
+  -n, --norm-compat     Normalize CJK Compatibility Ideographs before conversion. (Default: False) (default: False)
   --detofu [<level>]    Apply tofu-safe fallback after conversion. Levels: all/ExtB, ExtC, ExtD, ExtE, ExtF, ExtG, ExtH, ExtI. (default: None)
   --detofu-file <file>  Load additional detofu fallback mappings from a UTF-8 text file. Custom mappings override built-in mappings; requires --detofu.
                         (default: None)
@@ -145,7 +146,7 @@ and convert the result using OpenCC configurations.
 
 ```bash
 python -m opencc_pyo3 pdf --help
-usage: opencc-pyo3 pdf [-h] -i <file> [-o <file>] [-c <conversion>] [-p] [-H] [-r] [-C] [--timing] [-e] [--custom-dict <slot:mode:path>]
+usage: opencc-pyo3 pdf [-h] -i <file> [-o <file>] [-c <conversion>] [-p] [-H] [-r] [-C] [--timing] [-e] [-n] [--custom-dict <slot:mode:path>]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -161,6 +162,7 @@ optional arguments:
   -C, --compact         Use compact paragraph mode (single newline between paragraphs). (default: False)
   --timing              Show time use for each process workflow. (default: False)
   -e, --extract         Extract PDF text only (skip OpenCC conversion). (default: False)
+  -n, --norm-compat     Normalize CJK Compatibility Ideographs before conversion. (Default: False) (default: False)
   --custom-dict <slot:mode:path>
                         Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times. (default: None)
 ```
@@ -168,19 +170,23 @@ optional arguments:
 ```sh
 python -m opencc_pyo3 convert -i input.txt -o output.txt -c s2t --punct
 
+python -m opencc_pyo3 convert -i input.txt -o output.txt -c t2s --norm-compat
+
 python -m opencc_pyo3 convert -i input.txt -o output.txt -c s2t --detofu all --detofu-file custom_detofu.txt
 
-echo "這個細路哥很靈活" | python -m opencc_pyo3 convert -c hk2sp --custom-dict hkphrasesrev:append:my_hk_dict.txt 
-// output: 这个小男孩很灵活
+echo "這個細路哥很靈活" | python -m opencc_pyo3 convert -c hk2sp --custom-dict HKVariantsRevPhrases:append:my_hk_dict.txt
+# output: 这个小男孩很灵活
  
 python -m opencc_pyo3 office -c s2t --punct -i input.docx -o output.docx --keep-font
 
 opencc-pyo3 office -c s2tw -p -i input.epub -o output.epub
 
-opencc-pyo3 pdf -i input.pdf -o output.txt -c s2t -punct --reflow
+opencc-pyo3 pdf -i input.pdf -o output.txt -c s2t --punct --reflow --norm-compat
 ```
 
 my_hk_dict.txt:
+
+`--custom-dict` accepts `slot:mode:path` and can be passed more than once. The token is validated before conversion: `slot`, `mode`, and `path` must all be present. Supported merge modes are `append` and `override`; common slots include `STPhrases`, `TWPhrases`, `HKVariantsRevPhrases`, and `JPVariants`.
 
 ```text
 細路哥	小男孩

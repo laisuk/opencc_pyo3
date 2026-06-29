@@ -303,7 +303,26 @@ impl OpenCC {
         opencc_from_dict_files(config, specs)
     }
 
-    // DeTofu
+    // CJK Compatibility Ideograph Normalization and DeTofu
+
+    /// Normalizes CJK Compatibility Ideographs with the built-in Unicode table.
+    ///
+    /// This is a convenience wrapper around the underlying `opencc-fmmseg`
+    /// compatibility ideograph normalizer. It performs an optional Unicode
+    /// compatibility normalization pre-pass and does not modify this
+    /// [`OpenCC`] instance, its selected config, conversion dictionaries,
+    /// segmentation behavior, script detection, or punctuation conversion.
+    ///
+    /// Use this before [`OpenCC::convert`] when input may contain CJK
+    /// Compatibility Ideographs such as `金` and you want OpenCC-compatible
+    /// behavior. Unmapped compatibility ideographs remain unchanged.
+    ///
+    /// DeToFu is the opposite side of the pipeline: compatibility ideograph
+    /// normalization is a pre-processing step, while [`OpenCC::detofu`] is an
+    /// optional post-processing display fallback.
+    fn normalize_compat(&self, text: &str) -> String {
+        self.opencc.normalize_compat(text)
+    }
 
     /// Convert rare CJK extension characters to display-safe fallback characters.
     ///

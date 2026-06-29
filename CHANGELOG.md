@@ -9,6 +9,14 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 [0.10.2] - Unreleased
 
+### Added
+
+- Documented CLI support for `--norm-compat`, DeTofu fallback options, and validated `--custom-dict` token strings in the README CLI section.
+
+### Fixed
+
+- Fixed direct Python calls to CLI subcommand handlers so missing optional argparse attributes such as `custom_dict` are treated the same as omitted command-line options while still validating provided `--custom-dict` tokens.
+
 ### Changed
 
 - Refactored CJK PDF reflow newline finalization so dialog-start and dialog-closer lines are handled before generic

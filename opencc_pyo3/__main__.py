@@ -46,6 +46,10 @@ def parse_custom_dict_spec(spec: str) -> CustomDictFileSpec:
     return result
 
 
+def custom_dict_specs_from_args(args):
+    return [parse_custom_dict_spec(s) for s in (getattr(args, "custom_dict", None) or [])]
+
+
 def subcommand_convert(args):
     import io
 
@@ -57,7 +61,7 @@ def subcommand_convert(args):
     # Plain text conversion fallback
     # opencc = OpenCC(config)
     try:
-        specs = [parse_custom_dict_spec(s) for s in (args.custom_dict or [])]
+        specs = custom_dict_specs_from_args(args)
         opencc = OpenCC.from_dict_files(config, specs) if specs else OpenCC(config)
     except Exception as ex:
         print(f"❌  Invalid --custom-dict: {ex}", file=sys.stderr)
@@ -71,7 +75,11 @@ def subcommand_convert(args):
     with io.open(args.input if args.input else 0, encoding=args.in_enc) as f:
         input_str = f.read()
 
-    # Perform conversion
+    # Optional pre-processing step: normalize CJK Compatibility Ideographs.
+    if getattr(args, "norm_compat", False):
+        input_str = opencc.normalize_compat(input_str)
+
+    # Perform OpenCC conversion
     output_str = opencc.convert(input_str, args.punct)
 
     # Optional DeTofu display-safe fallback
@@ -164,7 +172,7 @@ def subcommand_office(args):
         print(f"ℹ️  Auto-extension applied: {output_file}", file=sys.stderr)
 
     try:
-        specs = [parse_custom_dict_spec(s) for s in (args.custom_dict or [])]
+        specs = custom_dict_specs_from_args(args)
         opencc = OpenCC.from_dict_files(config, specs) if specs else OpenCC(config)
     except Exception as ex:
         print(f"❌  Invalid --custom-dict: {ex}", file=sys.stderr)
@@ -280,7 +288,7 @@ def subcommand_pdf(args) -> int:
         # opencc = OpenCC(str(config))
         config = str(config)
         try:
-            specs = [parse_custom_dict_spec(s) for s in (args.custom_dict or [])]
+            specs = custom_dict_specs_from_args(args)
             opencc = OpenCC.from_dict_files(config, specs) if specs else OpenCC(config)
         except Exception as ex:
             print(
@@ -289,6 +297,10 @@ def subcommand_pdf(args) -> int:
                 file=sys.stderr,
             )
             opencc = OpenCC(config)
+
+        # Optional pre-processing step: normalize CJK Compatibility Ideographs.
+        if getattr(args, "norm_compat", False):
+            text = opencc.normalize_compat(text)
         text = opencc.convert(text, args.punct)
     else:
         if args.config or args.punct:
@@ -362,6 +374,13 @@ def main():
         action="store_true",
         default=False,
         help="Enable punctuation conversion. (Default: False)",
+    )
+    parser_convert.add_argument(
+        "-n",
+        "--norm-compat",
+        action="store_true",
+        default=False,
+        help="Normalize CJK Compatibility Ideographs before conversion. (Default: False)",
     )
     parser_convert.add_argument(
         "--detofu",
@@ -539,6 +558,13 @@ def main():
         action="store_true",
         default=False,
         help="Extract PDF text only (skip OpenCC conversion).",
+    )
+    parser_pdf.add_argument(
+        "-n",
+        "--norm-compat",
+        action="store_true",
+        default=False,
+        help="Normalize CJK Compatibility Ideographs before conversion. (Default: False)",
     )
     parser_pdf.add_argument(
         "--custom-dict",

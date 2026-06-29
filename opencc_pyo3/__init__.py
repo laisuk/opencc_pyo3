@@ -214,6 +214,28 @@ class OpenCC(_OpenCC):
         """
         return super().convert(input_text, punctuation)
 
+    def normalize_compat(self, text: str) -> str:
+        """
+        Normalize CJK Compatibility Ideographs using the built-in Unicode table.
+
+        This is an optional Unicode compatibility normalization pre-pass. It does
+        not modify this OpenCC instance, its selected config, conversion
+        dictionaries, segmentation behavior, script detection, or punctuation
+        conversion.
+
+        Use this before ``convert()`` when input may contain CJK Compatibility
+        Ideographs such as ``金``. Unmapped compatibility ideographs remain
+        unchanged.
+
+        DeToFu is the opposite side of the pipeline: compatibility ideograph
+        normalization is a pre-processing step, while ``detofu()`` is an
+        optional post-processing display fallback.
+
+        :param text: Input text.
+        :return: Normalized text.
+        """
+        return super().normalize_compat(text)
+
     def detofu(self, text: str, level: str = "all") -> str:
         """
         Convert non-BMP CJK extension characters to display-safe fallbacks.

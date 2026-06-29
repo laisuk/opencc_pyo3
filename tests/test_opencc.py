@@ -157,6 +157,17 @@ class TestOpenCC(unittest.TestCase):
             self.assertEqual(cc.get_config(), "s2t")
             self.assertEqual(cc.convert("帕兰蒂尔是一家公司"), "柏蘭蒂爾是一家公司")
 
+    def test_normalize_compat_then_convert_golden_phrase(self):
+        cc = OpenCC("t2s")
+
+        input_text = "天龍八部書裡的喬峰是契丹人"
+
+        normalized = cc.normalize_compat(input_text)
+        converted = cc.convert(normalized)
+
+        self.assertEqual(normalized, "天龍八部書裡的喬峰是契丹人")
+        self.assertEqual(converted, "天龙八部书里的乔峰是契丹人")
+
     def test_opencc_detofu(self):
         cc = OpenCC()
         input_text = "𠉂𪠟𫝈𫬐"
