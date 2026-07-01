@@ -204,6 +204,7 @@ pub fn reflow_cjk_paragraphs(
         let current_is_dialog_start = begins_with_dialog_opener(&line_text);
         let stripped_ends_with_dialog_closer = ends_with_dialog_closer(stripped);
         let stripped_has_unclosed_bracket = has_unclosed_bracket(stripped);
+        let stripped_has_unclosed_dialog_quote = has_unclosed_dialog_quote(stripped);
 
         let stripped_ends_with_strong_sentence_end = stripped
             .chars()
@@ -211,8 +212,16 @@ pub fn reflow_cjk_paragraphs(
             .next()
             .is_some_and(is_strong_sentence_end);
 
+        let stripped_is_complete_standalone = stripped_ends_with_strong_sentence_end
+            || ends_with_ellipsis(stripped)
+            || ends_with_colon_like(stripped);
+
         // 9a-0) Complete single-line dialog.
-        if current_is_dialog_start && stripped_ends_with_dialog_closer {
+        if current_is_dialog_start
+            && stripped_ends_with_dialog_closer
+            && !stripped_has_unclosed_bracket
+            && !stripped_has_unclosed_dialog_quote
+        {
             if !buffer.is_empty() {
                 segments.push(std::mem::take(&mut buffer));
                 dialog_state.reset();
@@ -254,7 +263,7 @@ pub fn reflow_cjk_paragraphs(
             && !stripped_ends_with_dialog_closer
             && !dialog_state.is_unclosed()
             && (!buffer_has_unclosed_bracket || buffer.len() > 360)
-            && stripped_ends_with_strong_sentence_end
+            && stripped_is_complete_standalone
         {
             buffer.push_str(&line_text);
             segments.push(std::mem::take(&mut buffer));
@@ -267,8 +276,10 @@ pub fn reflow_cjk_paragraphs(
         // emit it directly instead of waiting for the next line.
         if buffer.is_empty()
             && !stripped_ends_with_dialog_closer
+            // && !dialog_state.is_unclosed()
             && !stripped_has_unclosed_bracket
-            && stripped_ends_with_strong_sentence_end
+            && !stripped_has_unclosed_dialog_quote
+            && stripped_is_complete_standalone
         {
             segments.push(line_text.clone());
             dialog_state.reset();
