@@ -447,16 +447,6 @@ pub fn ends_with_dialog_closer(s: &str) -> bool {
 }
 
 #[inline]
-fn is_paren_open(ch: char) -> bool {
-    matches!(ch, '(' | '（')
-}
-
-#[inline]
-fn is_paren_close(ch: char) -> bool {
-    matches!(ch, ')' | '）')
-}
-
-#[inline]
 pub fn begins_with_simple_list_starter(s: &str) -> bool {
     let s = s.trim_start();
 
@@ -468,12 +458,22 @@ pub fn begins_with_simple_list_starter(s: &str) -> bool {
     let len = chars.len();
 
     // (1) / (12) / （1） / （12）
-    if len >= 3 && is_paren_open(chars[0]) && chars[1].is_ascii_digit() {
-        if is_paren_close(chars[2]) {
+    if len >= 3 && chars[0] == '(' && chars[1].is_ascii_digit() {
+        if chars[2] == ')' {
             return true;
         }
 
-        if len >= 4 && chars[2].is_ascii_digit() && is_paren_close(chars[3]) {
+        if len >= 4 && chars[2].is_ascii_digit() && chars[3] == ')' {
+            return true;
+        }
+    }
+
+    if len >= 3 && chars[0] == '（' && chars[1].is_ascii_digit() {
+        if chars[2] == '）' {
+            return true;
+        }
+
+        if len >= 4 && chars[2].is_ascii_digit() && chars[3] == '）' {
             return true;
         }
     }
