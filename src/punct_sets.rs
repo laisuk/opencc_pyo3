@@ -98,9 +98,9 @@ pub fn metadata_keys() -> &'static HashSet<&'static str> {
             "初版",
             "ISBN",
         ]
-            .iter()
-            .copied()
-            .collect()
+        .iter()
+        .copied()
+        .collect()
     })
 }
 
@@ -444,4 +444,79 @@ pub fn ends_with_dialog_closer(s: &str) -> bool {
         .rev()
         .find(|c| !c.is_whitespace())
         .is_some_and(is_dialog_closer)
+}
+
+#[inline]
+fn is_paren_open(ch: char) -> bool {
+    matches!(ch, '(' | '（')
+}
+
+#[inline]
+fn is_paren_close(ch: char) -> bool {
+    matches!(ch, ')' | '）')
+}
+
+#[inline]
+pub fn begins_with_simple_list_starter(s: &str) -> bool {
+    let s = s.trim_start();
+
+    if s.starts_with("- ") {
+        return true;
+    }
+
+    let chars: Vec<char> = s.chars().take(4).collect();
+    let len = chars.len();
+
+    // (1) / (12) / （1） / （12）
+    if len >= 3 && is_paren_open(chars[0]) && chars[1].is_ascii_digit() {
+        if is_paren_close(chars[2]) {
+            return true;
+        }
+
+        if len >= 4 && chars[2].is_ascii_digit() && is_paren_close(chars[3]) {
+            return true;
+        }
+    }
+
+    // 1) / 1.
+    if len >= 2 && chars[0].is_ascii_digit() {
+        if chars[1] == ')' {
+            return true;
+        }
+
+        if chars[1] == '.' {
+            return len >= 3 && chars[2] == ' ';
+        }
+
+        // 12) / 12.
+        if len >= 3 && chars[1].is_ascii_digit() {
+            if chars[2] == ')' {
+                return true;
+            }
+
+            if chars[2] == '.' {
+                return len >= 4 && chars[3] == ' ';
+            }
+        }
+    }
+
+    false
+}
+
+#[inline]
+pub fn simple_list_has_unclosed_bracket(s: &str) -> bool {
+    let s = s.trim_start();
+
+    let mut start = 0;
+    let chars: Vec<(usize, char)> = s.char_indices().take(3).collect();
+
+    if chars.len() >= 2 && chars[0].1.is_ascii_digit() {
+        if chars[1].1 == ')' {
+            start = chars[1].0 + chars[1].1.len_utf8();
+        } else if chars.len() >= 3 && chars[1].1.is_ascii_digit() && chars[2].1 == ')' {
+            start = chars[2].0 + chars[2].1.len_utf8();
+        }
+    }
+
+    has_unclosed_bracket(&s[start..])
 }

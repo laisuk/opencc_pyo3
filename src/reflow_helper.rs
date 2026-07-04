@@ -198,12 +198,20 @@ pub fn reflow_cjk_paragraphs(
             // else: fall through → normal merge/continuation logic below
         }
 
-        // Final strong line punct ending check for line text
+        // *** DIALOG/LIST: treat any line that *starts* with a dialog/list opener as a new paragraph
+
         let stripped = line_text.trim_end();
 
-        let current_is_dialog_start = begins_with_dialog_opener(&line_text);
+        let current_is_dialog_start = begins_with_dialog_opener(stripped);
+        let current_is_list_start = begins_with_simple_list_starter(stripped);
         let stripped_ends_with_dialog_closer = ends_with_dialog_closer(stripped);
-        let stripped_has_unclosed_bracket = has_unclosed_bracket(stripped);
+
+        let stripped_has_unclosed_bracket = if current_is_list_start {
+            simple_list_has_unclosed_bracket(stripped)
+        } else {
+            has_unclosed_bracket(stripped)
+        };
+
         let stripped_has_unclosed_dialog_quote = has_unclosed_dialog_quote(stripped);
 
         let stripped_ends_with_strong_sentence_end = stripped
@@ -216,44 +224,68 @@ pub fn reflow_cjk_paragraphs(
             || ends_with_ellipsis(stripped)
             || ends_with_colon_like(stripped);
 
-        // 9a-0) Complete single-line dialog.
-        if current_is_dialog_start
-            && stripped_ends_with_dialog_closer
-            && !stripped_has_unclosed_bracket
-            && !stripped_has_unclosed_dialog_quote
-        {
-            if !buffer.is_empty() {
-                segments.push(std::mem::take(&mut buffer));
+        // 9a) Dialog/list start.
+        if current_is_dialog_start || current_is_list_start {
+            // 9a-0) Complete single-line dialog.
+            if current_is_dialog_start
+                && stripped_ends_with_dialog_closer
+                && !stripped_has_unclosed_bracket
+                && !stripped_has_unclosed_dialog_quote
+            {
+                if !buffer.is_empty() {
+                    segments.push(std::mem::take(&mut buffer));
+                }
+
+                segments.push(stripped.to_string());
                 dialog_state.reset();
+                continue;
             }
 
-            segments.push(line_text.clone());
-            dialog_state.reset();
-            continue;
-        }
-
-        // 9a) Dialog start, unfinished dialog.
-        if current_is_dialog_start {
-            let trimmed_buffer = buffer_text.trim_end();
-            let last = trimmed_buffer.chars().rev().next();
-
-            let should_flush_prev = match last {
-                Some(ch) => {
-                    !is_comma_like(ch)
-                        && !is_cjk_bmp(ch)
-                        && !dialog_state.is_unclosed()
-                        && !buffer_has_unclosed_bracket
+            // 9a-1) Complete single-line simple list.
+            if current_is_list_start
+                && stripped_is_complete_standalone
+                && !stripped_has_unclosed_bracket
+                && !stripped_has_unclosed_dialog_quote
+            {
+                if !buffer.is_empty() {
+                    segments.push(std::mem::take(&mut buffer));
                 }
-                None => !buffer.is_empty(),
-            };
+
+                segments.push(stripped.to_string());
+                continue;
+            }
+
+            let buffer_text = buffer.as_str();
+
+            let should_flush_prev = !buffer.is_empty()
+                && (
+                    // Consecutive simple list items: previous item ends here.
+                    (current_is_list_start && begins_with_simple_list_starter(buffer_text)) || {
+                        let trimmed_buffer = buffer_text.trim_end();
+
+                        match trimmed_buffer.chars().rev().next() {
+                            Some(ch) => {
+                                !is_comma_like(ch)
+                                    && !is_cjk_bmp(ch)
+                                    && !dialog_state.is_unclosed()
+                                    && !buffer_has_unclosed_bracket
+                            }
+                            None => false,
+                        }
+                    }
+                );
 
             if should_flush_prev {
                 segments.push(std::mem::take(&mut buffer));
             }
 
-            buffer.push_str(&line_text);
-            dialog_state.reset();
-            dialog_state.update(&line_text);
+            buffer.push_str(stripped);
+
+            if current_is_dialog_start {
+                dialog_state.reset();
+            }
+
+            dialog_state.update(stripped);
             continue;
         }
 
@@ -266,7 +298,7 @@ pub fn reflow_cjk_paragraphs(
             && !stripped_has_unclosed_dialog_quote
             && stripped_is_complete_standalone
         {
-            buffer.push_str(&line_text);
+            buffer.push_str(stripped);
             segments.push(std::mem::take(&mut buffer));
             dialog_state.reset();
             continue;
@@ -282,16 +314,16 @@ pub fn reflow_cjk_paragraphs(
             && !stripped_has_unclosed_dialog_quote
             && stripped_is_complete_standalone
         {
-            segments.push(line_text.clone());
+            segments.push(stripped.to_string());
             dialog_state.reset();
             continue;
         }
 
         // First line of a new paragraph
         if buffer.is_empty() {
-            buffer.push_str(&line_text);
+            buffer.push_str(stripped);
             dialog_state.reset();
-            dialog_state.update(&line_text);
+            dialog_state.update(stripped);
             continue;
         }
 
