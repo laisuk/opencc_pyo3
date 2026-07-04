@@ -8,10 +8,10 @@
 //! NOTE: These helpers are intentionally *pessimistic* in a few places.
 //! They are used for layout/reflow safety, not for perfect proofreading.
 
+use crate::cjk_text::is_cjk_bmp;
 use smallvec::SmallVec;
 use std::collections::HashSet;
 use std::sync::OnceLock;
-use crate::cjk_text::is_cjk_bmp;
 
 /// Broad CJK punctuation that can appear at the end of a logical unit.
 ///
@@ -464,28 +464,28 @@ pub fn begins_with_simple_list_starter(s: &str) -> bool {
     }
 
     // (1) / (12) / （1） / （12）
-    if len >= 3 && chars[0] == '(' && chars[1].is_ascii_digit() {
+    if len >= 3 && chars[0] == '(' && is_simple_list_number(chars[1]) {
         if chars[2] == ')' {
             return true;
         }
 
-        if len >= 4 && chars[2].is_ascii_digit() && chars[3] == ')' {
+        if len >= 4 && is_simple_list_number(chars[2]) && chars[3] == ')' {
             return true;
         }
     }
 
-    if len >= 3 && chars[0] == '（' && chars[1].is_ascii_digit() {
+    if len >= 3 && chars[0] == '（' && is_simple_list_number(chars[1]) {
         if chars[2] == '）' {
             return true;
         }
 
-        if len >= 4 && chars[2].is_ascii_digit() && chars[3] == '）' {
+        if len >= 4 && is_simple_list_number(chars[2]) && chars[3] == '）' {
             return true;
         }
     }
 
-    // 1) / 1） / 1、 / 1.
-    if len >= 2 && chars[0].is_ascii_digit() {
+    // 1) / 1） / 1、 / 1. / 一、 / 十一、
+    if len >= 2 && is_simple_list_number(chars[0]) {
         if is_list_close(chars[1]) {
             return true;
         }
@@ -494,8 +494,8 @@ pub fn begins_with_simple_list_starter(s: &str) -> bool {
             return len >= 3 && (chars[2] == ' ' || is_cjk_bmp(chars[2]));
         }
 
-        // 12) / 12） / 12、 / 12.
-        if len >= 3 && chars[1].is_ascii_digit() {
+        // 12) / 12） / 12、 / 12. / 十一） / 十一、
+        if len >= 3 && is_simple_list_number(chars[1]) {
             if is_list_close(chars[2]) {
                 return true;
             }
@@ -512,6 +512,15 @@ pub fn begins_with_simple_list_starter(s: &str) -> bool {
 #[inline]
 fn is_list_close(ch: char) -> bool {
     matches!(ch, ')' | '）' | '、')
+}
+
+#[inline]
+fn is_simple_list_number(ch: char) -> bool {
+    ch.is_ascii_digit()
+        || matches!(
+            ch,
+            '０'..='９' | '一' | '二' | '三' | '四' | '五' | '六' | '七' | '八' | '九' | '十'
+        )
 }
 
 #[inline]
