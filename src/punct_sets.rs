@@ -530,11 +530,11 @@ pub fn simple_list_has_unclosed_bracket(s: &str) -> bool {
     let mut start = 0;
     let chars: Vec<(usize, char)> = s.char_indices().take(3).collect();
 
-    if chars.len() >= 2 && chars[0].1.is_ascii_digit() {
+    if chars.len() >= 2 && is_simple_list_number(chars[0].1) {
         if chars[1].1 == ')' || chars[1].1 == '）' {
             start = chars[1].0 + chars[1].1.len_utf8();
         } else if chars.len() >= 3
-            && chars[1].1.is_ascii_digit()
+            && is_simple_list_number(chars[1].1)
             && (chars[2].1 == ')' || chars[2].1 == '）')
         {
             start = chars[2].0 + chars[2].1.len_utf8();
