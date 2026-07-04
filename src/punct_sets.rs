@@ -454,8 +454,13 @@ pub fn begins_with_simple_list_starter(s: &str) -> bool {
         return true;
     }
 
-    let chars: Vec<char> = s.chars().take(4).collect();
-    let len = chars.len();
+    let mut chars = ['\0'; 4];
+    let mut len = 0;
+
+    for ch in s.chars().take(4) {
+        chars[len] = ch;
+        len += 1;
+    }
 
     // (1) / (12) / （1） / （12）
     if len >= 3 && chars[0] == '(' && chars[1].is_ascii_digit() {
@@ -478,9 +483,9 @@ pub fn begins_with_simple_list_starter(s: &str) -> bool {
         }
     }
 
-    // 1) / 1.
+    // 1) / 1） / 1、 / 1.
     if len >= 2 && chars[0].is_ascii_digit() {
-        if chars[1] == ')' {
+        if is_list_close(chars[1]) {
             return true;
         }
 
@@ -488,9 +493,9 @@ pub fn begins_with_simple_list_starter(s: &str) -> bool {
             return len >= 3 && chars[2] == ' ';
         }
 
-        // 12) / 12.
+        // 12) / 12） / 12、 / 12.
         if len >= 3 && chars[1].is_ascii_digit() {
-            if chars[2] == ')' {
+            if is_list_close(chars[2]) {
                 return true;
             }
 
@@ -504,6 +509,11 @@ pub fn begins_with_simple_list_starter(s: &str) -> bool {
 }
 
 #[inline]
+fn is_list_close(ch: char) -> bool {
+    matches!(ch, ')' | '）' | '、')
+}
+
+#[inline]
 pub fn simple_list_has_unclosed_bracket(s: &str) -> bool {
     let s = s.trim_start();
 
@@ -511,9 +521,12 @@ pub fn simple_list_has_unclosed_bracket(s: &str) -> bool {
     let chars: Vec<(usize, char)> = s.char_indices().take(3).collect();
 
     if chars.len() >= 2 && chars[0].1.is_ascii_digit() {
-        if chars[1].1 == ')' {
+        if chars[1].1 == ')' || chars[1].1 == '）' {
             start = chars[1].0 + chars[1].1.len_utf8();
-        } else if chars.len() >= 3 && chars[1].1.is_ascii_digit() && chars[2].1 == ')' {
+        } else if chars.len() >= 3
+            && chars[1].1.is_ascii_digit()
+            && (chars[2].1 == ')' || chars[2].1 == '）')
+        {
             start = chars[2].0 + chars[2].1.len_utf8();
         }
     }
