@@ -510,9 +510,17 @@ fn is_title_heading_line(s: &str) -> bool {
         return false;
     }
 
-    // ❌ Reject sentence-like lines (comma, full stop, etc.)
-    if s.chars().any(|c| HEADING_REJECT_PUNCT.contains(&c)) {
-        return false;
+    // ❌ Reject sentence-like lines.
+    // Allow commas within the first 20 characters, since short subtitles are
+    // common in chapter headings. Commas appearing later are much more likely
+    // to indicate normal narrative text.
+    for (i, ch) in s.chars().enumerate() {
+        if HEADING_REJECT_PUNCT.contains(&ch) {
+            if (ch == '，' || ch == ',') && i < 20 {
+                continue;
+            }
+            return false;
+        }
     }
 
     for &kw in HEADING_KEYWORDS {
