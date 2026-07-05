@@ -337,9 +337,14 @@ pub fn reflow_cjk_paragraphs(
         // - fallback: if the buffer is already long enough (> 360), allow flush at this
         //   strong dialog boundary to stop runaway accumulation caused by missing opening
         //   quotes or cross-page broken quoted text
-        if let Some((last_ch, prev_ch)) = last_two_non_whitespace(stripped) {
+        if let Some(last_ch) = stripped.chars().rev().find(|c| !c.is_whitespace()) {
             if is_dialog_closer(last_ch) {
-                let punct_before_closer_is_strong = is_clause_or_end_punct(prev_ch);
+                let prev_ch = last_two_non_whitespace(stripped)
+                    .map(|(_, prev)| prev)
+                    .or_else(|| buffer.chars().rev().find(|c| !c.is_whitespace()));
+
+                let punct_before_closer_is_strong =
+                    prev_ch.is_some_and(is_clause_or_end_punct);
 
                 let buffer_has_bracket_issue = buffer_has_unclosed_bracket;
                 let line_has_bracket_issue = stripped_has_unclosed_bracket;
