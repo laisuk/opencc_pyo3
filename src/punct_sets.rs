@@ -451,57 +451,73 @@ pub fn ends_with_dialog_closer(s: &str) -> bool {
 pub fn begins_with_simple_list_starter(s: &str) -> bool {
     let s = s.trim_start();
 
-    if s.starts_with("- ") {
-        return true;
+    let mut iter = s.chars();
+
+    if let (Some(first), Some(second)) = (iter.next(), iter.next()) {
+        match first {
+            '-'
+            | '*'
+            | '＊' // Fullwidth *
+            | '•'
+            | '‧' // U+2027 HYPHENATION POINT (often produced by PDF/OCR as a bullet)
+            | '▪'
+            | '◦'
+            | '○'
+            | '●'
+            | '※' if second.is_whitespace() => {
+                return true;
+            }
+            _ => {}
+        }
     }
 
-    let mut chars = ['\0'; 4];
+    let mut head = ['\0'; 4];
     let mut len = 0;
 
     for ch in s.chars().take(4) {
-        chars[len] = ch;
+        head[len] = ch;
         len += 1;
     }
 
     // (1) / (12) / （1） / （12）
-    if len >= 3 && chars[0] == '(' && is_simple_list_number(chars[1]) {
-        if chars[2] == ')' {
+    if len >= 3 && head[0] == '(' && is_simple_list_number(head[1]) {
+        if head[2] == ')' {
             return true;
         }
 
-        if len >= 4 && is_simple_list_number(chars[2]) && chars[3] == ')' {
+        if len >= 4 && is_simple_list_number(head[2]) && head[3] == ')' {
             return true;
         }
     }
 
-    if len >= 3 && chars[0] == '（' && is_simple_list_number(chars[1]) {
-        if chars[2] == '）' {
+    if len >= 3 && head[0] == '（' && is_simple_list_number(head[1]) {
+        if head[2] == '）' {
             return true;
         }
 
-        if len >= 4 && is_simple_list_number(chars[2]) && chars[3] == '）' {
+        if len >= 4 && is_simple_list_number(head[2]) && head[3] == '）' {
             return true;
         }
     }
 
     // 1) / 1） / 1、 / 1. / 一、 / 十一、
-    if len >= 2 && is_simple_list_number(chars[0]) {
-        if is_list_close(chars[1]) {
+    if len >= 2 && is_simple_list_number(head[0]) {
+        if is_list_close(head[1]) {
             return true;
         }
 
-        if chars[1] == '.' {
-            return len >= 3 && (chars[2] == ' ' || is_cjk_bmp(chars[2]));
+        if head[1] == '.' {
+            return len >= 3 && (head[2] == ' ' || is_cjk_bmp(head[2]));
         }
 
         // 12) / 12） / 12、 / 12. / 十一） / 十一、
-        if len >= 3 && is_simple_list_number(chars[1]) {
-            if is_list_close(chars[2]) {
+        if len >= 3 && is_simple_list_number(head[1]) {
+            if is_list_close(head[2]) {
                 return true;
             }
 
-            if chars[2] == '.' {
-                return len >= 4 && (chars[3] == ' ' || is_cjk_bmp(chars[3]));
+            if head[2] == '.' {
+                return len >= 4 && (head[3] == ' ' || is_cjk_bmp(head[3]));
             }
         }
     }
