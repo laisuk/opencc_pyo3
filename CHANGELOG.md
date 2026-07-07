@@ -23,6 +23,7 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
   strong-sentence flushing, preserving complete single-line dialogs and allowing dialog closers to reach the dedicated
   finalizer path.
 - PDF text reflow: Allow commas in title headings when they appear within the first 20 characters.
+- Update `opencc-fmmseg` native to v0.11.3
 
 ---
 
