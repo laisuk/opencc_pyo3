@@ -5,8 +5,8 @@ on:
 
 jobs:
   benchmark:
-    name: Benchmark on ubuntu-latest
-    runs-on: ubuntu-latest
+    name: Benchmark on macos-latest
+    runs-on: macos-latest
     permissions:
       contents: read
 
@@ -57,10 +57,10 @@ jobs:
           echo "| Key | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
 
-          echo "| OS | $(uname -a) |" >> $GITHUB_STEP_SUMMARY
-          echo "| CPU | $(lscpu | awk -F: '/Model name/ {print $2}' | xargs) |" >> $GITHUB_STEP_SUMMARY
-          echo "| Cores | $(nproc) |" >> $GITHUB_STEP_SUMMARY
-          echo "| Memory | $(free -h | awk '/Mem:/ {print $2}') |" >> $GITHUB_STEP_SUMMARY
+          echo "| OS | $(sw_vers -productName) $(sw_vers -productVersion) ($(uname -m)) |" >> $GITHUB_STEP_SUMMARY
+          echo "| CPU | $(sysctl -n machdep.cpu.brand_string 2>/dev/null || sysctl -n hw.model) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cores | $(sysctl -n hw.logicalcpu) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Memory | $(sysctl -n hw.memsize | awk '{printf "%.1f GiB", $1 / 1073741824}') |" >> $GITHUB_STEP_SUMMARY
           echo "| Python | $(python --version) |" >> $GITHUB_STEP_SUMMARY
           echo "| Rust | $(rustc --version) |" >> $GITHUB_STEP_SUMMARY
 
@@ -78,6 +78,6 @@ jobs:
       - name: Upload benchmark artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: opencc-benchmark-ubuntu-latest
+          name: opencc-benchmark-macos-latest
           path: bench/out/*
           if-no-files-found: error
