@@ -509,14 +509,18 @@ converted = OpenCC("s2t").convert(text, punctuation=True)
 
 ## Benchmarks
 
-Latest benchmark results for the optimized current `opencc_pyo3` version (`v0.9.0`).
-These replace the much older `v0.7.0` numbers.
+Latest benchmark results for `opencc-pyo3` v0.10.2, collected by the
+[Benchmark on macos-latest workflow](https://github.com/laisuk/opencc_pyo3/actions/runs/29220806465#summary-86725382175).
 
 ```
 Package: opencc_pyo3
-Python: 3.13.13
-Platform: Windows-11-10.0.26200-SP0
-Processor: Intel64 Family 6 Model 191 Stepping 2, GenuineIntel
+Version: 0.10.2
+OS: macOS 26.4 (arm64)
+CPU: Apple M1 (Virtual)
+Cores: 3
+Memory: 7.0 GiB
+Python: 3.10.11
+Rust: rustc 1.97.0 (2d8144b78 2026-07-07)
 Configs: s2t, s2tw, s2twp
 Text sizes: 100, 1,000, 10,000, 100,000 characters
 ```
@@ -525,27 +529,37 @@ Text sizes: 100, 1,000, 10,000, 100,000 characters
 
 ---
 
-| Method         | Config | TextSize |     Mean |   StdDev |      Min |      Max | Ops/sec |  Chars/sec |
-|:---------------|:-------|---------:|---------:|---------:|---------:|---------:|--------:|-----------:|
-| Convert_Small  | s2t    |      100 | 0.005 ms | 0.003 ms | 0.004 ms | 0.021 ms | 188,442 | 18,844,221 |
-| Convert_Medium | s2t    |    1,000 | 0.038 ms | 0.006 ms | 0.036 ms | 0.066 ms |  26,189 | 26,189,437 |
-| Convert_Large  | s2t    |   10,000 | 0.253 ms | 0.093 ms | 0.171 ms | 0.629 ms |   3,958 | 39,577,314 |
-| Convert_XLarge | s2t    |  100,000 | 1.394 ms | 0.166 ms | 1.156 ms | 1.699 ms |     717 | 71,726,750 |
-| Convert_Small  | s2tw   |      100 | 0.006 ms | 0.003 ms | 0.005 ms | 0.021 ms | 175,953 | 17,595,308 |
-| Convert_Medium | s2tw   |    1,000 | 0.044 ms | 0.005 ms | 0.042 ms | 0.071 ms |  22,808 | 22,808,485 |
-| Convert_Large  | s2tw   |   10,000 | 0.318 ms | 0.086 ms | 0.227 ms | 0.514 ms |   3,141 | 31,411,310 |
-| Convert_XLarge | s2tw   |  100,000 | 1.503 ms | 0.129 ms | 1.355 ms | 1.837 ms |     665 | 66,516,340 |
-| Convert_Small  | s2twp  |      100 | 0.008 ms | 0.003 ms | 0.007 ms | 0.025 ms | 130,435 | 13,043,478 |
-| Convert_Medium | s2twp  |    1,000 | 0.054 ms | 0.006 ms | 0.052 ms | 0.084 ms |  18,378 | 18,377,849 |
-| Convert_Large  | s2twp  |   10,000 | 0.482 ms | 0.249 ms | 0.335 ms | 1.602 ms |   2,075 | 20,746,888 |
-| Convert_XLarge | s2twp  |  100,000 | 1.817 ms | 0.197 ms | 1.649 ms | 2.581 ms |     550 | 55,032,341 |
+| Method         | Config | Text Size | Mean (ms) | Median (ms) | StdDev (ms) | Min (ms) | Max (ms) | Ops/sec |  Chars/sec |
+|:---------------|:-------|----------:|----------:|------------:|------------:|---------:|---------:|--------:|-----------:|
+| Convert_Small  | s2t    |       100 |     0.008 |       0.005 |       0.011 |    0.004 |    0.071 | 128,239 | 12,823,911 |
+| Convert_Medium | s2t    |     1,000 |     0.038 |       0.037 |       0.008 |    0.036 |    0.108 |  26,113 | 26,113,217 |
+| Convert_Large  | s2t    |    10,000 |     0.236 |       0.237 |       0.030 |    0.190 |    0.337 |   4,229 | 42,287,025 |
+| Convert_XLarge | s2t    |   100,000 |     2.144 |       2.088 |       0.285 |    1.751 |    3.034 |     466 | 46,638,386 |
+| Convert_Small  | s2tw   |       100 |     0.005 |       0.005 |       0.001 |    0.005 |    0.011 | 193,679 | 19,367,928 |
+| Convert_Medium | s2tw   |     1,000 |     0.046 |       0.043 |       0.010 |    0.043 |    0.133 |  21,755 | 21,754,749 |
+| Convert_Large  | s2tw   |    10,000 |     0.311 |       0.309 |       0.037 |    0.237 |    0.424 |   3,219 | 32,190,775 |
+| Convert_XLarge | s2tw   |   100,000 |     2.949 |       2.860 |       0.445 |    2.282 |    4.753 |     339 | 33,914,979 |
+| Convert_Small  | s2twp  |       100 |     0.006 |       0.006 |       0.000 |    0.005 |    0.011 | 177,416 | 17,741,637 |
+| Convert_Medium | s2twp  |     1,000 |     0.048 |       0.048 |       0.002 |    0.047 |    0.061 |  20,783 | 20,782,517 |
+| Convert_Large  | s2twp  |    10,000 |     0.333 |       0.343 |       0.037 |    0.264 |    0.544 |   3,002 | 30,021,166 |
+| Convert_XLarge | s2twp  |   100,000 |     3.034 |       3.024 |       0.273 |    2.497 |    3.844 |     330 | 32,964,999 |
+
+### Summary
+
+For representative Medium through XLarge inputs, `s2t` is consistently the fastest configuration, reaching about
+46.6 million characters per second for the 100,000-character sample. The regional `s2tw` and phrase-aware `s2twp`
+pipelines perform additional dictionary work and reach about 33.9 million and 33.0 million characters per second,
+respectively, at the same size. Mean and median timings are now close on the larger samples, indicating that full-input
+warmups and shuffled execution substantially reduced the earlier CI outlier distortion. Results for the 100-character
+sample should still be treated as microbenchmark-scale measurements, where timer and scheduling noise have a larger
+relative effect.
 
 ---
 
 ### Reproduce Benchmarks
 
 ```bash
-python bench/opencc_benchmark_md.py --ci --configs s2t s2tw s2twp --sizes Small Medium Large XLarge --export md json --output-dir bench/out
+python bench/opencc_benchmark_md.py --ci --configs s2t s2tw s2twp --sizes Small Medium Large XLarge --iterations 120 --warmup 15 --warmup-full-text --shuffle-order --export md json --output-dir bench/out
 ```
 
 ## Projects That Use `opencc-pyo3`
