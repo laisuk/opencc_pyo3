@@ -73,7 +73,14 @@ jobs:
           --iterations 50
           --export md json
           --output-dir bench/out
-          --github-step-summary
+
+      - name: Publish full benchmark results
+        run: |
+          report="bench/out/opencc_benchmark_opencc_pyo3.md"
+
+          echo "### BENCHMARK RESULTS" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          sed -n '/^## Benchmark Results$/,$p' "$report" | sed '1,2d' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload benchmark artifacts
         uses: actions/upload-artifact@v4
