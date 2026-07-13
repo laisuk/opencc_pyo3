@@ -92,7 +92,7 @@ impl OpenCC {
     ///
     /// # Arguments
     ///
-    /// * `config` - A configuration string (e.g. `"s2t"`, `"t2s"`, `"s2twp"`).
+    /// * `config` - A configuration string (e.g. `"s2t"`, `"t2s"`, `"t2hkp"`, `"hk2tp"`).
     ///
     /// # Behavior
     ///
@@ -195,7 +195,7 @@ impl OpenCC {
     /// # Parameters
     ///
     /// - `config`:
-    ///   OpenCC conversion configuration such as `"s2t"` or `"t2tw"`.
+    ///   OpenCC conversion configuration such as `"s2t"`, `"t2tw"`, `"t2hkp"`, or `"hk2tp"`.
     ///
     /// - `specs`:
     ///   Optional list of custom dictionary specifications.
@@ -257,7 +257,7 @@ impl OpenCC {
     /// # Parameters
     ///
     /// - `config`:
-    ///   OpenCC conversion configuration such as `"s2t"` or `"t2tw"`.
+    ///   OpenCC conversion configuration such as `"s2t"`, `"t2tw"`, `"t2hkp"`, or `"hk2tp"`.
     ///
     /// - `specs`:
     ///   Optional list of custom dictionary file specifications.
@@ -691,6 +691,8 @@ mod tests {
         let expected: Vec<_> = OpenccConfig::ALL.iter().map(|c| c.as_str()).collect();
         let actual: Vec<_> = configs.into_iter().collect();
         assert_eq!(actual, expected);
+        assert!(OpenccConfig::is_valid_config("t2hkp"));
+        assert!(OpenccConfig::is_valid_config("hk2tp"));
     }
 
     #[test]

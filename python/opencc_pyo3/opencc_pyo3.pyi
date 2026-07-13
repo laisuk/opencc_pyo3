@@ -13,7 +13,7 @@ class OpenCC:
         config (str): Optional conversion config (default: "s2t"). Must be one of:
             "s2t", "t2s", "s2tw", "tw2s", "s2twp", "tw2sp", "s2hk", "hk2s",
             "s2hkp", "hk2sp", "t2tw", "tw2t", "t2twp", "tw2tp", "t2hk",
-            "hk2t", "t2jp", "jp2t".
+            "t2hkp", "hk2t", "hk2tp", "t2jp", "jp2t".
 
     Attributes:
         config (str): Current OpenCC config string.

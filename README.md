@@ -25,7 +25,7 @@ using [OpenCC](https://github.com/BYVoid/OpenCC) algorithms.
 ## Supported Conversion Configurations
 
 - `s2t`, `t2s`, `s2tw`, `tw2s`, `s2twp`, `tw2sp`, `s2hk`, `hk2s`, `s2hkp`, `hk2sp`, `t2tw`, `tw2t`, `t2twp`,
-  `tw2tp`, `t2hk`, `hk2t`, `t2jp`, `jp2t`
+  `tw2tp`, `t2hk`, `t2hkp`, `hk2t`, `hk2tp`, `t2jp`, `jp2t`
 
 ## Installation
 
@@ -92,7 +92,7 @@ optional arguments:
   -o <file>, --output <file>
                         Write converted text to <file>. (default: None)
   -c <conversion>, --config <conversion>
-                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|jp2t|t2jp (default: None)
+                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|t2hkp|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|hk2tp|jp2t|t2jp (default: None)
   -p, --punct           Enable punctuation conversion. (Default: False) (default: False)
   -n, --norm-compat     Normalize CJK Compatibility Ideographs before conversion. (Default: False) (default: False)
   --detofu [<level>]    Apply tofu-safe fallback after conversion. Levels: all/ExtB, ExtC, ExtD, ExtE, ExtF, ExtG, ExtH, ExtI. (default: None)
@@ -121,7 +121,7 @@ optional arguments:
   -o <file>, --output <file>
                         Output Office document to <file>. (default: None)
   -c <conversion>, --config <conversion>
-                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|jp2t|t2jp (default: None)
+                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|t2hkp|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|hk2tp|jp2t|t2jp (default: None)
   -p, --punct           Enable punctuation conversion. (Default: False) (default: False)
   -f <format>, --format <format>
                         Target Office format (e.g., docx, xlsx, pptx, odt, ods, odp, epub) (default: None)
@@ -155,7 +155,7 @@ optional arguments:
   -o <file>, --output <file>
                         Output text file (UTF-8). If omitted, defaults to "<input>_converted.txt". (default: None)
   -c <conversion>, --config <conversion>
-                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|jp2t|t2jp (default: None)
+                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|t2hkp|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|hk2tp|jp2t|t2jp (default: None)
   -p, --punct           Enable punctuation conversion. (Default: False) (default: False)
   -H, --header          Preserve page-break-like gaps when reflowing CJK paragraphs (passed as add_pdf_page_header to reflow_cjk_paragraphs). (default: False)
   -r, --reflow          Enable CJK-aware paragraph reflow before conversion. (default: False)
@@ -227,7 +227,9 @@ Available enum values:
 - `OpenccConfig.T2TWP`
 - `OpenccConfig.TW2TP`
 - `OpenccConfig.T2HK`
+- `OpenccConfig.T2HKP`
 - `OpenccConfig.HK2T`
+- `OpenccConfig.HK2TP`
 - `OpenccConfig.T2JP`
 - `OpenccConfig.JP2T`
 - `OpenccConfig.S2HKP`
@@ -282,6 +284,10 @@ print(cc.convert("漢字 ⿰氵漢 馬"))  # 汉字 ⿰氵漢 马
 
 cc.set_config("t2jp")
 print(cc.convert("圖書館"))  # 図書館
+
+# Phrase-aware Traditional ↔ Hong Kong Traditional conversions
+print(OpenCC(OpenccConfig.T2HKP).get_config())  # t2hkp
+print(OpenCC(OpenccConfig.HK2TP).get_config())  # hk2tp
 
 print(OpenCC.supported_configs())
 print(OpenCC.is_valid_config("s2hk"))  # True

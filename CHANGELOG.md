@@ -11,11 +11,16 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ### Added
 
-- Documented CLI support for `--norm-compat`, DeTofu fallback options, and validated `--custom-dict` token strings in the README CLI section.
+- Added phrase-aware Traditional ↔ Hong Kong conversion configs `t2hkp` and `hk2tp` across the Rust-backed Python API,
+  `OpenccConfig` enum, CLI config validation/help, type stubs, docstrings, and README usage examples.
+
+- Documented CLI support for `--norm-compat`, DeTofu fallback options, and validated `--custom-dict` token strings in
+  the README CLI section.
 
 ### Fixed
 
-- Fixed direct Python calls to CLI subcommand handlers so missing optional argparse attributes such as `custom_dict` are treated the same as omitted command-line options while still validating provided `--custom-dict` tokens.
+- Fixed direct Python calls to CLI subcommand handlers so missing optional argparse attributes such as `custom_dict` are
+  treated the same as omitted command-line options while still validating provided `--custom-dict` tokens.
 
 ### Changed
 
@@ -23,7 +28,7 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
   strong-sentence flushing, preserving complete single-line dialogs and allowing dialog closers to reach the dedicated
   finalizer path.
 - PDF text reflow: Allow commas in title headings when they appear within the first 20 characters.
-- Update `opencc-fmmseg` native to v0.11.3
+- Update `opencc-fmmseg` native to v0.11.4
 
 ---
 

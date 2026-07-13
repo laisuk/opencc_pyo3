@@ -16,8 +16,8 @@ PYTHON_SRC_DIR = ROOT_DIR / "python"
 if str(PYTHON_SRC_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_SRC_DIR))
 
-from opencc_pyo3 import OpenCC, CustomDictSpec, CustomDictFileSpec
-from opencc_pyo3.__main__ import subcommand_convert
+from opencc_pyo3 import OpenCC, OpenccConfig, CustomDictSpec, CustomDictFileSpec
+from opencc_pyo3.__main__ import resolve_config, subcommand_convert
 from opencc_pyo3 import pdfium_loader
 from opencc_pyo3.office_helper import convert_office_doc
 
@@ -38,8 +38,29 @@ class TestOpenCC(unittest.TestCase):
         configs = OpenCC.supported_configs()
         self.assertIn("s2t", configs)
         self.assertIn("t2jp", configs)
+        self.assertIn("t2hkp", configs)
+        self.assertIn("hk2tp", configs)
         self.assertTrue(OpenCC.is_valid_config("t2s"))
+        self.assertTrue(OpenCC.is_valid_config("T2HKP"))
+        self.assertTrue(OpenCC.is_valid_config("HK2TP"))
         self.assertFalse(OpenCC.is_valid_config("abc"))
+
+    def test_cli_hong_kong_phrase_configs(self):
+        self.assertEqual(resolve_config("T2HKP"), "t2hkp")
+        self.assertEqual(resolve_config("HK2TP"), "hk2tp")
+
+    def test_hong_kong_phrase_configs(self):
+        t2hkp_specs: List[CustomDictSpec] = [
+            {"slot": "HKPhrases", "pairs": [("小女孩", "妹丁")], "mode": "append"}
+        ]
+        hk2tp_specs: List[CustomDictSpec] = [
+            {"slot": "HKPhrasesRev", "pairs": [("妹丁", "小女孩")], "mode": "append"}
+        ]
+
+        t2hkp = OpenCC.from_dicts(OpenccConfig.T2HKP, t2hkp_specs)
+        hk2tp = OpenCC.from_dicts(OpenccConfig.HK2TP, hk2tp_specs)
+        self.assertEqual(t2hkp.convert("小女孩"), "妹丁")
+        self.assertEqual(hk2tp.convert("妹丁"), "小女孩")
 
     def test_convert(self):
         cc = OpenCC("s2t")
