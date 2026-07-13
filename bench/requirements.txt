@@ -4,5 +4,5 @@
 psutil==7.2.2
 
 # Optional comparison packages
-opencc-purepy==1.2.0
-opencc_jieba_pyo3==0.7.4
+opencc-purepy==1.4.0
+opencc_jieba_pyo3==0.7.5

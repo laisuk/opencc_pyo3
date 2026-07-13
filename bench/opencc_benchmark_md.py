@@ -18,6 +18,7 @@ import importlib
 import json
 import os
 import platform
+import random
 import statistics
 import time
 from dataclasses import asdict, dataclass
@@ -246,13 +247,14 @@ class OpenCCBenchmark:
             text_size_name: str,
             iterations: int,
             warmup: int,
+            warmup_full_text: bool = False,
     ) -> BenchmarkResult:
         if not OPENCC_AVAILABLE:
             raise ImportError("OpenCC package is not available")
 
         converter = get_opencc()(config)
 
-        sample = text[: min(256, len(text))]
+        sample = text if warmup_full_text else text[: min(256, len(text))]
         for _ in range(max(warmup, 0)):
             converter.convert(sample)
 
@@ -299,6 +301,8 @@ class OpenCCBenchmark:
             text_sizes: Optional[Iterable[str]] = None,
             iterations: int = 100,
             warmup: int = 5,
+            warmup_full_text: bool = False,
+            shuffle_order: bool = False,
             fail_fast: bool = False,
     ) -> List[BenchmarkResult]:
         if not OPENCC_AVAILABLE:
@@ -316,36 +320,44 @@ class OpenCCBenchmark:
         print(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print("=" * 72)
 
-        total_benchmarks = len(selected_configs) * len(selected_text_sizes)
+        benchmark_cases = [
+            (config, text_size_name)
+            for config in selected_configs
+            for text_size_name in selected_text_sizes
+        ]
+        if shuffle_order:
+            random.Random(0).shuffle(benchmark_cases)
+
+        total_benchmarks = len(benchmark_cases)
         current = 0
         self.results = []
 
-        for config in selected_configs:
-            for text_size_name in selected_text_sizes:
-                current += 1
-                text = self.test_texts[text_size_name]
-                print(
-                    f"Running [{current}/{total_benchmarks}]: {config} - {text_size_name} "
-                    f"({len(text)} chars, {iterations} iterations)"
+        for config, text_size_name in benchmark_cases:
+            current += 1
+            text = self.test_texts[text_size_name]
+            print(
+                f"Running [{current}/{total_benchmarks}]: {config} - {text_size_name} "
+                f"({len(text)} chars, {iterations} iterations)"
+            )
+            try:
+                result = self._run_single_benchmark(
+                    config=config,
+                    text=text,
+                    text_size_name=text_size_name,
+                    iterations=iterations,
+                    warmup=warmup,
+                    warmup_full_text=warmup_full_text,
                 )
-                try:
-                    result = self._run_single_benchmark(
-                        config=config,
-                        text=text,
-                        text_size_name=text_size_name,
-                        iterations=iterations,
-                        warmup=warmup,
-                    )
-                    self.results.append(result)
-                    print(
-                        f"  Mean: {result.mean_time * 1000:.3f} ms, "
-                        f"Ops/sec: {result.ops_per_second:.0f}, "
-                        f"Chars/sec: {result.chars_per_second:.0f}"
-                    )
-                except Exception as exc:
-                    print(f"  Error: {exc}")
-                    if fail_fast:
-                        raise
+                self.results.append(result)
+                print(
+                    f"  Mean: {result.mean_time * 1000:.3f} ms, "
+                    f"Ops/sec: {result.ops_per_second:.0f}, "
+                    f"Chars/sec: {result.chars_per_second:.0f}"
+                )
+            except Exception as exc:
+                print(f"  Error: {exc}")
+                if fail_fast:
+                    raise
 
         return self.results
 
@@ -471,15 +483,16 @@ class OpenCCBenchmark:
                 "",
                 "## Benchmark Results",
                 "",
-                "| Method | Config | Text Size | Mean (ms) | StdDev (ms) | Min (ms) | Max (ms) | Ops/sec | Chars/sec |",
-                "|--------|--------|----------:|----------:|------------:|---------:|---------:|--------:|----------:|",
+                "| Method | Config | Text Size | Mean (ms) | Median (ms) | StdDev (ms) | Min (ms) | Max (ms) | Ops/sec | Chars/sec |",
+                "|--------|--------|----------:|----------:|------------:|------------:|---------:|---------:|--------:|----------:|",
             ]
         )
 
         for result in sorted(self.results, key=lambda item: (item.config, item.text_size)):
             lines.append(
                 f"| {result.name} | {result.config} | {result.text_size} | "
-                f"{result.mean_time * 1000:.3f} | {result.std_dev * 1000:.3f} | "
+                f"{result.mean_time * 1000:.3f} | {result.median_time * 1000:.3f} | "
+                f"{result.std_dev * 1000:.3f} | "
                 f"{result.min_time * 1000:.3f} | {result.max_time * 1000:.3f} | "
                 f"{result.ops_per_second:.0f} | {result.chars_per_second:.0f} |"
             )
@@ -550,6 +563,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--iterations", type=int, default=100, help="Iterations per benchmark")
     parser.add_argument("--warmup", type=int, default=5, help="Warmup iterations per benchmark")
     parser.add_argument(
+        "--warmup-full-text",
+        action="store_true",
+        help="Warm up with the complete benchmark input instead of a 256-character sample",
+    )
+    parser.add_argument(
+        "--shuffle-order",
+        action="store_true",
+        help="Run config/size cases in a deterministic shuffled order",
+    )
+    parser.add_argument(
         "--export",
         nargs="+",
         choices=["json", "csv", "md"],
@@ -617,6 +640,8 @@ def main() -> int:
             text_sizes=args.sizes,
             iterations=args.iterations,
             warmup=args.warmup,
+            warmup_full_text=args.warmup_full_text,
+            shuffle_order=args.shuffle_order,
             fail_fast=args.ci,
         )
     except Exception as exc:

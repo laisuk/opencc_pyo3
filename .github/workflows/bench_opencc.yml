@@ -70,7 +70,10 @@ jobs:
           --ci
           --configs s2t s2tw s2twp
           --sizes Small Medium Large XLarge
-          --iterations 50
+          --iterations 120
+          --warmup 15
+          --warmup-full-text
+          --shuffle-order
           --export md json
           --output-dir bench/out
 
