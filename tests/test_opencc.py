@@ -125,12 +125,18 @@ class TestOpenCC(unittest.TestCase):
             (tmp_path / "opencc_pyo3" / "pdfium").mkdir(parents=True)
             (tmp_path / "pdfium").mkdir(parents=True)
 
-            with mock.patch.object(pdfium_loader.sys, "frozen", True, create=True), mock.patch.object(pdfium_loader.sys,
-                                                                                                      "_MEIPASS",
-                                                                                                      str(tmp_path),
-                                                                                                      create=True), mock.patch.object(
-                pdfium_loader, "__file__", str(tmp_path / "somewhere" / "pdfium_loader.py")):
-                self.assertEqual(pdfium_loader._module_dir(), tmp_path / "opencc_pyo3")
+            with mock.patch.object(
+                    pdfium_loader.sys, "frozen", True, create=True
+            ), mock.patch.object(
+                pdfium_loader.sys, "_MEIPASS", str(tmp_path), create=True
+            ), mock.patch.dict(
+                vars(pdfium_loader),
+                {"__file__": str(tmp_path / "somewhere" / "pdfium_loader.py")},
+            ):
+                self.assertEqual(
+                    pdfium_loader._module_dir(),
+                    tmp_path / "opencc_pyo3",
+                )
 
     def test_pdfium_loader_falls_back_to_module_dir_when_needed(self):
         with TemporaryDirectory() as tmpdir:
@@ -138,12 +144,21 @@ class TestOpenCC(unittest.TestCase):
             module_root = tmp_path / "custom_pkg"
             (module_root / "pdfium").mkdir(parents=True)
 
-            with mock.patch.object(pdfium_loader.sys, "frozen", True, create=True), mock.patch.object(pdfium_loader.sys,
-                                                                                                      "_MEIPASS",
-                                                                                                      str(tmp_path / "missing_root"),
-                                                                                                      create=True), mock.patch.object(
-                pdfium_loader, "__file__", str(module_root / "pdfium_loader.py")):
-                self.assertEqual(pdfium_loader._module_dir(), module_root)
+            with mock.patch.object(
+                    pdfium_loader.sys, "frozen", True, create=True
+            ), mock.patch.object(
+                pdfium_loader.sys,
+                "_MEIPASS",
+                str(tmp_path / "missing_root"),
+                create=True,
+            ), mock.patch.dict(
+                vars(pdfium_loader),
+                {"__file__": str(module_root / "pdfium_loader.py")},
+            ):
+                self.assertEqual(
+                    pdfium_loader._module_dir(),
+                    module_root,
+                )
 
     # Test Custom Dicts
     def test_from_dicts_custom_st_phrases_palantir(self):

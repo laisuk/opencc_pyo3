@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Union, Optional, List, Tuple, TypedDict, Dict, Any, cast
+from typing import Union, Optional, List, Tuple, TypedDict
 
 from .opencc_pyo3 import (
     OpenCC as _OpenCC,
@@ -42,7 +42,6 @@ class OpenccConfig(str, Enum):
 
 _ConfigLike = Union[str, OpenccConfig]
 _CustomDictPair = Tuple[str, str]
-_CustomDictSpecNative = List[Dict[str, Any]]
 
 
 class CustomDictSpec(TypedDict, total=False):
@@ -126,7 +125,7 @@ class OpenCC(_OpenCC):
             }
         """
         cfg = cls._normalize_config(config)
-        native_specs = cast(_CustomDictSpecNative, [] if specs is None else specs)
+        native_specs = [] if specs is None else specs
         return _OpenCC.from_dicts(cfg, native_specs)
 
     @classmethod
@@ -146,7 +145,7 @@ class OpenCC(_OpenCC):
             }
         """
         cfg = cls._normalize_config(config)
-        native_specs = cast(_CustomDictSpecNative, [] if specs is None else specs)
+        native_specs = [] if specs is None else specs
         return _OpenCC.from_dict_files(cfg, native_specs)
 
     @staticmethod
@@ -160,7 +159,7 @@ class OpenCC(_OpenCC):
         # Unknown type -> fallback safely
         return "s2t"
 
-    def set_config(self, config):
+    def set_config(self, config: _ConfigLike):
         """
         Set the conversion configuration.
         :param config: One of OpenccConfig or a canonical string like "s2t".
@@ -168,38 +167,38 @@ class OpenCC(_OpenCC):
         cfg = self._normalize_config(config)
         self.apply_config(cfg)
 
-    def get_config(self):
+    def get_config(self) -> _ConfigLike:
         """
         Get the current conversion config.
         :return: Current config string
         """
         return super().get_config()
 
-    @classmethod
-    def supported_configs(cls):
+    @staticmethod
+    def supported_configs() -> List[str]:
         """
         Return a list of supported conversion config strings.
         :return: List of config names
         """
-        return super().supported_configs()
+        return _OpenCC.supported_configs()
 
-    @classmethod
-    def is_valid_config(cls, config):
+    @staticmethod
+    def is_valid_config(config: _ConfigLike) -> bool:
         """
         Check validity of a conversion configuration string.
         :param config: Conversion configuration string
         :return: True if valid, False otherwise
         """
-        return super().is_valid_config(config)
+        return _OpenCC.is_valid_config(config)
 
-    def get_last_error(self):
+    def get_last_error(self) -> str:
         """
         Get the last error message from the underlying OpenCC core.
         :return: Error string or empty string if no error
         """
         return super().get_last_error()
 
-    def zho_check(self, input_text):
+    def zho_check(self, input_text: str) -> int:
         """
         Heuristically determine whether input text is Simplified or Traditional Chinese.
         :param input_text: Input string
@@ -207,7 +206,7 @@ class OpenCC(_OpenCC):
         """
         return super().zho_check(input_text)
 
-    def convert(self, input_text, punctuation=False):
+    def convert(self, input_text: str, punctuation: bool = False):
         """
         Convert text using the current OpenCC config.
         :param input_text: The string to convert
