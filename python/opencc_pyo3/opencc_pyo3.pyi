@@ -1,4 +1,25 @@
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Tuple, TypedDict
+
+
+_CustomDictPair = Tuple[str, str]
+
+
+class _CustomDictSpecRequired(TypedDict):
+    slot: str
+    pairs: List[_CustomDictPair]
+
+
+class CustomDictSpec(_CustomDictSpecRequired, total=False):
+    mode: str
+
+
+class _CustomDictFileSpecRequired(TypedDict):
+    slot: str
+    files: List[str]
+
+
+class CustomDictFileSpec(_CustomDictFileSpecRequired, total=False):
+    mode: str
 
 
 class OpenCC:
@@ -35,14 +56,14 @@ class OpenCC:
         ...
 
     @classmethod
-    def from_dicts(cls, config: str = "s2t", specs: Optional[List[Dict[str, Any]]] = None) -> "OpenCC":
+    def from_dicts(cls, config: str = "s2t", specs: Optional[List[CustomDictSpec]] = None) -> "OpenCC":
         """
         Create an OpenCC instance with in-memory custom dictionaries.
         """
         ...
 
     @classmethod
-    def from_dict_files(cls, config: str = "s2t", specs: Optional[List[Dict[str, Any]]] = None) -> "OpenCC":
+    def from_dict_files(cls, config: str = "s2t", specs: Optional[List[CustomDictFileSpec]] = None) -> "OpenCC":
         """
         Create an OpenCC instance with custom dictionary files.
         """

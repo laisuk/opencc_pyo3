@@ -139,8 +139,8 @@ optional arguments:
 Support PDF files as input, with built-in text extraction and OpenCC-based conversion powered by `opencc-fmmseg`
 (available since v0.8.4).
 
-This command allows you to extract Chinese text from PDF documents, optionally apply CJK-aware paragraph reflow,
-and convert the result using OpenCC configurations.
+This command allows you to extract Chinese text from PDF documents, optionally apply CJK-aware paragraph reflow, and
+convert the result using OpenCC configurations.
 
 > **Note**  
 > Only text-embedded (searchable) PDF documents are supported.  
@@ -326,12 +326,11 @@ Custom DeTofu files use one mapping per line:
 
 ### Custom Dictionaries
 
-`OpenCC("s2t")` remains the recommended API for normal use and continues to use the built-in embedded dictionaries.
-Use custom dictionaries only when you need project-specific terms or overrides.
+`OpenCC("s2t")` remains the recommended API for normal use and continues to use the built-in embedded dictionaries. Use
+custom dictionaries only when you need project-specific terms or overrides.
 
 Custom dictionaries are applied during construction. The backend first loads the default embedded zstd dictionaries,
-then
-applies post-load customization with `DictionaryMaxlength::from_zstd()?.with_custom_dicts(...)` or
+then applies post-load customization with `DictionaryMaxlength::from_zstd()?.with_custom_dicts(...)` or
 `DictionaryMaxlength::from_zstd()?.with_custom_dict_files(...)`. The final `OpenCC` instance remains immutable and
 optimized after construction. Runtime hot reload is not supported; rebuild a new `OpenCC` instance if dictionaries need
 to change.
@@ -509,8 +508,9 @@ converted = OpenCC("s2t").convert(text, punctuation=True)
 ## Development
 
 - Rust source: [src/lib.rs](https://github.com/laisuk/opencc_pyo3/blob/master/src/lib.rs)
-- Python bindings: [opencc_pyo3/__init__.py](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/__init__.py), [opencc_pyo3/opencc_pyo3.pyi](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/opencc_pyo3.pyi)
-- CLI: [opencc_pyo3/__main__.py](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/__main__.py)
+- Python bindings: [opencc_pyo3/
+  __init__.py](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/__init__.py), [opencc_pyo3/opencc_pyo3.pyi](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/opencc_pyo3.pyi)
+- CLI: [opencc_pyo3/ __main__.py](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/__main__.py)
 
 ## Benchmarks
 
@@ -551,8 +551,8 @@ Text sizes: 100, 1,000, 10,000, 100,000 characters
 
 ### Summary
 
-For representative Medium through XLarge inputs, `s2t` is consistently the fastest configuration, reaching about
-46.6 million characters per second for the 100,000-character sample. The regional `s2tw` and phrase-aware `s2twp`
+For representative Medium through XLarge inputs, `s2t` is consistently the fastest configuration, reaching about 46.6
+million characters per second for the 100,000-character sample. The regional `s2tw` and phrase-aware `s2twp`
 pipelines perform additional dictionary work and reach about 33.9 million and 33.0 million characters per second,
 respectively, at the same size. Mean and median timings are now close on the larger samples, indicating that full-input
 warmups and shuffled execution substantially reduced the earlier CI outlier distortion. Results for the 100-character

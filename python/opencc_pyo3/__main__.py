@@ -306,12 +306,8 @@ def subcommand_pdf(args) -> int:
             specs = custom_dict_specs_from_args(args)
             opencc = OpenCC.from_dict_files(config, specs) if specs else OpenCC(config)
         except Exception as ex:
-            print(
-                f"⚠️  Invalid --custom-dict: {ex}\n"
-                "   Skipping custom dictionaries and continuing with embedded dictionaries.",
-                file=sys.stderr,
-            )
-            opencc = OpenCC(config)
+            print(f"❌  Invalid --custom-dict: {ex}", file=sys.stderr)
+            return 1
 
         # Optional pre-processing step: normalize CJK Compatibility Ideographs.
         if getattr(args, "norm_compat", False):
