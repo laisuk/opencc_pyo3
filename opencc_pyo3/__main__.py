@@ -6,6 +6,7 @@ import sys
 from opencc_pyo3 import OpenCC, OpenccConfig, CustomDictFileSpec
 
 CONFIG_HELP = "Configuration: " + "|".join(OpenCC.supported_configs())
+SLOT_HELP = "Available slots: " + "|".join(OpenCC.available_slots())
 
 
 def resolve_config(config):
@@ -24,6 +25,18 @@ def resolve_config(config):
         return None
 
 
+def resolve_slot(slot):
+    slot_key = slot.strip().casefold()
+    for available_slot in OpenCC.available_slots():
+        if available_slot.casefold() == slot_key:
+            return available_slot
+
+    raise ValueError(
+        f"Invalid custom dictionary slot: {slot}. "
+        f"Expected one of: {' | '.join(OpenCC.available_slots())}"
+    )
+
+
 def parse_custom_dict_spec(spec: str) -> CustomDictFileSpec:
     parts = spec.split(":", 2)
     if len(parts) != 3:
@@ -37,6 +50,8 @@ def parse_custom_dict_spec(spec: str) -> CustomDictFileSpec:
         raise ValueError("Custom dictionary mode is empty.")
     if not path:
         raise ValueError("Custom dictionary path is empty.")
+
+    slot = resolve_slot(slot)
 
     result: CustomDictFileSpec = {
         "slot": slot,
@@ -409,7 +424,7 @@ def main():
         help=(
             "Load custom dictionary file. "
             "Format: slot:mode:path, e.g. STPhrases:append:custom.txt. "
-            "Can be used multiple times."
+            "Can be used multiple times. " + SLOT_HELP
         ),
     )
     parser_convert.add_argument(
@@ -481,7 +496,7 @@ def main():
         help=(
             "Load custom dictionary file. "
             "Format: slot:mode:path, e.g. STPhrases:append:custom.txt. "
-            "Can be used multiple times."
+            "Can be used multiple times. " + SLOT_HELP
         ),
     )
 
@@ -576,7 +591,7 @@ def main():
         help=(
             "Load custom dictionary file. "
             "Format: slot:mode:path, e.g. STPhrases:append:custom.txt. "
-            "Can be used multiple times."
+            "Can be used multiple times. " + SLOT_HELP
         ),
     )
 
