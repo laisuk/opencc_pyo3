@@ -496,7 +496,7 @@ def main():
         help=(
             "Load custom dictionary file. "
             "Format: slot:mode:path, e.g. STPhrases:append:custom.txt. "
-            "Can be used multiple times."
+            "Can be used multiple times. " + SLOT_HELP
         ),
     )
 
@@ -591,7 +591,7 @@ def main():
         help=(
             "Load custom dictionary file. "
             "Format: slot:mode:path, e.g. STPhrases:append:custom.txt. "
-            "Can be used multiple times."
+            "Can be used multiple times. " + SLOT_HELP
         ),
     )
 
