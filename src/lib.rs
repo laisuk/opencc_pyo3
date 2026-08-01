@@ -682,6 +682,26 @@ mod tests {
         assert!(OpenccConfig::is_valid_config("hk2tp"));
     }
 
+    /// Test custom dictionary slot parsing through the upstream DictSlot SSOT.
+    #[test]
+    fn test_parse_slot() {
+        assert_eq!(parse_slot("STPhrases").unwrap(), DictSlot::STPhrases);
+        assert_eq!(parse_slot("  stphrases  ").unwrap(), DictSlot::STPhrases);
+        assert_eq!(parse_slot("STPhrases.txt").unwrap(), DictSlot::STPhrases);
+        assert!(parse_slot("NotASlot").is_err());
+    }
+
+    /// Test that the Python-facing slot list exactly mirrors DictSlot::ALL.
+    #[test]
+    fn test_available_slots() {
+        let expected: Vec<_> = DictSlot::ALL
+            .iter()
+            .map(|slot| slot.canonical_name())
+            .collect();
+
+        assert_eq!(OpenCC::available_slots(), expected);
+    }
+
     #[test]
     fn test_reflow_drawing_box() {
         let input = "\
