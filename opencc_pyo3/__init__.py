@@ -44,7 +44,12 @@ _ConfigLike = Union[str, OpenccConfig]
 _CustomDictPair = Tuple[str, str]
 
 
-class CustomDictSpec(TypedDict, total=False):
+class _CustomDictSpecRequired(TypedDict):
+    slot: str
+    pairs: List[_CustomDictPair]
+
+
+class CustomDictSpec(_CustomDictSpecRequired, total=False):
     """
     In-memory custom dictionary specification for OpenCC.
 
@@ -62,12 +67,15 @@ class CustomDictSpec(TypedDict, total=False):
                 - "override" : Replace the entire dictionary slot.
     """
 
-    slot: str
-    pairs: List[_CustomDictPair]
     mode: str
 
 
-class CustomDictFileSpec(TypedDict, total=False):
+class _CustomDictFileSpecRequired(TypedDict):
+    slot: str
+    files: List[str]
+
+
+class CustomDictFileSpec(_CustomDictFileSpecRequired, total=False):
     """
     File-based custom dictionary specification for OpenCC.
 
@@ -85,8 +93,6 @@ class CustomDictFileSpec(TypedDict, total=False):
                 - "override" : Replace the entire dictionary slot.
     """
 
-    slot: str
-    files: List[str]
     mode: str
 
 
@@ -159,7 +165,7 @@ class OpenCC(_OpenCC):
         # Unknown type -> fallback safely
         return "s2t"
 
-    def set_config(self, config: _ConfigLike):
+    def set_config(self, config: _ConfigLike) -> None:
         """
         Set the conversion configuration.
         :param config: One of OpenccConfig or a canonical string like "s2t".
@@ -167,7 +173,7 @@ class OpenCC(_OpenCC):
         cfg = self._normalize_config(config)
         self.apply_config(cfg)
 
-    def get_config(self) -> _ConfigLike:
+    def get_config(self) -> str:
         """
         Get the current conversion config.
         :return: Current config string
@@ -218,7 +224,7 @@ class OpenCC(_OpenCC):
         """
         return super().zho_check(input_text)
 
-    def convert(self, input_text: str, punctuation: bool = False):
+    def convert(self, input_text: str, punctuation: bool = False) -> str:
         """
         Convert text using the current OpenCC config.
         :param input_text: The string to convert
