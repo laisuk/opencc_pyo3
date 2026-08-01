@@ -191,6 +191,18 @@ class OpenCC(_OpenCC):
         """
         return _OpenCC.is_valid_config(config)
 
+    @staticmethod
+    def available_slots() -> List[str]:
+        """
+        Return the canonical names of all supported custom dictionary slots.
+
+        The returned names can be used as the ``slot`` value in custom
+        dictionary specifications.
+
+        :return: List of canonical dictionary slot names
+        """
+        return _OpenCC.available_slots()
+
     def get_last_error(self) -> str:
         """
         Get the last error message from the underlying OpenCC core.

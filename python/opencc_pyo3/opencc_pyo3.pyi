@@ -22,9 +22,9 @@ class OpenCC:
     config: str
 
     def __init__(
-        self,
-        config: Optional[str] = "s2t",
-        preserve_ids: bool = False,
+            self,
+            config: Optional[str] = "s2t",
+            preserve_ids: bool = False,
     ) -> None:
         """
         Initialize a new OpenCC instance.
@@ -93,6 +93,18 @@ class OpenCC:
         """
         Check validity of the config string.
         :param config: Config string to be checked.
+        """
+        ...
+
+    @staticmethod
+    def available_slots() -> List[str]:
+        """
+        Return the canonical names of all supported custom dictionary slots.
+
+        The returned names can be used as the ``slot`` value in custom
+        dictionary specifications.
+
+        :return: List of canonical dictionary slot names
         """
         ...
 
