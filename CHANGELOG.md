@@ -9,8 +9,30 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ## [0.10.3] - 2026-08-01
 
+### Added
+
+- Added `OpenCC.available_slots()`, returning the 21 active canonical custom dictionary slot names from
+  `DictSlot::ALL`, including `JPSCharactersRev`.
+- Added CLI custom dictionary slot validation, case-insensitive canonicalization, `-D` shorthand, generated slot help,
+  and regression tests for slot parsing and enumeration.
+
 ### Changed
 
+- Updated `opencc-fmmseg` to v0.11.5.
+- Replaced the duplicated Python-binding slot normalization table with
+  `DictSlot::from_name_ignore_ascii_case()` as the single source of truth.
+- Tightened Python 3.8-compatible custom dictionary `TypedDict` definitions so `slot` and `pairs`/`files` are
+  required while `mode` remains optional.
+- Aligned public Python return annotations and native type stubs.
+- PDF conversion now fails with an error for invalid custom dictionaries, matching the `convert` and `office`
+  commands instead of silently using embedded dictionaries.
+
+### Removed
+
+- Removed retired `JPShinjitai*` and `JPVariants` names from the active public slot list. Custom dictionary callers
+  should use `JPSCharacters`, `JPSCharactersRev`, or `JPSPhrases`. This may require changes for callers using the
+  retired names.
+- Removed the unsupported PyPy package classifier.
 
 ---
 
