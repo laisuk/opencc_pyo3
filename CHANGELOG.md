@@ -7,6 +7,13 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
+## [0.10.3] - Unreleased
+
+### Changed
+
+
+---
+
 ## [0.10.2] - 2026-07-13
 
 ### Added

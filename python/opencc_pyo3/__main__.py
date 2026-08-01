@@ -402,6 +402,7 @@ def main():
         ),
     )
     parser_convert.add_argument(
+        "-D",
         "--custom-dict",
         action="append",
         metavar="<slot:mode:path>",
@@ -473,6 +474,7 @@ def main():
         help="Preserve font-family information in Office content",
     )
     parser_office.add_argument(
+        "-D",
         "--custom-dict",
         action="append",
         metavar="<slot:mode:path>",
@@ -567,6 +569,7 @@ def main():
         help="Normalize CJK Compatibility Ideographs before conversion. (Default: False)",
     )
     parser_pdf.add_argument(
+        "-D",
         "--custom-dict",
         action="append",
         metavar="<slot:mode:path>",

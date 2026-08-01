@@ -303,6 +303,29 @@ impl OpenCC {
         opencc_from_dict_files(config, specs)
     }
 
+    /// Returns the canonical names of all supported custom dictionary slots.
+    ///
+    /// The names are returned in the order defined by [`DictSlot::ALL`] and can
+    /// be used as the `slot` value in custom dictionary specifications.
+    ///
+    /// Only canonical public names are included; deprecated compatibility aliases
+    /// such as `JPShinjitaiCharacters` are excluded.
+    ///
+    /// # Python example
+    ///
+    /// ```python
+    /// slots = OpenCC.available_slots()
+    /// assert "STPhrases" in slots
+    /// assert "JPSCharacters" in slots
+    /// ```
+    #[staticmethod]
+    fn available_slots() -> Vec<&'static str> {
+        DictSlot::ALL
+            .iter()
+            .map(|slot| slot.canonical_name())
+            .collect()
+    }
+
     // CJK Compatibility Ideograph Normalization and DeTofu
 
     /// Normalizes CJK Compatibility Ideographs with the built-in Unicode table.
@@ -548,67 +571,31 @@ fn parse_mode(mode: Option<&str>) -> PyResult<CustomDictMode> {
 
 /// Parses a custom dictionary slot name into a [`DictSlot`].
 ///
-/// Accepts canonical OpenCC slot names (for example `STPhrases`,
-/// `TWPhrasesRev`, and `HKVariantsRevPhrases`) in a
-/// case-insensitive manner. An optional `.txt` suffix is also
-/// accepted for compatibility.
+/// Slot names are ASCII case-insensitive, and surrounding whitespace is
+/// ignored. Canonical names such as `STPhrases`, `TWPhrasesRev`, and
+/// `HKVariantsRevPhrases` are accepted.
+///
+/// An optional `.txt` suffix is also accepted for compatibility. Deprecated
+/// `JPShinjitai*` aliases are accepted while they remain supported by
+/// [`DictSlot::from_name_ignore_ascii_case`].
 ///
 /// Invalid slot names return a Python `ValueError`.
 fn parse_slot(slot: &str) -> PyResult<DictSlot> {
     let trimmed = slot.trim();
 
-    let without_txt = if trimmed.to_ascii_lowercase().ends_with(".txt") {
+    let name = if trimmed.to_ascii_lowercase().ends_with(".txt") {
         &trimmed[..trimmed.len() - 4]
     } else {
         trimmed
     };
 
-    let normalized = normalize_dict_slot_name(without_txt);
-
-    DictSlot::try_from(normalized.as_str()).map_err(|_| {
+    DictSlot::from_name_ignore_ascii_case(name).ok_or_else(|| {
         PyValueError::new_err(format!(
             "Invalid custom dictionary slot: {slot}. \
-             Expected canonical slot name like 'STPhrases', 'TWPhrasesRev', or 'HKVariantsRevPhrases'."
+             Expected a canonical slot name like 'STPhrases', \
+             'TWPhrasesRev', or 'HKVariantsRevPhrases'."
         ))
     })
-}
-
-/// Normalizes a user-supplied custom dictionary slot name.
-///
-/// Converts supported slot names to their canonical OpenCC spelling
-/// (for example, `stphrases` → `STPhrases`). Unknown names are
-/// returned unchanged after trimming.
-fn normalize_dict_slot_name(s: &str) -> String {
-    match s.trim().to_ascii_lowercase().as_str() {
-        "stcharacters" => "STCharacters",
-        "stphrases" => "STPhrases",
-        "stpunctuations" => "STPunctuations",
-
-        "tscharacters" => "TSCharacters",
-        "tsphrases" => "TSPhrases",
-        "tspunctuations" => "TSPunctuations",
-
-        "twphrases" => "TWPhrases",
-        "twphrasesrev" => "TWPhrasesRev",
-        "twvariants" => "TWVariants",
-        "twvariantsphrases" => "TWVariantsPhrases",
-        "twvariantsrev" => "TWVariantsRev",
-        "twvariantsrevphrases" => "TWVariantsRevPhrases",
-
-        "hkphrases" => "HKPhrases",
-        "hkphrasesrev" => "HKPhrasesRev",
-        "hkvariants" => "HKVariants",
-        "hkvariantsphrases" => "HKVariantsPhrases",
-        "hkvariantsrev" => "HKVariantsRev",
-        "hkvariantsrevphrases" => "HKVariantsRevPhrases",
-
-        "jpscharacters" => "JPSCharacters",
-        "jpscharactersrev" => "JPSCharactersRev",
-        "jpsphrases" => "JPSPhrases",
-
-        _ => s.trim(),
-    }
-        .to_string()
 }
 
 /// Parses an OpenCC configuration string.
