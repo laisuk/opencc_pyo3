@@ -3,7 +3,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/opencc-pyo3.svg)](https://pypi.org/project/opencc-pyo3/)
 [![Downloads](https://pepy.tech/badge/opencc-pyo3)](https://pepy.tech/project/opencc-pyo3)
 [![Python Versions](https://img.shields.io/pypi/pyversions/opencc-pyo3.svg)](https://pypi.org/project/opencc-pyo3/)
-[![License](https://img.shields.io/github/license/laisuk/opencc_pyo3)](https://github.com/laisuk/opencc_pyo3/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/laisuk/opencc_pyo3)](https://github.com/laisuk/opencc_pyo3/blob/master/LICENSE)
 [![Build Status](https://github.com/laisuk/opencc_pyo3/actions/workflows/build.yml/badge.svg)](https://github.com/laisuk/opencc_pyo3/actions/workflows/build.yml)
 
 `opencc_pyo3` is a Python extension module powered by [Rust](https://www.rust-lang.org/) and [PyO3](https://pyo3.rs/),
@@ -82,7 +82,7 @@ Sub-Commands are:
 
 ```bash
 python -m opencc_pyo3 convert --help
-usage: opencc-pyo3 convert [-h] [-i <file>] [-o <file>] [-c <conversion>] [-p] [-n] [--detofu [<level>]] [--detofu-file <file>] [--custom-dict <slot:mode:path>]
+usage: opencc-pyo3 convert [-h] [-i <file>] [-o <file>] [-c <conversion>] [-p] [-n] [--detofu [<level>]] [--detofu-file <file>] [-D <slot:mode:path>]
                            [--in-enc <encoding>] [--out-enc <encoding>]
 
 optional arguments:
@@ -98,8 +98,9 @@ optional arguments:
   --detofu [<level>]    Apply tofu-safe fallback after conversion. Levels: all/ExtB, ExtC, ExtD, ExtE, ExtF, ExtG, ExtH, ExtI. (default: None)
   --detofu-file <file>  Load additional detofu fallback mappings from a UTF-8 text file. Custom mappings override built-in mappings; requires --detofu.
                         (default: None)
-  --custom-dict <slot:mode:path>
-                        Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times. (default: None)
+  -D <slot:mode:path>, --custom-dict <slot:mode:path>
+                        Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times.
+                        Available slots: STCharacters|STPhrases|STPunctuations|TSCharacters|TSPhrases|TSPunctuations|TWPhrases|TWPhrasesRev|HKPhrases|HKPhrasesRev|TWVariants|TWVariantsPhrases|TWVariantsRev|TWVariantsRevPhrases|HKVariants|HKVariantsPhrases|HKVariantsRev|HKVariantsRevPhrases|JPSCharacters|JPSCharactersRev|JPSPhrases (default: None)
   --in-enc <encoding>   Encoding for input. (Default: UTF-8) (default: UTF-8)
   --out-enc <encoding>  Encoding for output. (Default: UTF-8) (default: UTF-8)
 ```
@@ -112,7 +113,7 @@ Support OpenOffice documents and Epub (`.docx`, `.xlsx`, `.pptx`, `.odt`, `.ods`
 
 ```bash
 python -m opencc_pyo3 office --help                                         
-usage: opencc-pyo3 office [-h] [-i <file>] [-o <file>] [-c <conversion>] [-p] [-f <format>] [-k] [--custom-dict <slot:mode:path>]                                
+usage: opencc-pyo3 office [-h] [-i <file>] [-o <file>] [-c <conversion>] [-p] [-f <format>] [-k] [-D <slot:mode:path>]                                
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -126,8 +127,9 @@ optional arguments:
   -f <format>, --format <format>
                         Target Office format (e.g., docx, xlsx, pptx, odt, ods, odp, epub) (default: None)
   -k, --keep-font       Preserve font-family information in Office content (default: False)
-  --custom-dict <slot:mode:path>
-                        Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times. (default: None)
+  -D <slot:mode:path>, --custom-dict <slot:mode:path>
+                        Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times.
+                        Available slots: STCharacters|STPhrases|STPunctuations|TSCharacters|TSPhrases|TSPunctuations|TWPhrases|TWPhrasesRev|HKPhrases|HKPhrasesRev|TWVariants|TWVariantsPhrases|TWVariantsRev|TWVariantsRevPhrases|HKVariants|HKVariantsPhrases|HKVariantsRev|HKVariantsRevPhrases|JPSCharacters|JPSCharactersRev|JPSPhrases (default: None)
 ```
 
 ---
@@ -146,7 +148,7 @@ and convert the result using OpenCC configurations.
 
 ```bash
 python -m opencc_pyo3 pdf --help
-usage: opencc-pyo3 pdf [-h] -i <file> [-o <file>] [-c <conversion>] [-p] [-H] [-r] [-C] [--timing] [-e] [-n] [--custom-dict <slot:mode:path>]
+usage: opencc-pyo3 pdf [-h] -i <file> [-o <file>] [-c <conversion>] [-p] [-H] [-r] [-C] [--timing] [-e] [-n] [-D <slot:mode:path>]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -163,8 +165,9 @@ optional arguments:
   --timing              Show time use for each process workflow. (default: False)
   -e, --extract         Extract PDF text only (skip OpenCC conversion). (default: False)
   -n, --norm-compat     Normalize CJK Compatibility Ideographs before conversion. (Default: False) (default: False)
-  --custom-dict <slot:mode:path>
-                        Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times. (default: None)
+  -D <slot:mode:path>, --custom-dict <slot:mode:path>
+                        Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times.
+                        Available slots: STCharacters|STPhrases|STPunctuations|TSCharacters|TSPhrases|TSPunctuations|TWPhrases|TWPhrasesRev|HKPhrases|HKPhrasesRev|TWVariants|TWVariantsPhrases|TWVariantsRev|TWVariantsRevPhrases|HKVariants|HKVariantsPhrases|HKVariantsRev|HKVariantsRevPhrases|JPSCharacters|JPSCharactersRev|JPSPhrases (default: None)
 ```
 
 ```sh
@@ -191,7 +194,7 @@ my_hk_dict.txt:
 
 `--custom-dict` accepts `slot:mode:path` and can be passed more than once. The token is validated before conversion:
 `slot`, `mode`, and `path` must all be present. Supported merge modes are `append` and `override`; common slots include
-`STPhrases`, `TWPhrases`, `HKVariantsRevPhrases`, and `JPVariants`.
+`STPhrases`, `TWPhrases`, `HKVariantsRevPhrases`, and `JPSCharactersRev`.
 
 ```text
 細路哥	小男孩
@@ -268,6 +271,8 @@ Core converter class backed by the Rust extension module.
     - Returns all supported config names.
 - `OpenCC.is_valid_config(config: str) -> bool`
     - Validates a config string.
+- `OpenCC.available_slots() -> list[str]`
+    - Returns all 21 active canonical custom dictionary slot names.
 
 Example:
 
@@ -290,6 +295,7 @@ print(OpenCC(OpenccConfig.T2HKP).get_config())  # t2hkp
 print(OpenCC(OpenccConfig.HK2TP).get_config())  # hk2tp
 
 print(OpenCC.supported_configs())
+print(OpenCC.available_slots())
 print(OpenCC.is_valid_config("s2hk"))  # True
 ```
 
@@ -503,13 +509,12 @@ converted = OpenCC("s2t").convert(text, punctuation=True)
 ## Development
 
 - Rust source: [src/lib.rs](https://github.com/laisuk/opencc_pyo3/blob/master/src/lib.rs)
-- Python bindings: [opencc_pyo3/__init
-  __.py](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/__init__.py), [opencc_pyo3/opencc_pyo3.pyi](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/opencc_pyo3.pyi)
+- Python bindings: [opencc_pyo3/__init__.py](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/__init__.py), [opencc_pyo3/opencc_pyo3.pyi](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/opencc_pyo3.pyi)
 - CLI: [opencc_pyo3/__main__.py](https://github.com/laisuk/opencc_pyo3/blob/master/opencc_pyo3/__main__.py)
 
 ## Benchmarks
 
-Latest benchmark results for `opencc-pyo3` v0.10.2, collected by the
+Historical benchmark results for `opencc-pyo3` v0.10.2, collected by the
 [Benchmark on macos-latest workflow](https://github.com/laisuk/opencc_pyo3/actions/runs/29220806465#summary-86725382175).
 
 ```
