@@ -45,7 +45,7 @@ def parse_custom_dict_spec(spec: str) -> CustomDictFileSpec:
     ``spec`` must use ``slot:mode:path`` syntax, for example
     ``"STPhrases:append:./UserDict.txt"``.
 
-    The path is not checked for existence here. Splitting is limited to two
+    The path is validated as an existing file here. Splitting is limited to two
     separators so Windows paths such as ``R:\\dicts\\UserDict.txt`` remain
     supported.
     """
