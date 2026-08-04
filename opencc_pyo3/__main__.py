@@ -3,6 +3,7 @@ from __future__ import print_function
 import argparse
 import sys
 
+from pathlib import Path
 from opencc_pyo3 import OpenCC, OpenccConfig, CustomDictFileSpec
 
 CONFIG_HELP = "Configuration: " + "|".join(OpenCC.supported_configs())
@@ -38,27 +39,52 @@ def resolve_slot(slot):
 
 
 def parse_custom_dict_spec(spec: str) -> CustomDictFileSpec:
+    """
+    Parse one ``--custom-dict`` value into a ``CustomDictFileSpec``.
+
+    ``spec`` must use ``slot:mode:path`` syntax, for example
+    ``"STPhrases:append:./UserDict.txt"``.
+
+    The path is not checked for existence here. Splitting is limited to two
+    separators so Windows paths such as ``R:\\dicts\\UserDict.txt`` remain
+    supported.
+    """
     parts = spec.split(":", 2)
     if len(parts) != 3:
-        raise ValueError("Expected custom dictionary spec: slot:mode:path")
+        raise ValueError(
+            "Invalid --custom-dict spec {!r}. Expected slot:mode:path".format(spec)
+        )
 
-    slot, mode, path = (p.strip() for p in parts)
+    slot, mode, path = (part.strip() for part in parts)
 
     if not slot:
-        raise ValueError("Custom dictionary slot is empty.")
-    if not mode:
-        raise ValueError("Custom dictionary mode is empty.")
+        raise ValueError(
+            "Invalid --custom-dict spec {!r}: slot is empty".format(spec)
+        )
+
+    mode = mode.lower()
+    if mode not in ("append", "override"):
+        raise ValueError(
+            "Invalid --custom-dict mode {!r}. Expected append or override".format(
+                mode
+            )
+        )
+
     if not path:
-        raise ValueError("Custom dictionary path is empty.")
+        raise ValueError(
+            "Invalid --custom-dict spec {!r}: path is empty".format(spec)
+        )
 
-    slot = resolve_slot(slot)
+    if not Path(path).is_file():
+        raise ValueError(
+            "Custom dictionary file not found: {}".format(path)
+        )
 
-    result: CustomDictFileSpec = {
-        "slot": slot,
+    return {
+        "slot": resolve_slot(slot),
         "mode": mode,
         "files": [path],
     }
-    return result
 
 
 def custom_dict_specs_from_args(args):
@@ -73,50 +99,101 @@ def subcommand_convert(args):
         return 1
     args.config = config
 
-    # Plain text conversion fallback
-    # opencc = OpenCC(config)
-    try:
-        specs = custom_dict_specs_from_args(args)
-        opencc = OpenCC.from_dict_files(config, specs) if specs else OpenCC(config)
-    except Exception as ex:
-        print(f"❌  Invalid --custom-dict: {ex}", file=sys.stderr)
+    # Validate inexpensive CLI inputs before constructing the native OpenCC runtime.
+    if args.input and not Path(args.input).is_file():
+        print(f"Error: Input file not found: {args.input}", file=sys.stderr)
         return 1
-
-    # Prompt user if input is from terminal
-    if args.input is None and sys.stdin.isatty():
-        print("Input text to convert, <Ctrl+Z>/<Ctrl+D> to submit:", file=sys.stderr)
-
-    # Read input text (from file or stdin)
-    with io.open(args.input if args.input else 0, encoding=args.in_enc) as f:
-        input_str = f.read()
-
-    # Optional pre-processing step: normalize CJK Compatibility Ideographs.
-    if getattr(args, "norm_compat", False):
-        input_str = opencc.normalize_compat(input_str)
-
-    # Perform OpenCC conversion
-    output_str = opencc.convert(input_str, args.punct)
 
     # Optional DeTofu display-safe fallback
     if args.detofu_file and not args.detofu:
         print("❌  --detofu-file requires --detofu", file=sys.stderr)
         return 1
 
-    if args.detofu:
-        level = args.detofu
+    # Parse custom dictionary specifications and construct the converter only
+    # after inexpensive argument validation has completed.
+    try:
+        specs = custom_dict_specs_from_args(args)
+    except ValueError as ex:
+        print(f"❌ Invalid --custom-dict: {ex}", file=sys.stderr)
+        return 1
 
-        if args.detofu_file:
-            output_str = opencc.detofu_with_custom_file(
-                output_str,
-                level,
-                args.detofu_file,
-            )
+    try:
+        opencc = OpenCC.from_dict_files(config, specs) if specs else OpenCC(config)
+    except (OSError, RuntimeError, ValueError) as ex:
+        print(f"❌ Failed to initialize OpenCC: {ex}", file=sys.stderr)
+        return 1
+
+    # Prompt user if input is from terminal
+    if args.input is None and sys.stdin.isatty():
+        print("Input text to convert, <Ctrl+Z>/<Ctrl+D> to submit:", file=sys.stderr)
+
+    # Read the entire input from a file or standard input.
+    try:
+        with io.open(args.input if args.input else 0, encoding=args.in_enc) as f:
+            input_str = f.read()
+    except LookupError as ex:
+        print(f"❌ Invalid input encoding '{args.in_enc}': {ex}", file=sys.stderr)
+        return 1
+    except (OSError, UnicodeError) as ex:
+        source = args.input or "<stdin>"
+        print(f"❌ Failed to read input '{source}': {ex}", file=sys.stderr)
+        return 1
+
+    try:
+        # Optional Unicode compatibility normalization before OpenCC conversion.
+        if getattr(args, "norm_compat", False):
+            input_str = opencc.normalize_compat(input_str)
+
+        # Perform OpenCC conversion
+        output_str = opencc.convert(input_str, args.punct)
+
+        if args.detofu:
+            level = args.detofu
+
+            if args.detofu_file:
+                output_str = opencc.detofu_with_custom_file(
+                    output_str,
+                    level,
+                    args.detofu_file,
+                )
+            else:
+                output_str = opencc.detofu(output_str, level)
+    except ValueError as ex:
+        print("❌  Conversion failed: {}".format(ex), file=sys.stderr)
+        return 1
+
+    # Write converted text to a file, an interactive console, or redirected stdout.
+    # Validate the requested output encoding explicitly. Interactive Windows
+    # consoles bypass normal codec lookup, so this provides consistent
+    # fail-fast behavior for invalid codec names.
+    import codecs
+    try:
+        codecs.lookup(args.out_enc)
+    except LookupError as ex:
+        print(
+            f"❌ Invalid output encoding '{args.out_enc}': {ex}",
+            file=sys.stderr,
+        )
+        return 1
+
+    try:
+        if args.output:
+            with io.open(args.output, "w", encoding=args.out_enc) as f:
+                f.write(output_str)
+        elif sys.stdout.isatty():
+            # Interactive Windows consoles write Unicode directly through the
+            # terminal stream instead of re-encoding through --out-enc.
+            sys.stdout.write(output_str)
+            sys.stdout.flush()
         else:
-            output_str = opencc.detofu(output_str, level)
-
-    # Write output text (to file or stdout)
-    with io.open(args.output if args.output else 1, 'w', encoding=args.out_enc) as f:
-        f.write(output_str)
+            # Redirected stdout or pipeline: honor --out-enc.
+            encoded = output_str.encode(args.out_enc)
+            sys.stdout.buffer.write(encoded)
+            sys.stdout.buffer.flush()
+    except (OSError, UnicodeError) as ex:
+        target = args.output or "<stdout>"
+        print(f"❌ Failed to write output '{target}': {ex}", file=sys.stderr)
+        return 1
 
     in_from = args.input if args.input else "<stdin>"
     out_to = args.output if args.output else "stdout"
@@ -126,7 +203,9 @@ def subcommand_convert(args):
         # print(f"Conversion completed ({args.config}): {in_from} -> {out_to}", file=sys.stderr)
         status = f"Conversion completed ({args.config}"
         if args.detofu:
-            status += f", detofu:{args.detofu}"
+            status += f", detofu: {args.detofu}"
+        if args.norm_compat:
+            status += f", norm-compat: {args.norm_compat}"
         status += f"): {in_from} -> {out_to}"
         print(status, file=sys.stderr)
 
@@ -135,7 +214,6 @@ def subcommand_convert(args):
 
 def subcommand_office(args):
     import os
-    from pathlib import Path
     from .office_helper import OFFICE_FORMATS, convert_office_doc
 
     config = resolve_config(args.config)
@@ -150,13 +228,7 @@ def subcommand_office(args):
     punct = args.punct
     keep_font = getattr(args, "keep_font", False)
 
-    # Check for missing input/output files
-    if not input_file and not output_file:
-        print("❌  Input and output files are missing.", file=sys.stderr)
-        return 1
-    if not input_file:
-        print("❌  Input file is missing.", file=sys.stderr)
-        return 1
+    # Check for invalid input files
     if not Path(input_file).is_file():
         print(f"❌ Input file not found: {input_file}", file=sys.stderr)
         return 1
@@ -188,9 +260,14 @@ def subcommand_office(args):
 
     try:
         specs = custom_dict_specs_from_args(args)
+    except ValueError as ex:
+        print(f"❌ Invalid --custom-dict: {ex}", file=sys.stderr)
+        return 1
+
+    try:
         opencc = OpenCC.from_dict_files(config, specs) if specs else OpenCC(config)
-    except Exception as ex:
-        print(f"❌  Invalid --custom-dict: {ex}", file=sys.stderr)
+    except (OSError, RuntimeError, ValueError) as ex:
+        print(f"❌ Failed to initialize OpenCC: {ex}", file=sys.stderr)
         return 1
 
     try:
@@ -216,12 +293,7 @@ def subcommand_office(args):
 
 def subcommand_pdf(args) -> int:
     import time
-    from pathlib import Path
     from typing import List
-    from .opencc_pyo3 import reflow_cjk_paragraphs
-    from opencc_pyo3.pdfium_helper import (
-        extract_pdf_pages_with_callback_pdfium,
-    )
 
     t0_total = None
     input_path = args.input
@@ -231,7 +303,24 @@ def subcommand_pdf(args) -> int:
     if not p.is_file():
         print("❌ PDF file not found.", file=sys.stderr)
         print(f"  Path : {input_path_str}", file=sys.stderr)
-        return 2
+        return 1
+
+    specs = []
+
+    if not args.extract:
+        try:
+            specs = custom_dict_specs_from_args(args)
+        except ValueError as ex:
+            print(f"❌ Invalid --custom-dict: {ex}", file=sys.stderr)
+            return 1
+
+    try:
+        from opencc_pyo3.pdfium_helper import (
+            extract_pdf_pages_with_callback_pdfium,
+        )
+    except (ImportError, OSError, RuntimeError) as ex:
+        print(f"❌ Failed to initialize PDFium: {ex}", file=sys.stderr)
+        return 1
 
     # Determine output filename
     if args.output:
@@ -275,7 +364,13 @@ def subcommand_pdf(args) -> int:
         sys.stdout.flush()
 
     print(f"Extracting PDF page-by-page with PDFium: {p}")
-    extract_pdf_pages_with_callback_pdfium(input_path_str, _on_page, args.header)
+
+    try:
+        extract_pdf_pages_with_callback_pdfium(input_path_str, _on_page, args.header)
+    except (OSError, RuntimeError, ValueError) as ex:
+        print(f"❌ PDF extraction failed: {ex}", file=sys.stderr)
+        return 1
+
     # print()  # newline after progress
     print_done(len(pages))
 
@@ -289,6 +384,7 @@ def subcommand_pdf(args) -> int:
     # Reflow (optional)
     # ---------------------------------------------------------
     if args.reflow:
+        from .opencc_pyo3 import reflow_cjk_paragraphs
         print("Reflowing CJK paragraphs...")
         text = reflow_cjk_paragraphs(
             text,
@@ -300,13 +396,14 @@ def subcommand_pdf(args) -> int:
     # OpenCC Conversion (optional)
     # ---------------------------------------------------------
     if not args.extract:
-        # opencc = OpenCC(str(config))
+        # Construct OpenCC only when conversion is requested. Extract-only mode
+        # intentionally avoids parsing custom dictionaries or creating a converter.
         config = str(config)
+
         try:
-            specs = custom_dict_specs_from_args(args)
             opencc = OpenCC.from_dict_files(config, specs) if specs else OpenCC(config)
-        except Exception as ex:
-            print(f"❌  Invalid --custom-dict: {ex}", file=sys.stderr)
+        except (OSError, RuntimeError, ValueError) as ex:
+            print(f"❌ Failed to initialize OpenCC: {ex}", file=sys.stderr)
             return 1
 
         # Optional pre-processing step: normalize CJK Compatibility Ideographs.
@@ -314,8 +411,16 @@ def subcommand_pdf(args) -> int:
             text = opencc.normalize_compat(text)
         text = opencc.convert(text, args.punct)
     else:
-        if args.config or args.punct:
-            print("ℹ️  --extract specified: skipping OpenCC conversion.", file=sys.stderr)
+        if (
+                args.config
+                or args.punct
+                or args.norm_compat
+                or args.custom_dict
+        ):
+            print(
+                "ℹ️ --extract specified: ignoring OpenCC conversion options.",
+                file=sys.stderr,
+            )
 
     # ---------------------------------------------------------
     # Write Output
@@ -418,9 +523,9 @@ def main():
         action="append",
         metavar="<slot:mode:path>",
         help=(
-            "Load custom dictionary file. "
-            "Format: slot:mode:path, e.g. STPhrases:append:custom.txt. "
-            "Can be used multiple times. " + SLOT_HELP
+                "Load custom dictionary file. "
+                "Format: slot:mode:path, e.g. STPhrases:append:custom.txt. "
+                "Can be used multiple times. " + SLOT_HELP
         ),
     )
     parser_convert.add_argument(
@@ -433,7 +538,11 @@ def main():
         "--out-enc",
         metavar="<encoding>",
         default="UTF-8",
-        help="Encoding for output. (Default: UTF-8)",
+        help=(
+            "Encoding for output files and redirected stdout. "
+            "Interactive console output uses the terminal's Unicode stream. "
+            "(Default: UTF-8)"
+        ),
     )
 
     parser_convert.set_defaults(func=subcommand_convert)
@@ -449,6 +558,7 @@ def main():
     parser_office.add_argument(
         "-i",
         "--input",
+        required=True,
         metavar="<file>",
         help="Input Office document from <file>.",
     )
@@ -490,9 +600,9 @@ def main():
         action="append",
         metavar="<slot:mode:path>",
         help=(
-            "Load custom dictionary file. "
-            "Format: slot:mode:path, e.g. STPhrases:append:custom.txt. "
-            "Can be used multiple times. " + SLOT_HELP
+                "Load custom dictionary file. "
+                "Format: slot:mode:path, e.g. STPhrases:append:custom.txt. "
+                "Can be used multiple times. " + SLOT_HELP
         ),
     )
 
@@ -585,9 +695,9 @@ def main():
         action="append",
         metavar="<slot:mode:path>",
         help=(
-            "Load custom dictionary file. "
-            "Format: slot:mode:path, e.g. STPhrases:append:custom.txt. "
-            "Can be used multiple times. " + SLOT_HELP
+                "Load custom dictionary file. "
+                "Format: slot:mode:path, e.g. STPhrases:append:custom.txt. "
+                "Can be used multiple times. " + SLOT_HELP
         ),
     )
 

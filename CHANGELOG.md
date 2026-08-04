@@ -7,6 +7,14 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
+## [0.10.4] - Unreleased
+
+### Changed
+
+- CLI: Optimized args validation handling.
+
+---
+
 ## [0.10.3] - 2026-08-01
 
 ### Added
