@@ -15,12 +15,12 @@ def main() -> int:
     )
     parser.add_argument(
         "-i", "--input",
-        default="盗墓笔记.pdf",
+        default="SanWenHans.pdf",
         help="Input PDF path",
     )
     parser.add_argument(
         "-o", "--output",
-        default="盗墓笔记_extracted.txt",
+        default="SanWenHans_extracted.txt",
         help="Output text path",
     )
     parser.add_argument(

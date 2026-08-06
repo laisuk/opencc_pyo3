@@ -10,10 +10,10 @@ from opencc_pyo3.opencc_pyo3 import (
 # PDF extraction (requires pdfium.dll presence)
 from opencc_pyo3.pdfium_helper import extract_pdf_pages_with_callback_pdfium, make_progress_collector
 
-input_file = "简体字.pdf"
-# input_file = "盗墓笔记.pdf"
-output_file = "简体字_extracted.txt"
-# output_file = "盗墓笔记_extracted.txt"
+# input_file = "JianTiZi.pdf"
+input_file = "SanWenHans.pdf"
+# output_file = "JianTiZi_extracted.txt"
+output_file = "SanWenHans_extracted.txt"
 
 _pages: List[str] = []
 
