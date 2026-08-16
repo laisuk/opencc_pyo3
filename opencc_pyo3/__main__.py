@@ -91,6 +91,15 @@ def custom_dict_specs_from_args(args):
     return [parse_custom_dict_spec(s) for s in (getattr(args, "custom_dict", None) or [])]
 
 
+def paths_refer_to_same_file(input_path: str, output_path: str) -> bool:
+    """Return whether input and output refer to the same filesystem path."""
+    import os
+
+    return os.path.normcase(os.path.abspath(input_path)) == os.path.normcase(
+        os.path.abspath(output_path)
+    )
+
+
 def subcommand_convert(args):
     import io
 
@@ -102,6 +111,10 @@ def subcommand_convert(args):
     # Validate inexpensive CLI inputs before constructing the native OpenCC runtime.
     if args.input and not Path(args.input).is_file():
         print(f"Error: Input file not found: {args.input}", file=sys.stderr)
+        return 1
+
+    if args.input and args.output and paths_refer_to_same_file(args.input, args.output):
+        print("❌ Input and output files must be different.", file=sys.stderr)
         return 1
 
     # Optional DeTofu display-safe fallback
@@ -258,6 +271,10 @@ def subcommand_office(args):
         output_file += f".{office_format}"
         print(f"ℹ️  Auto-extension applied: {output_file}", file=sys.stderr)
 
+    if paths_refer_to_same_file(input_file, output_file):
+        print("❌ Input and output files must be different.", file=sys.stderr)
+        return 1
+
     try:
         specs = custom_dict_specs_from_args(args)
     except ValueError as ex:
@@ -305,6 +322,18 @@ def subcommand_pdf(args) -> int:
         print(f"  Path : {input_path_str}", file=sys.stderr)
         return 1
 
+    # Determine output filename
+    if args.output:
+        output_path = args.output
+    else:
+        stem = str(Path(input_path).with_suffix(""))
+        suffix = "_extracted.txt" if args.extract else "_converted.txt"
+        output_path = f"{stem}{suffix}"
+
+    if paths_refer_to_same_file(input_path_str, output_path):
+        print("❌ Input and output files must be different.", file=sys.stderr)
+        return 1
+
     specs = []
 
     if not args.extract:
@@ -321,14 +350,6 @@ def subcommand_pdf(args) -> int:
     except (ImportError, OSError, RuntimeError) as ex:
         print(f"❌ Failed to initialize PDFium: {ex}", file=sys.stderr)
         return 1
-
-    # Determine output filename
-    if args.output:
-        output_path = args.output
-    else:
-        stem = str(Path(input_path).with_suffix(""))
-        suffix = "_extracted.txt" if args.extract else "_converted.txt"
-        output_path = f"{stem}{suffix}"
 
     if args.timing:
         t0_total = time.perf_counter()

@@ -141,8 +141,8 @@ checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 
 [[package]]
 name = "opencc-fmmseg"
-version = "0.11.5"
-source = "git+https://github.com/laisuk/opencc-fmmseg.git?branch=master#9ee8a5cef28751ebfd25c8d9eb1911f40c087582"
+version = "0.11.6"
+source = "git+https://github.com/laisuk/opencc-fmmseg.git?branch=master#bfd3e06153f1bb4e2ffd253d766b2d2626de481f"
 dependencies = [
  "rayon",
  "rayon-core",
