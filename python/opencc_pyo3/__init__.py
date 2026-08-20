@@ -171,7 +171,7 @@ class OpenCC(_OpenCC):
         :param config: One of OpenccConfig or a canonical string like "s2t".
         """
         cfg = self._normalize_config(config)
-        self.apply_config(cfg)
+        super().apply_config(cfg)
 
     def get_config(self) -> str:
         """

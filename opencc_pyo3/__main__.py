@@ -212,13 +212,19 @@ def subcommand_convert(args):
     out_to = args.output if args.output else "stdout"
     if sys.stderr.isatty():
         if not args.output and output_str and not output_str.endswith("\n"):
-            print()
-        # print(f"Conversion completed ({args.config}): {in_from} -> {out_to}", file=sys.stderr)
+            sys.stdout.write("\n")
+            sys.stdout.flush()
         status = f"Conversion completed ({args.config}"
         if args.detofu:
             status += f", detofu: {args.detofu}"
         if args.norm_compat:
             status += f", norm-compat: {args.norm_compat}"
+        if specs:
+            custom_status = ",".join(
+                f"{spec['slot']}:{spec.get('mode', 'append')}"
+                for spec in specs
+            )
+            status += f", custom:{custom_status}"
         status += f"): {in_from} -> {out_to}"
         print(status, file=sys.stderr)
 
