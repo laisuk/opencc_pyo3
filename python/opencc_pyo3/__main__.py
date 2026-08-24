@@ -141,6 +141,7 @@ def subcommand_convert(args):
         print("Input text to convert, <Ctrl+Z>/<Ctrl+D> to submit:", file=sys.stderr)
 
     # Read the entire input from a file or standard input.
+    input_str = ""
     try:
         with io.open(args.input if args.input else 0, encoding=args.in_enc) as f:
             input_str = f.read()
@@ -154,7 +155,9 @@ def subcommand_convert(args):
 
     try:
         # Optional Unicode compatibility normalization before OpenCC conversion.
-        if getattr(args, "norm_compat", False):
+        if getattr(args, "norm_compat_extended", False):
+            input_str = opencc.normalize_compat_extended(input_str)
+        elif getattr(args, "norm_compat", False):
             input_str = opencc.normalize_compat(input_str)
 
         # Perform OpenCC conversion
@@ -217,8 +220,10 @@ def subcommand_convert(args):
         status = f"Conversion completed ({args.config}"
         if args.detofu:
             status += f", detofu: {args.detofu}"
-        if args.norm_compat:
-            status += f", norm-compat: {args.norm_compat}"
+        if args.norm_compat_extended:
+            status += ", norm-compat: extended"
+        elif args.norm_compat:
+            status += ", norm-compat"
         if specs:
             custom_status = ",".join(
                 f"{spec['slot']}:{spec.get('mode', 'append')}"
@@ -434,14 +439,18 @@ def subcommand_pdf(args) -> int:
             return 1
 
         # Optional pre-processing step: normalize CJK Compatibility Ideographs.
-        if getattr(args, "norm_compat", False):
+        if getattr(args, "norm_compat_extended", False):
+            text = opencc.normalize_compat_extended(text)
+        elif getattr(args, "norm_compat", False):
             text = opencc.normalize_compat(text)
+
         text = opencc.convert(text, args.punct)
     else:
         if (
                 args.config
                 or args.punct
                 or args.norm_compat
+                or args.norm_compat_extended
                 or args.custom_dict
         ):
             print(
@@ -524,6 +533,16 @@ def main():
         action="store_true",
         default=False,
         help="Normalize CJK Compatibility Ideographs before conversion. (Default: False)",
+    )
+    parser_convert.add_argument(
+        "-E",
+        "--norm-compat-extended",
+        action="store_true",
+        default=False,
+        help=(
+            "Normalize extended Unicode compatibility forms before conversion. "
+            "(Default: False)"
+        ),
     )
     parser_convert.add_argument(
         "--detofu",
@@ -715,6 +734,16 @@ def main():
         action="store_true",
         default=False,
         help="Normalize CJK Compatibility Ideographs before conversion. (Default: False)",
+    )
+    parser_pdf.add_argument(
+        "-E",
+        "--norm-compat-extended",
+        action="store_true",
+        default=False,
+        help=(
+            "Normalize extended Unicode compatibility forms before conversion. "
+            "(Default: False)"
+        ),
     )
     parser_pdf.add_argument(
         "-D",

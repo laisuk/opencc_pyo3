@@ -9,9 +9,17 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ## [0.10.4] - Unreleased
 
+### Added
+
+- Added `OpenCC.normalize_compat_extended()` for extended Unicode compatibility normalization, including the existing
+  CJK Compatibility Ideograph normalization.
+- CLI: Added `-E` / `--norm-compat-extended` to `convert` and `pdf` for extended Unicode compatibility normalization
+  before conversion.
+
 ### Changed
 
-- CLI: Optimized args validation handling.
+- CLI: Optimized argument validation handling.
+- Updated `opencc-fmmseg` to v0.11.6
 
 ---
 
@@ -29,8 +37,8 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 - Updated `opencc-fmmseg` to v0.11.5.
 - Replaced the duplicated Python-binding slot normalization table with
   `DictSlot::from_name_ignore_ascii_case()` as the single source of truth.
-- Tightened Python 3.8-compatible custom dictionary `TypedDict` definitions so `slot` and `pairs`/`files` are
-  required while `mode` remains optional.
+- Tightened Python 3.8-compatible custom dictionary `TypedDict` definitions so `slot` and `pairs`/`files` are required
+  while `mode` remains optional.
 - Aligned public Python return annotations and native type stubs.
 - PDF conversion now fails with an error for invalid custom dictionaries, matching the `convert` and `office`
   commands instead of silently using embedded dictionaries.
@@ -176,8 +184,8 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 - Refactored `office_helper.convert_office_doc()` to accept a null output path and auto-generate a sibling
   `*_converted.<ext>` file for direct Python callers, matching the CLI `office` subcommand behavior.
-- Made `pdfium_loader` more tolerant in frozen apps by preserving the current `_MEIPASS/opencc_pyo3` lookup
-  first, then falling back to module-relative and flatter extracted layouts for PyInstaller/Nuitka packaging.
+- Made `pdfium_loader` more tolerant in frozen apps by preserving the current `_MEIPASS/opencc_pyo3` lookup first, then
+  falling back to module-relative and flatter extracted layouts for PyInstaller/Nuitka packaging.
 
 ---
 
@@ -254,9 +262,9 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ### Changed
 
-- **Lazy-load PDFium native backend**: PDFium is now imported and loaded only when the `pdf` subcommand is executed
-  (and when `--engine auto|pdfium` is selected). This avoids eager native loading during normal library import
-  and keeps `convert` / `office` workflows unaffected.
+- **Lazy-load PDFium native backend**: PDFium is now imported and loaded only when the `pdf` subcommand is executed (and
+  when `--engine auto|pdfium` is selected). This avoids eager native loading during normal library import and keeps
+  `convert` / `office` workflows unaffected.
 
 ---
 
@@ -359,7 +367,7 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ### Added
 
-- Add set_config(), get_config() and supported_configs().
+- Add set_config (), get_config () and supported_configs ().
 - Add opencc_py03 executable script.
 
 ### Changed

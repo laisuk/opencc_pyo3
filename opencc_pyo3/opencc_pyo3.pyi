@@ -158,6 +158,18 @@ class OpenCC:
         """
         ...
 
+    def normalize_compat_extended(self, text: str) -> str:
+        """
+        Normalize extended Unicode compatibility forms and CJK Compatibility
+        Ideographs using the built-in Unicode tables.
+
+        This is a superset of ``normalize_compat()``.
+
+        :param text: Input text.
+        :return: Extended-normalized text.
+        """
+        ...
+
     def detofu(self, text: str, level: str = "all") -> str:
         """
         Convert non-BMP CJK extension characters to display-safe fallbacks.

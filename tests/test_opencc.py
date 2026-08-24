@@ -204,6 +204,17 @@ class TestOpenCC(unittest.TestCase):
         self.assertEqual(normalized, "天龍八部書裡的喬峰是契丹人")
         self.assertEqual(converted, "天龙八部书里的乔峰是契丹人")
 
+    def test_normalize_compat_extended(self):
+        cc = OpenCC("t2s")
+
+        input_text = "聼聼竒羙⽟䂖甁噐⾳"
+
+        normalized = cc.normalize_compat_extended(input_text)
+        converted = cc.convert(normalized)
+
+        self.assertEqual(normalized, "聽聽奇美玉石瓶器音")
+        self.assertEqual(converted, "听听奇美玉石瓶器音")
+
     def test_opencc_detofu(self):
         cc = OpenCC()
         input_text = "𠉂𪠟𫝈𫬐"

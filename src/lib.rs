@@ -347,6 +347,24 @@ impl OpenCC {
         self.opencc.normalize_compat(text)
     }
 
+    /// Normalizes extended Unicode compatibility forms with the built-in tables.
+    ///
+    /// This is a convenience wrapper around the underlying `opencc-fmmseg`
+    /// extended compatibility normalizer. It applies the extended Unicode
+    /// compatibility mappings together with CJK Compatibility Ideograph
+    /// normalization.
+    ///
+    /// This is an optional pre-processing step and does not modify this
+    /// [`OpenCC`] instance, its selected config, conversion dictionaries,
+    /// segmentation behavior, script detection, or punctuation conversion.
+    ///
+    /// Use this before [`OpenCC::convert`] when input may contain extended
+    /// Unicode compatibility forms. This is a superset of
+    /// [`OpenCC::normalize_compat`].
+    fn normalize_compat_extended(&self, text: &str) -> String {
+        self.opencc.normalize_compat_extended(text)
+    }
+
     /// Convert rare CJK extension characters to display-safe fallback characters.
     ///
     /// Python signature:
