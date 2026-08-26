@@ -321,9 +321,9 @@ def subcommand_office(args):
 
 def subcommand_pdf(args) -> int:
     import time
-    from typing import List
+    from typing import List, Optional
 
-    t0_total = None
+    t0_total: Optional[float] = None
     input_path = args.input
     input_path_str = str(input_path)
 
@@ -408,7 +408,7 @@ def subcommand_pdf(args) -> int:
 
     text = "".join(pages)
 
-    if args.timing:
+    if args.timing and t0_total is not None:
         t1_extract = time.perf_counter()
         print(f"[timing] PDF extract: {(t1_extract - t0_total) * 1000:.1f} ms")
 

@@ -27,7 +27,7 @@ def on_page(page: int, total: int, text: str) -> None:
 
 
 def main() -> None:
-    input_path_str = str(input_file)
+    input_path_str = input_file
 
     p = Path(input_path_str)
     if not p.is_file():

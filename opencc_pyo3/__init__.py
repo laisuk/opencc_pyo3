@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Union, Optional, List, Tuple, TypedDict
+from typing import Union, Optional, List, Tuple, TypedDict, cast
 
 from .opencc_pyo3 import (
     OpenCC as _OpenCC,
@@ -27,8 +27,6 @@ class OpenccConfig(str, Enum):
     JP2T = "jp2t"
     S2HKP = "s2hkp"
     HK2SP = "hk2sp"
-
-    value: str
 
     def to_canonical_name(self) -> str:
         """Return OpenCC canonical config name (e.g. 's2t')."""
@@ -132,7 +130,7 @@ class OpenCC(_OpenCC):
         """
         cfg = cls._normalize_config(config)
         native_specs = [] if specs is None else specs
-        return _OpenCC.from_dicts(cfg, native_specs)
+        return cast("OpenCC", _OpenCC.from_dicts(cfg, native_specs))
 
     @classmethod
     def from_dict_files(
@@ -152,7 +150,7 @@ class OpenCC(_OpenCC):
         """
         cfg = cls._normalize_config(config)
         native_specs = [] if specs is None else specs
-        return _OpenCC.from_dict_files(cfg, native_specs)
+        return cast("OpenCC", _OpenCC.from_dict_files(cfg, native_specs))
 
     @staticmethod
     def _normalize_config(config: _ConfigLike) -> str:

@@ -57,7 +57,8 @@ def main() -> int:
 
     out_path = Path(args.output)
     print(f"Writing reflowed text to: {out_path}")
-    out_path.write_text(reflowed, encoding="utf-8", newline="\n")
+    with out_path.open("w", encoding="utf-8", newline="\n") as f:
+        f.write(reflowed)
 
     print("Done.")
     return 0

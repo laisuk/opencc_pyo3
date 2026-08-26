@@ -7,7 +7,7 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
-## [0.10.4] - Unreleased
+## [0.11.0] - Unreleased
 
 ### Added
 
@@ -19,7 +19,7 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 ### Changed
 
 - CLI: Optimized argument validation handling.
-- Updated `opencc-fmmseg` to v0.11.6
+- Updated `opencc-fmmseg` to v0.12.0
 
 ---
 
