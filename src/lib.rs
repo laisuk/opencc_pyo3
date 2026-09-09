@@ -380,7 +380,7 @@ impl OpenCC {
     #[pyo3(signature = (text, level = "all"))]
     fn detofu(&self, text: &str, level: &str) -> PyResult<String> {
         let level = parse_detofu_level(level)?;
-        Ok(opencc_fmmseg::detofu(text, level))
+        Ok(DetofuMap::builtin(level).detofu(text))
     }
 
     /// Convert text with built-in DeTofu mappings plus a custom fallback file.

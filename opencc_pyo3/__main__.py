@@ -100,6 +100,41 @@ def paths_refer_to_same_file(input_path: str, output_path: str) -> bool:
     )
 
 
+def validate_detofu_args(args) -> bool:
+    """Validate shared DeTofu CLI argument dependencies."""
+    if getattr(args, "detofu_file", None) and not getattr(args, "detofu", None):
+        print("❌  --detofu-file requires --detofu", file=sys.stderr)
+        return False
+    return True
+
+
+def make_text_converter(opencc: OpenCC, args):
+    """Build normalize -> OpenCC convert -> DeTofu text pipeline."""
+    norm_extended = getattr(args, "norm_compat_extended", False)
+    norm_compat = getattr(args, "norm_compat", False)
+    punct = getattr(args, "punct", False)
+    detofu = getattr(args, "detofu", None)
+    detofu_file = getattr(args, "detofu_file", None)
+
+    def convert_text(text: str) -> str:
+        if norm_extended:
+            text = opencc.normalize_compat_extended(text)
+        elif norm_compat:
+            text = opencc.normalize_compat(text)
+
+        text = opencc.convert(text, punct)
+
+        if detofu:
+            if detofu_file:
+                text = opencc.detofu_with_custom_file(text, detofu, detofu_file)
+            else:
+                text = opencc.detofu(text, detofu)
+
+        return text
+
+    return convert_text
+
+
 def subcommand_convert(args):
     import io
 
@@ -118,8 +153,7 @@ def subcommand_convert(args):
         return 1
 
     # Optional DeTofu display-safe fallback
-    if args.detofu_file and not args.detofu:
-        print("❌  --detofu-file requires --detofu", file=sys.stderr)
+    if not validate_detofu_args(args):
         return 1
 
     # Parse custom dictionary specifications and construct the converter only
@@ -154,26 +188,8 @@ def subcommand_convert(args):
         return 1
 
     try:
-        # Optional Unicode compatibility normalization before OpenCC conversion.
-        if getattr(args, "norm_compat_extended", False):
-            input_str = opencc.normalize_compat_extended(input_str)
-        elif getattr(args, "norm_compat", False):
-            input_str = opencc.normalize_compat(input_str)
-
-        # Perform OpenCC conversion
-        output_str = opencc.convert(input_str, args.punct)
-
-        if args.detofu:
-            level = args.detofu
-
-            if args.detofu_file:
-                output_str = opencc.detofu_with_custom_file(
-                    output_str,
-                    level,
-                    args.detofu_file,
-                )
-            else:
-                output_str = opencc.detofu(output_str, level)
+        text_converter = make_text_converter(opencc, args)
+        output_str = text_converter(input_str)
     except ValueError as ex:
         print("❌  Conversion failed: {}".format(ex), file=sys.stderr)
         return 1
@@ -249,7 +265,6 @@ def subcommand_office(args):
     output_file = args.output
     office_format = args.format.lower() if args.format else None
     config = args.config
-    punct = args.punct
     keep_font = getattr(args, "keep_font", False)
 
     # Check for invalid input files
@@ -286,6 +301,9 @@ def subcommand_office(args):
         print("❌ Input and output files must be different.", file=sys.stderr)
         return 1
 
+    if not validate_detofu_args(args):
+        return 1
+
     try:
         specs = custom_dict_specs_from_args(args)
     except ValueError as ex:
@@ -299,13 +317,14 @@ def subcommand_office(args):
         return 1
 
     try:
-        # Perform Office document conversion
+        office_text_converter = make_text_converter(opencc, args)
+
+        # Perform Office document conversion using the shared text pipeline.
         success, message = convert_office_doc(
             input_file,
             output_file,
             office_format,
-            opencc,
-            punct,
+            office_text_converter,
             keep_font,
         )
         if success:
@@ -438,13 +457,8 @@ def subcommand_pdf(args) -> int:
             print(f"❌ Failed to initialize OpenCC: {ex}", file=sys.stderr)
             return 1
 
-        # Optional pre-processing step: normalize CJK Compatibility Ideographs.
-        if getattr(args, "norm_compat_extended", False):
-            text = opencc.normalize_compat_extended(text)
-        elif getattr(args, "norm_compat", False):
-            text = opencc.normalize_compat(text)
-
-        text = opencc.convert(text, args.punct)
+        text_converter = make_text_converter(opencc, args)
+        text = text_converter(text)
     else:
         if (
                 args.config
@@ -626,6 +640,42 @@ def main():
         action="store_true",
         default=False,
         help="Enable punctuation conversion. (Default: False)",
+    )
+    parser_office.add_argument(
+        "-n",
+        "--norm-compat",
+        action="store_true",
+        default=False,
+        help="Normalize CJK Compatibility Ideographs before conversion. (Default: False)",
+    )
+    parser_office.add_argument(
+        "-E",
+        "--norm-compat-extended",
+        action="store_true",
+        default=False,
+        help=(
+            "Normalize extended Unicode compatibility forms before conversion. "
+            "(Default: False)"
+        ),
+    )
+    parser_office.add_argument(
+        "--detofu",
+        nargs="?",
+        const="all",
+        default=None,
+        metavar="<level>",
+        help=(
+            "Apply tofu-safe fallback after conversion. "
+            "Levels: all/ExtB, ExtC, ExtD, ExtE, ExtF, ExtG, ExtH, ExtI."
+        ),
+    )
+    parser_office.add_argument(
+        "--detofu-file",
+        metavar="<file>",
+        help=(
+            "Load additional detofu fallback mappings from a UTF-8 text file. "
+            "Custom mappings override built-in mappings; requires --detofu."
+        ),
     )
     parser_office.add_argument(
         "-f",

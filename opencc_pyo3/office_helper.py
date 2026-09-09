@@ -18,9 +18,7 @@ import shutil
 import tempfile
 import zipfile
 from pathlib import Path
-from typing import Dict, IO, List, Match, Optional, Tuple
-
-from opencc_pyo3 import OpenCC
+from typing import Callable, Dict, IO, List, Match, Optional, Tuple
 
 # Global list of supported Office document formats
 OFFICE_FORMATS: List[str] = [
@@ -43,13 +41,14 @@ _XLSX_TEXT_NODE_RE: re.Pattern[str] = re.compile(
     re.DOTALL,
 )
 
+OfficeTextConverter = Callable[[str], str]
+
 
 def convert_office_doc(
         input_path: str,
         output_path: Optional[str],
         office_format: str,
-        converter: OpenCC,
-        punctuation: bool = False,
+        office_text_converter: OfficeTextConverter,
         keep_font: bool = False,
 ) -> Tuple[bool, str]:
     """
@@ -61,8 +60,7 @@ def convert_office_doc(
         output_path: Path for the output converted document. If None, a sibling
             file named "<input>_converted.<ext>" is created.
         office_format: One of 'docx', 'xlsx', 'pptx', 'odt', 'ods', 'odp', 'epub'.
-        converter: An object with a method `convert(text, punctuation=True|False)`.
-        punctuation: Whether to convert punctuation.
+        office_text_converter: Callable that transforms selected Office/EPUB text.
         keep_font: If True, font names are preserved during conversion.
 
     Returns:
@@ -131,11 +129,10 @@ def convert_office_doc(
                 converted = _convert_xlsx_xml_part(
                     xml_content,
                     relative_path,
-                    converter,
-                    punctuation,
+                    office_text_converter,
                 )
             else:
-                converted = converter.convert(xml_content, punctuation=punctuation)
+                converted = office_text_converter(xml_content)
 
             if keep_font and font_map:
                 for marker, original in font_map.items():
@@ -287,8 +284,7 @@ def _is_xlsx_worksheet_path(relative_path: Path) -> bool:
 def _convert_xlsx_xml_part(
         xml_content: str,
         relative_path: Path,
-        converter: OpenCC,
-        punctuation: bool,
+        office_text_converter: OfficeTextConverter,
 ) -> str:
     """
     Converts an XLSX XML part using narrow rules:
@@ -299,7 +295,7 @@ def _convert_xlsx_xml_part(
     normalized = relative_path.as_posix()
 
     if normalized.lower() == "xl/sharedstrings.xml":
-        return converter.convert(xml_content, punctuation=punctuation)
+        return office_text_converter(xml_content)
 
     if _is_xlsx_worksheet_path(relative_path):
         def replace_cell(cell_match: Match[str]) -> str:
@@ -313,7 +309,7 @@ def _convert_xlsx_xml_part(
                 if not inner_text:
                     return text_match.group(0)
 
-                converted_text = converter.convert(inner_text, punctuation=punctuation)
+                converted_text = office_text_converter(inner_text)
                 return f"{open_tag}{converted_text}{close_tag}"
 
             return _XLSX_TEXT_NODE_RE.sub(replace_text, cell_xml)
