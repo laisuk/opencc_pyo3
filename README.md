@@ -80,9 +80,9 @@ Sub-Commands are:
 
 #### convert
 
-```bash
+```
 python -m opencc_pyo3 convert --help
-usage: opencc-pyo3 convert [-h] [-i <file>] [-o <file>] [-c <conversion>] [-p] [-n] [--detofu [<level>]] [--detofu-file <file>] [-D <slot:mode:path>]
+usage: opencc-pyo3 convert [-h] [-i <file>] [-o <file>] [-c <conversion>] [-p] [-n] [-E] [--detofu [<level>]] [--detofu-file <file>] [-D <slot:mode:path>]
                            [--in-enc <encoding>] [--out-enc <encoding>]
 
 optional arguments:
@@ -92,17 +92,23 @@ optional arguments:
   -o <file>, --output <file>
                         Write converted text to <file>. (default: None)
   -c <conversion>, --config <conversion>
-                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|t2hkp|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|hk2tp|jp2t|t2jp (default: None)
+                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|t2hkp|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|hk2tp|jp2t|t2jp (default:
+                        None)
   -p, --punct           Enable punctuation conversion. (Default: False) (default: False)
   -n, --norm-compat     Normalize CJK Compatibility Ideographs before conversion. (Default: False) (default: False)
+  -E, --norm-compat-extended
+                        Normalize extended Unicode compatibility forms before conversion. (Default: False) (default: False)
   --detofu [<level>]    Apply tofu-safe fallback after conversion. Levels: all/ExtB, ExtC, ExtD, ExtE, ExtF, ExtG, ExtH, ExtI. (default: None)
   --detofu-file <file>  Load additional detofu fallback mappings from a UTF-8 text file. Custom mappings override built-in mappings; requires --detofu.
                         (default: None)
   -D <slot:mode:path>, --custom-dict <slot:mode:path>
-                        Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times.
-                        Available slots: STCharacters|STPhrases|STPunctuations|TSCharacters|TSPhrases|TSPunctuations|TWPhrases|TWPhrasesRev|HKPhrases|HKPhrasesRev|TWVariants|TWVariantsPhrases|TWVariantsRev|TWVariantsRevPhrases|HKVariants|HKVariantsPhrases|HKVariantsRev|HKVariantsRevPhrases|JPSCharacters|JPSCharactersRev|JPSPhrases (default: None)
+                        Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times. Available slots: STC
+                        haracters|STPhrases|STPunctuations|TSCharacters|TSPhrases|TSPunctuations|TWPhrases|TWPhrasesRev|HKPhrases|HKPhrasesRev|TWVariants|TWVar
+                        iantsPhrases|TWVariantsRev|TWVariantsRevPhrases|HKVariants|HKVariantsPhrases|HKVariantsRev|HKVariantsRevPhrases|JPSCharacters|JPSCharac
+                        tersRev|JPSPhrases (default: None)
   --in-enc <encoding>   Encoding for input. (Default: UTF-8) (default: UTF-8)
-  --out-enc <encoding>  Encoding for output. (Default: UTF-8) (default: UTF-8)
+  --out-enc <encoding>  Encoding for output files and redirected stdout. Interactive console output uses the terminal's Unicode stream. (Default: UTF-8)
+                        (default: UTF-8)
 ```
 
 ---
@@ -111,9 +117,10 @@ optional arguments:
 
 Support OpenOffice documents and Epub (`.docx`, `.xlsx`, `.pptx`, `.odt`, `.ods`, `.odp`, `.epub`)
 
-```bash
+```
 python -m opencc_pyo3 office --help                                         
-usage: opencc-pyo3 office [-h] [-i <file>] [-o <file>] [-c <conversion>] [-p] [-f <format>] [-k] [-D <slot:mode:path>]                                
+usage: opencc-pyo3 office [-h] -i <file> [-o <file>] [-c <conversion>] [-p] [-n] [-E] [--detofu [<level>]] [--detofu-file <file>] [-f <format>] [-k]
+                          [-D <slot:mode:path>]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -122,14 +129,23 @@ optional arguments:
   -o <file>, --output <file>
                         Output Office document to <file>. (default: None)
   -c <conversion>, --config <conversion>
-                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|t2hkp|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|hk2tp|jp2t|t2jp (default: None)
+                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|t2hkp|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|hk2tp|jp2t|t2jp (default:
+                        None)
   -p, --punct           Enable punctuation conversion. (Default: False) (default: False)
+  -n, --norm-compat     Normalize CJK Compatibility Ideographs before conversion. (Default: False) (default: False)
+  -E, --norm-compat-extended
+                        Normalize extended Unicode compatibility forms before conversion. (Default: False) (default: False)
+  --detofu [<level>]    Apply tofu-safe fallback after conversion. Levels: all/ExtB, ExtC, ExtD, ExtE, ExtF, ExtG, ExtH, ExtI. (default: None)
+  --detofu-file <file>  Load additional detofu fallback mappings from a UTF-8 text file. Custom mappings override built-in mappings; requires --detofu.
+                        (default: None)
   -f <format>, --format <format>
                         Target Office format (e.g., docx, xlsx, pptx, odt, ods, odp, epub) (default: None)
   -k, --keep-font       Preserve font-family information in Office content (default: False)
   -D <slot:mode:path>, --custom-dict <slot:mode:path>
-                        Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times.
-                        Available slots: STCharacters|STPhrases|STPunctuations|TSCharacters|TSPhrases|TSPunctuations|TWPhrases|TWPhrasesRev|HKPhrases|HKPhrasesRev|TWVariants|TWVariantsPhrases|TWVariantsRev|TWVariantsRevPhrases|HKVariants|HKVariantsPhrases|HKVariantsRev|HKVariantsRevPhrases|JPSCharacters|JPSCharactersRev|JPSPhrases (default: None)
+                        Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times. Available slots: STC
+                        haracters|STPhrases|STPunctuations|TSCharacters|TSPhrases|TSPunctuations|TWPhrases|TWPhrasesRev|HKPhrases|HKPhrasesRev|TWVariants|TWVar
+                        iantsPhrases|TWVariantsRev|TWVariantsRevPhrases|HKVariants|HKVariantsPhrases|HKVariantsRev|HKVariantsRevPhrases|JPSCharacters|JPSCharac
+                        tersRev|JPSPhrases (default: None)
 ```
 
 ---
@@ -146,9 +162,9 @@ convert the result using OpenCC configurations.
 > Only text-embedded (searchable) PDF documents are supported.  
 > Scanned or image-only PDFs without an embedded text layer are not currently supported.
 
-```bash
+```
 python -m opencc_pyo3 pdf --help
-usage: opencc-pyo3 pdf [-h] -i <file> [-o <file>] [-c <conversion>] [-p] [-H] [-r] [-C] [--timing] [-e] [-n] [-D <slot:mode:path>]
+usage: opencc-pyo3 pdf [-h] -i <file> [-o <file>] [-c <conversion>] [-p] [-H] [-r] [-C] [--timing] [-e] [-n] [-E] [-D <slot:mode:path>]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -157,7 +173,8 @@ optional arguments:
   -o <file>, --output <file>
                         Output text file (UTF-8). If omitted, defaults to "<input>_converted.txt". (default: None)
   -c <conversion>, --config <conversion>
-                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|t2hkp|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|hk2tp|jp2t|t2jp (default: None)
+                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|t2hkp|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|hk2tp|jp2t|t2jp (default:
+                        None)
   -p, --punct           Enable punctuation conversion. (Default: False) (default: False)
   -H, --header          Preserve page-break-like gaps when reflowing CJK paragraphs (passed as add_pdf_page_header to reflow_cjk_paragraphs). (default: False)
   -r, --reflow          Enable CJK-aware paragraph reflow before conversion. (default: False)
@@ -165,9 +182,13 @@ optional arguments:
   --timing              Show time use for each process workflow. (default: False)
   -e, --extract         Extract PDF text only (skip OpenCC conversion). (default: False)
   -n, --norm-compat     Normalize CJK Compatibility Ideographs before conversion. (Default: False) (default: False)
+  -E, --norm-compat-extended
+                        Normalize extended Unicode compatibility forms before conversion. (Default: False) (default: False)
   -D <slot:mode:path>, --custom-dict <slot:mode:path>
-                        Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times.
-                        Available slots: STCharacters|STPhrases|STPunctuations|TSCharacters|TSPhrases|TSPunctuations|TWPhrases|TWPhrasesRev|HKPhrases|HKPhrasesRev|TWVariants|TWVariantsPhrases|TWVariantsRev|TWVariantsRevPhrases|HKVariants|HKVariantsPhrases|HKVariantsRev|HKVariantsRevPhrases|JPSCharacters|JPSCharactersRev|JPSPhrases (default: None)
+                        Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times. Available slots: STC
+                        haracters|STPhrases|STPunctuations|TSCharacters|TSPhrases|TSPunctuations|TWPhrases|TWPhrasesRev|HKPhrases|HKPhrasesRev|TWVariants|TWVar
+                        iantsPhrases|TWVariantsRev|TWVariantsRevPhrases|HKVariants|HKVariantsPhrases|HKVariantsRev|HKVariantsRevPhrases|JPSCharacters|JPSCharac
+                        tersRev|JPSPhrases (default: None)
 ```
 
 ```sh
