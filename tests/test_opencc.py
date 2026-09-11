@@ -108,7 +108,7 @@ class TestOpenCC(unittest.TestCase):
                 str(input_path),
                 None,
                 "docx",
-                converter,
+                converter.convert,
             )
 
             output_path = tmp_path / "sample_converted.docx"

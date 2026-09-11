@@ -1,10 +1,16 @@
 """
-OpenCC-based Office and EPUB document converter.
+Office and EPUB package conversion helpers.
 
-This module provides services functions to convert and repackage Office documents and EPUBs,
-supporting optional font preservation.
+This module provides an engine-independent conversion pipeline for ZIP-based
+Office formats and EPUB. Callers supply an ``OfficeTextConverter`` callable that
+owns text transformation policy, while this module owns package extraction and
+rebuild, target-part selection, XLSX inline-string handling, optional font
+preservation, EPUB packaging rules, ZIP-path safety, output validation, and
+transactional publication.
 
-Supported formats: docx, xlsx, pptx, odt, ods, odp, epub.
+Supported formats
+-----------------
+``docx``, ``xlsx``, ``pptx``, ``odt``, ``ods``, ``odp``, and ``epub``.
 
 Author
 ------
@@ -52,19 +58,38 @@ def convert_office_doc(
         keep_font: bool = False,
 ) -> Tuple[bool, str]:
     """
-    Converts an Office document by applying OpenCC conversion on specific XML parts.
-    Optionally preserves original font names to prevent them from being altered.
+    Convert an Office or EPUB package with a caller-supplied text transformer.
 
-    Args:
-        input_path: Path to input .docx, .xlsx, .pptx, .odt, .epub, etc.
-        output_path: Path for the output converted document. If None, a sibling
-            file named "<input>_converted.<ext>" is created.
-        office_format: One of 'docx', 'xlsx', 'pptx', 'odt', 'ods', 'odp', 'epub'.
-        office_text_converter: Callable that transforms selected Office/EPUB text.
-        keep_font: If True, font names are preserved during conversion.
+    The document layer is independent of any specific OpenCC implementation.
+    ``office_text_converter`` is invoked only for selected text-bearing package
+    content. Package structure, archive handling, format-specific part selection,
+    XLSX inline-string rules, optional font preservation, EPUB conformance, and
+    output publication remain owned by this module.
 
-    Returns:
-        (success: bool, message: str)
+    Existing output is not replaced until a complete candidate archive has been
+    created and validated successfully.
+
+    Parameters
+    ----------
+    input_path:
+        Path to the source ``.docx``, ``.xlsx``, ``.pptx``, ``.odt``, ``.ods``,
+        ``.odp``, or ``.epub`` package.
+    output_path:
+        Destination path. If ``None``, a sibling file named
+        ``<input-stem>_converted<original-extension>`` is used.
+    office_format:
+        Logical package format. Matching is case-insensitive.
+    office_text_converter:
+        Callable receiving selected text and returning its transformed replacement.
+        The callable must return a string.
+    keep_font:
+        Preserve recognized font-family attributes with temporary markers while
+        conversion is performed.
+
+    Returns
+    -------
+    Tuple[bool, str]
+        ``(True, message)`` on success, otherwise ``(False, error_message)``.
     """
     input_path = str(Path(input_path))
     output_path = _normalize_output_path(input_path, output_path, office_format)
@@ -132,7 +157,7 @@ def convert_office_doc(
                     office_text_converter,
                 )
             else:
-                converted = office_text_converter(xml_content)
+                converted = _apply_text_converter(office_text_converter, xml_content)
 
             if keep_font and font_map:
                 for marker, original in font_map.items():
@@ -144,19 +169,25 @@ def convert_office_doc(
         if converted_count == 0:
             return False, f"⚠️ No valid XML fragments were found. Is the format '{office_format}' correct?"
 
+        final_output = Path(output_path)
+        temp_output = _sibling_temp_output_path(final_output)
+
         try:
-            Path(output_path).unlink(missing_ok=True)
-        except TypeError:
-            if Path(output_path).exists():
-                Path(output_path).unlink()
+            if office_format == "epub":
+                success, message = create_epub_zip_with_spec(temp_dir, temp_output)
+                if not success:
+                    return False, message
+            else:
+                _create_zip_from_directory(temp_dir, temp_output)
 
-        if office_format == "epub":
-            return create_epub_zip_with_spec(temp_dir, Path(output_path))
-
-        with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-            for file in temp_dir.rglob("*"):
-                if file.is_file():
-                    archive.write(file, os.path.normpath(file.relative_to(temp_dir).as_posix()))
+            _validate_zip_file(temp_output)
+            os.replace(str(temp_output), str(final_output))
+        finally:
+            try:
+                if temp_output.exists():
+                    temp_output.unlink()
+            except OSError:
+                pass
 
         return True, f"✅ Successfully converted {converted_count} fragment(s) in {office_format} document."
 
@@ -240,15 +271,17 @@ def _get_target_xml_paths(office_format: str, base_dir: Path) -> Optional[List[P
     if office_format == "pptx":
         ppt_dir = base_dir / "ppt"
         if ppt_dir.is_dir():
-            return [
-                path.relative_to(base_dir)
-                for path in ppt_dir.rglob("*.xml")
-                if path.name.startswith("slide")
-                   or "notesSlide" in path.name
-                   or "slideMaster" in path.name
-                   or "slideLayout" in path.name
-                   or "comment" in path.name
-            ]
+            targets: List[Path] = []
+
+            for path in ppt_dir.rglob("*.xml"):
+                if not path.is_file():
+                    continue
+
+                relative_path = path.relative_to(base_dir)
+                if _is_pptx_target_xml_path(relative_path):
+                    targets.append(relative_path)
+
+            return targets
 
     if office_format in ("odt", "ods", "odp"):
         return [Path("content.xml")]
@@ -261,6 +294,79 @@ def _get_target_xml_paths(office_format: str, base_dir: Path) -> Optional[List[P
         ]
 
     return None
+
+
+def _is_pptx_target_xml_path(relative_path: Path) -> bool:
+    """
+    Return whether a PPTX XML part is intended for text conversion.
+
+    Matching uses normalized package-relative paths rather than broad filename
+    substring tests so unrelated XML parts are left untouched.
+    """
+    normalized = relative_path.as_posix().lower()
+
+    if not normalized.endswith(".xml"):
+        return False
+
+    return (
+            normalized.startswith("ppt/slides/")
+            or normalized.startswith("ppt/notesslides/")
+            or normalized.startswith("ppt/slidemasters/")
+            or normalized.startswith("ppt/slidelayouts/")
+            or normalized.startswith("ppt/comments/")
+            or normalized == "ppt/commentauthors.xml"
+    )
+
+
+def _sibling_temp_output_path(output_path: Path) -> Path:
+    """
+    Create a unique candidate-output path beside the final destination.
+
+    Keeping the temporary archive in the same directory allows ``os.replace``
+    to publish it without crossing filesystems.
+    """
+    final_path = Path(os.path.abspath(str(output_path)))
+    final_path.parent.mkdir(parents=True, exist_ok=True)
+
+    fd, temp_name = tempfile.mkstemp(
+        prefix=f".{final_path.name}.",
+        suffix=".tmp",
+        dir=str(final_path.parent),
+    )
+    os.close(fd)
+
+    temp_path = Path(temp_name)
+    try:
+        temp_path.unlink()
+    except OSError:
+        pass
+
+    return temp_path
+
+
+def _create_zip_from_directory(source_dir: Path, output_path: Path) -> None:
+    """Create a normal deflated Office/ODF ZIP package from ``source_dir``."""
+    with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for file in source_dir.rglob("*"):
+            if not file.is_file():
+                continue
+
+            archive.write(file, file.relative_to(source_dir).as_posix())
+
+
+def _validate_zip_file(path: Path) -> None:
+    """
+    Validate that ``path`` is a readable ZIP archive with no CRC failures.
+
+    Raises ``zipfile.BadZipFile`` when the candidate archive is unreadable or a
+    member fails its CRC check.
+    """
+    with zipfile.ZipFile(path, "r") as archive:
+        bad_member = archive.testzip()
+        if bad_member is not None:
+            raise zipfile.BadZipFile(
+                f"CRC check failed for ZIP entry: {bad_member}"
+            )
 
 
 def _should_mask_fonts(office_format: str, relative_path: Path) -> bool:
@@ -295,7 +401,7 @@ def _convert_xlsx_xml_part(
     normalized = relative_path.as_posix()
 
     if normalized.lower() == "xl/sharedstrings.xml":
-        return office_text_converter(xml_content)
+        return _apply_text_converter(office_text_converter, xml_content)
 
     if _is_xlsx_worksheet_path(relative_path):
         def replace_cell(cell_match: Match[str]) -> str:
@@ -309,7 +415,7 @@ def _convert_xlsx_xml_part(
                 if not inner_text:
                     return text_match.group(0)
 
-                converted_text = office_text_converter(inner_text)
+                converted_text = _apply_text_converter(office_text_converter, inner_text)
                 return f"{open_tag}{converted_text}{close_tag}"
 
             return _XLSX_TEXT_NODE_RE.sub(replace_text, cell_xml)
@@ -317,6 +423,17 @@ def _convert_xlsx_xml_part(
         return _XLSX_INLINE_STRING_CELL_RE.sub(replace_cell, xml_content)
 
     return xml_content
+
+
+def _apply_text_converter(
+        office_text_converter: OfficeTextConverter,
+        text: str,
+) -> str:
+    """Apply the text converter and reject an invalid ``None`` result."""
+    converted = office_text_converter(text)
+    if converted is None:
+        raise ValueError("Office text converter returned None.")
+    return converted
 
 
 def _get_font_regex_pattern(office_format: str) -> Optional[re.Pattern[str]]:
@@ -344,21 +461,34 @@ def _get_font_regex_pattern(office_format: str) -> Optional[re.Pattern[str]]:
 
 def create_epub_zip_with_spec(source_dir: Path, output_path: Path) -> Tuple[bool, str]:
     """
-    Creates a valid EPUB-compliant ZIP archive.
-    Ensures `mimetype` is the first file and uncompressed.
+    Create an EPUB-compliant ZIP package.
 
-    Args:
-        source_dir: The unpacked EPUB directory.
-        output_path: Final path to .epub file.
+    The EPUB ``mimetype`` entry is written first and stored without compression.
+    All remaining package files are written with deflate compression.
 
-    Returns:
-        Tuple of (success, message)
+    This function creates the archive only. Callers that require transactional
+    publication should write to a temporary path, validate the archive, and then
+    replace the final destination.
+
+    Parameters
+    ----------
+    source_dir:
+        Root directory containing the unpacked EPUB package.
+    output_path:
+        Path of the ZIP/EPUB archive to create.
+
+    Returns
+    -------
+    Tuple[bool, str]
+        ``(True, message)`` on success, otherwise ``(False, error_message)``.
     """
     mime_path = source_dir / "mimetype"
 
     try:
         if not mime_path.is_file():
             return False, "❌ 'mimetype' file is missing. EPUB requires it as the first entry."
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
 
         with zipfile.ZipFile(output_path, "w") as epub:
             epub.write(mime_path, "mimetype", compress_type=zipfile.ZIP_STORED)
