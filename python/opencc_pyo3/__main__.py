@@ -110,11 +110,13 @@ def validate_detofu_args(args) -> bool:
 
 def make_text_converter(opencc: OpenCC, args):
     """Build normalize -> OpenCC convert -> DeTofu text pipeline."""
+    from typing import Optional
+
     norm_extended = getattr(args, "norm_compat_extended", False)
     norm_compat = getattr(args, "norm_compat", False)
     punct = getattr(args, "punct", False)
-    detofu = getattr(args, "detofu", None)
-    detofu_file = getattr(args, "detofu_file", None)
+    detofu: Optional[str] = getattr(args, "detofu", None)
+    detofu_file: Optional[str] = getattr(args, "detofu_file", None)
 
     def convert_text(text: str) -> str:
         if norm_extended:
