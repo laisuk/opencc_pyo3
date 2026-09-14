@@ -164,7 +164,8 @@ convert the result using OpenCC configurations.
 
 ```
 python -m opencc_pyo3 pdf --help
-usage: opencc-pyo3 pdf [-h] -i <file> [-o <file>] [-c <conversion>] [-p] [-H] [-r] [-C] [--timing] [-e] [-n] [-E] [-D <slot:mode:path>]
+usage: opencc-pyo3 pdf [-h] -i <file> [-o <file>] [-c <conversion>] [-p] [-H] [-r] [-C] [--timing] [-e] [-n] [-E] [--detofu [<level>]] [--detofu-file <file>]
+                       [-D <slot:mode:path>]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -184,6 +185,9 @@ optional arguments:
   -n, --norm-compat     Normalize CJK Compatibility Ideographs before conversion. (Default: False) (default: False)
   -E, --norm-compat-extended
                         Normalize extended Unicode compatibility forms before conversion. (Default: False) (default: False)
+  --detofu [<level>]    Apply tofu-safe fallback after conversion. Levels: all/ExtB, ExtC, ExtD, ExtE, ExtF, ExtG, ExtH, ExtI. (default: None)
+  --detofu-file <file>  Load additional detofu fallback mappings from a UTF-8 text file. Custom mappings override built-in mappings; requires --detofu.
+                        (default: None)
   -D <slot:mode:path>, --custom-dict <slot:mode:path>
                         Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times. Available slots: STC
                         haracters|STPhrases|STPunctuations|TSCharacters|TSPhrases|TSPunctuations|TWPhrases|TWPhrasesRev|HKPhrases|HKPhrasesRev|TWVariants|TWVar

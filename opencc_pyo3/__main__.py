@@ -369,6 +369,8 @@ def subcommand_pdf(args) -> int:
     specs = []
 
     if not args.extract:
+        if not validate_detofu_args(args):
+            return 1
         try:
             specs = custom_dict_specs_from_args(args)
         except ValueError as ex:
@@ -467,6 +469,8 @@ def subcommand_pdf(args) -> int:
                 or args.punct
                 or args.norm_compat
                 or args.norm_compat_extended
+                or args.detofu
+                or args.detofu_file
                 or args.custom_dict
         ):
             print(
@@ -798,6 +802,25 @@ def main():
         ),
     )
     parser_pdf.add_argument(
+        "--detofu",
+        nargs="?",
+        const="all",
+        default=None,
+        metavar="<level>",
+        help=(
+            "Apply tofu-safe fallback after conversion. "
+            "Levels: all/ExtB, ExtC, ExtD, ExtE, ExtF, ExtG, ExtH, ExtI."
+        ),
+    )
+    parser_pdf.add_argument(
+        "--detofu-file",
+        metavar="<file>",
+        help=(
+            "Load additional detofu fallback mappings from a UTF-8 text file. "
+            "Custom mappings override built-in mappings; requires --detofu."
+        ),
+    )
+    parser_pdf.add_argument(
         "-D",
         "--custom-dict",
         action="append",
@@ -813,7 +836,6 @@ def main():
 
     args = parser.parse_args()
     return args.func(args)
-
 
 if __name__ == "__main__":
     sys.exit(main())
