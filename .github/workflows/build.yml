@@ -251,7 +251,7 @@ jobs:
           find dist -name '*.whl' -exec mv {} final_dist/ \;
 
       - name: Create beta GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           prerelease: true
           files: final_dist/*.whl

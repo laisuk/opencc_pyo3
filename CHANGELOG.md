@@ -19,7 +19,7 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 ### Changed
 
 - CLI: Optimized argument validation handling.
-- Updated `opencc-fmmseg` to v0.12.0
+- Updated `opencc-fmmseg` to v0.12.1
 
 ---
 
