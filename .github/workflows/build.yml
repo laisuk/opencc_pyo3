@@ -21,13 +21,13 @@ jobs:
           # -------------------------
           - name: windows-win7-x64
             os: windows-latest
-            py: "3.10"
+            py: "3.12"
             is_win7: true
             rust_target: x86_64-win7-windows-msvc
             pdfium_target: win-x64
             maturin_args: >-
               --release
-              --interpreter python3.10
+              --interpreter python3.12
               -Z build-std=std,panic_abort
 
           # -------------------------
@@ -47,13 +47,13 @@ jobs:
 
           - name: windows-arm64
             os: windows-latest
-            py: "3.10"
+            py: "3.12"
             pdfium_target: win-arm64
             is_win7: false
             rust_target: aarch64-pc-windows-msvc
             maturin_args: >-
               --release
-              --interpreter python3.10
+              --interpreter python3.12
               --features gen-import-lib
 
           # -------------------------
@@ -61,37 +61,37 @@ jobs:
           # -------------------------
           - name: linux-x64
             os: ubuntu-latest
-            py: "3.10"
+            py: "3.12"
             is_win7: false
             pdfium_target: linux-x64
             maturin_args: >-
               --release
-              --interpreter python3.10
+              --interpreter python3.12
 
           # -------------------------
           # Linux (arm64) - manylinux
           # -------------------------
           - name: linux-arm64
             os: ubuntu-24.04-arm
-            py: "3.10"
+            py: "3.12"
             is_win7: false
             pdfium_target: linux-arm64
             maturin_args: >-
               --release
-              --interpreter python3.10
+              --interpreter python3.12
 
           # -------------------------
           # macOS (x64)
           # -------------------------
           - name: macos-x64
             os: macos-15-intel
-            py: "3.10"
+            py: "3.12"
             is_win7: false
             pdfium_target: macos-x64
             rust_target: x86_64-apple-darwin
             maturin_args: >-
               --release
-              --interpreter python3.10
+              --interpreter python3.12
               --target x86_64-apple-darwin
 
           # -------------------------
@@ -99,13 +99,13 @@ jobs:
           # -------------------------
           - name: macos-arm64
             os: macos-latest
-            py: "3.10"
+            py: "3.12"
             is_win7: false
             pdfium_target: macos-arm64
             rust_target: aarch64-apple-darwin
             maturin_args: >-
               --release
-              --interpreter python3.10
+              --interpreter python3.12
               --target aarch64-apple-darwin
 
     steps:
@@ -220,16 +220,6 @@ jobs:
       - name: List final wheels
         run: |
           ls -la final_dist
-
-#      - name: Publish wheels to PyPI
-#        uses: PyO3/maturin-action@v1
-#        env:
-#          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-#        with:
-#          command: upload
-#          args: >-
-#            --non-interactive
-#            final_dist/*.whl
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
