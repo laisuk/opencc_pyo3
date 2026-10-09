@@ -718,7 +718,7 @@ mod tests {
             .collect();
 
         assert_eq!(OpenCC::available_slots(), expected);
-        assert_eq!(expected.len(), 21);
+        assert_eq!(expected.len(), 25);
     }
 
     #[test]

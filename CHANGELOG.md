@@ -7,13 +7,23 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
+## [0.12.0] - 2026-10-10
+
+### Changed
+
+- Updated native `opencc-fmmseg` to v0.13.0.
+- Added new Seal conversion configs.
+
+---
+
 ## [0.11.0] - 2026-09-23
 
 ### Added
 
 - Added `OpenCC.normalize_compat_extended()` for extended Unicode compatibility normalization, including the existing
   CJK Compatibility Ideograph normalization.
-- CLI: Added `-E` / `--norm-compat-extended` to `convert`, `office` and `pdf` for extended Unicode compatibility normalization
+- CLI: Added `-E` / `--norm-compat-extended` to `convert`, `office` and `pdf` for extended Unicode compatibility
+  normalization
   before conversion.
 
 ### Changed

@@ -40,9 +40,12 @@ class TestOpenCC(unittest.TestCase):
         self.assertIn("t2jp", configs)
         self.assertIn("t2hkp", configs)
         self.assertIn("hk2tp", configs)
+        self.assertIn("seal2s", configs)
+        self.assertIn("t2seal", configs)
         self.assertTrue(OpenCC.is_valid_config("t2s"))
         self.assertTrue(OpenCC.is_valid_config("T2HKP"))
-        self.assertTrue(OpenCC.is_valid_config("HK2TP"))
+        self.assertTrue(OpenCC.is_valid_config("seal2t"))
+        self.assertTrue(OpenCC.is_valid_config("s2seal"))
         self.assertFalse(OpenCC.is_valid_config("abc"))
 
     def test_cli_hong_kong_phrase_configs(self):
@@ -328,6 +331,19 @@ class TestOpenCC(unittest.TestCase):
             ))
 
         assert rc == 1
+
+    def test_convert_seal(self):
+        cc = OpenCC("seal2t")
+        result = cc.convert("你𿒛，𽌠𽴖「𾇓𿭖𿛛碼18」")
+        self.assertEqual(result, "你好，小篆「國際編碼18」")
+
+    def test_available_seal_slots(self):
+        slots = OpenCC.available_slots()
+
+        self.assertIn("SealCharacters", slots)
+        self.assertIn("SealCharactersRev", slots)
+        self.assertIn("SealVariants", slots)
+        self.assertIn("SealVariantsRev", slots)
 
     def _run_convert_cli(
             self,

@@ -27,6 +27,10 @@ class OpenccConfig(str, Enum):
     JP2T = "jp2t"
     S2HKP = "s2hkp"
     HK2SP = "hk2sp"
+    S2SEAL = "s2seal"
+    T2SEAL = "t2seal"
+    SEAL2S = "seal2s"
+    SEAL2T = "seal2t"
 
     def to_canonical_name(self) -> str:
         """Return OpenCC canonical config name (e.g. 's2t')."""
