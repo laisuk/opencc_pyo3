@@ -29,6 +29,7 @@ opencc-fmmseg = "0.13.0"
 #opencc-fmmseg = { path = "../opencc-fmmseg" }
 pyo3 = { version = "=0.27", features = ["abi3-py38"] }
 smallvec = "1.16"
+regex = "1"
 #rayon-core = "=1.12.1"
 #time = "=0.3.41"
 #rangemap = "=1.6.0"

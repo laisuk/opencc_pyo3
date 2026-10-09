@@ -1,4 +1,4 @@
-//! CJK PDF Reflow Engine (pure Rust)
+//! CJK PDF Reflow Engine with a thin PyO3 wrapper.
 //!
 //! Extracted from opencc_pyo3 PyO3 module. Designed to be reused by:
 //! - Python bindings (thin wrapper)
@@ -7,6 +7,7 @@
 use crate::cjk_text::*;
 use crate::punct_sets::*;
 use pyo3::{pyfunction, PyResult};
+use regex::Regex;
 use smallvec::SmallVec;
 
 /// Reflow CJK paragraphs from PDF-extracted text.
@@ -28,13 +29,32 @@ pub fn reflow_cjk_paragraphs(
     add_pdf_page_header: bool,
     compact: bool,
 ) -> PyResult<String> {
+    Ok(reflow_cjk_paragraphs_with_heading_regex(
+        text,
+        add_pdf_page_header,
+        compact,
+        None,
+    ))
+}
+
+/// Reflow CJK paragraphs with optional custom heading detection.
+///
+/// A pre-compiled regex augments the built-in heading rules. It is matched
+/// against each logical heading probe after leading indentation is removed.
+/// Passing `None` uses only the built-in rules, as the Python wrapper does.
+pub fn reflow_cjk_paragraphs_with_heading_regex(
+    text: &str,
+    add_pdf_page_header: bool,
+    compact: bool,
+    heading_re: Option<&Regex>,
+) -> String {
     // If the whole text is whitespace, return as-is.
     if text.chars().all(|c| c.is_whitespace()) {
-        return Ok(text.to_owned());
+        return text.to_owned();
     }
 
     if is_latin_leading_block(text, 100) {
-        return Ok(text.to_owned());
+        return text.to_owned();
     }
 
     // Normalize line endings
@@ -114,7 +134,13 @@ pub fn reflow_cjk_paragraphs(
         }
 
         // 6) Heading / metadata detection
-        let is_title_heading = is_title_heading_line(heading_probe);
+        let mut is_title_heading = is_title_heading_line(heading_probe);
+        // Augment the built-in rules with custom heading detection.
+        if let Some(re) = heading_re {
+            if re.is_match(heading_probe) {
+                is_title_heading = true;
+            }
+        }
         let is_short_heading = is_heading_like(&line_text);
         let is_metadata = is_metadata_line(&line_text);
 
@@ -417,13 +443,11 @@ pub fn reflow_cjk_paragraphs(
         segments.push(buffer);
     }
 
-    let result = if compact {
+    if compact {
         segments.join("\n")
     } else {
         segments.join("\n\n")
-    };
-
-    Ok(result)
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -939,5 +963,25 @@ impl DialogState {
             || self.corner_bold > 0
             || self.corner_top > 0
             || self.corner_wide > 0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn custom_heading_regex_augments_builtin_rules() {
+        let text = "這是一段尚未結束的敘述文字\n　　特殊標題這是一個自訂的章節名稱\n這是接續的正文。\n第一章 開始\n這是下一章正文。";
+        let heading_re = Regex::new("^特殊標題").unwrap();
+        let output = reflow_cjk_paragraphs_with_heading_regex(text, false, true, Some(&heading_re));
+        assert_eq!(
+            output,
+            "這是一段尚未結束的敘述文字\n特殊標題這是一個自訂的章節名稱\n這是接續的正文。\n第一章 開始\n這是下一章正文。"
+        );
+        assert_ne!(
+            output,
+            reflow_cjk_paragraphs_with_heading_regex(text, false, true, None)
+        );
     }
 }
