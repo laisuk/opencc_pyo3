@@ -9,10 +9,29 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ## [0.12.0] - 2026-10-10
 
+### Added
+
+- Added four Seal conversion configurations: `s2seal`, `t2seal`, `seal2s`, and `seal2t`.
+- Documented all Seal configurations in the Python type stub.
+- Added regression tests for PDFium resource cleanup, Windows architecture detection, Unicode decoding, and
+  transactional PDF output.
+- Expanded Seal regression tests to cover all four conversion directions and custom dictionary mappings through all four
+  Seal dictionary slots.
+
 ### Changed
 
 - Updated native `opencc-fmmseg` to v0.13.0.
-- Added new Seal conversion configs.
+- Refined CJK PDF reflow helpers to address Clippy warnings without changing existing reflow behavior.
+
+### Fixed
+
+- Ensured PDFium library, document, page, and text-page resources are properly released on extraction failures and
+  callback exceptions.
+- Fixed PDFium library selection for native Windows ARM64 Python while preserving x86 and x64 support.
+- Made PDF CLI output transactional using unique temporary sibling files and atomic replacement. Filesystem errors now
+  return exit code `1` without overwriting existing output or leaving temporary files behind.
+- Corrected PDFium decoder documentation to clarify that trailing NUL terminators are removed while embedded NUL
+  characters are preserved.
 
 ---
 

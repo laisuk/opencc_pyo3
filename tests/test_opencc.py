@@ -337,6 +337,27 @@ class TestOpenCC(unittest.TestCase):
         result = cc.convert("你𿒛，𽌠𽴖「𾇓𿭖𿛛碼18」")
         self.assertEqual(result, "你好，小篆「國際編碼18」")
 
+    def test_seal_configs(self):
+        # Verified against the embedded opencc-fmmseg 0.13.0 dictionaries.
+        seal = "你𿒛，𽌠𽴖「𾇓𿭖𿛛碼18」"
+        for config, source, expected in (
+                ("s2seal", "你好，小篆「国际编码18」", seal),
+                ("t2seal", "你好，小篆「國際編碼18」", seal),
+                ("seal2s", seal, "你好，小篆「国际编码18」"),
+                ("seal2t", seal, "你好，小篆「國際編碼18」"),
+        ):
+            with self.subTest(config=config):
+                self.assertEqual(OpenCC(config).convert(source), expected)
+
+    def test_custom_seal_slots(self):
+        for slot in ("SealCharacters", "SealCharactersRev", "SealVariants", "SealVariantsRev"):
+            with self.subTest(slot=slot):
+                config = "t2seal" if slot in ("SealCharactersRev", "SealVariants") else "seal2t"
+                cc = OpenCC.from_dicts(config, [{
+                    "slot": slot, "mode": "override", "pairs": [("A", "B")],
+                }])
+                self.assertEqual(cc.convert("A"), "B")
+
     def test_available_seal_slots(self):
         slots = OpenCC.available_slots()
 

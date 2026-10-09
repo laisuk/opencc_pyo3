@@ -4,8 +4,8 @@ PDFium-based page-by-page text extraction for opencc_pyo3.
 This module provides:
   • A stable ctypes binding for PDFium (stdcall on Windows).
   • C#-equivalent behavior for FPDFText_GetText().
-  • Automatic UTF-16 / UTF-8 fallback decoding (handles Identity-H cases).
-  • Automatic NUL → newline conversion (PDFium segmentation marker).
+  • UTF-16LE decoding (handles Identity-H cases).
+  • Trailing NUL terminator removal; embedded NUL characters are preserved.
   • A clean callback-based interface for progress reporting.
 """
 
@@ -180,8 +180,8 @@ def extract_pdf_pages_with_callback_pdfium(
     Notes
     -----
     • Works for complex CJK fonts (Identity-H, CIDType0, missing ToUnicode).
-    • Performs UTF-16 decode with UTF-8 fallback (same as PdfiumViewer).
-    • Converts embedded NUL (U+0000) to newline for clean segmentation.
+    • Decodes PDFium text as UTF-16LE.
+    • Removes the trailing NUL terminator and preserves embedded NUL characters.
     • This function **does not** perform reflow; it only extracts text.
     • IMPORTANT: Each callback `text` is guaranteed to end with a blank-line
       separator so page boundaries are never lost when concatenated.
@@ -207,58 +207,61 @@ def extract_pdf_pages_with_callback_pdfium(
     pdf_path_bytes = path.encode("utf-8")
 
     _pdfium.FPDF_InitLibrary()
-    doc = _pdfium.FPDF_LoadDocument(pdf_path_bytes, None)
-
-    if not doc:
-        raise RuntimeError(f"PDFium failed to load document: {path}")
-
     try:
-        total = _pdfium.FPDF_GetPageCount(doc)
-        if total <= 0:
-            callback(1, 1, "\n")
-            return
+        doc = _pdfium.FPDF_LoadDocument(pdf_path_bytes, None)
 
-        for i in range(total):
-            page_no = i + 1
+        if not doc:
+            raise RuntimeError(f"PDFium failed to load document: {path}")
 
-            page = _pdfium.FPDF_LoadPage(doc, i)
-            if not page:
-                text = "\n"
+        try:
+            total = _pdfium.FPDF_GetPageCount(doc)
+            if total <= 0:
+                callback(1, 1, "\n")
+                return
+
+            for i in range(total):
+                page_no = i + 1
+
+                page = _pdfium.FPDF_LoadPage(doc, i)
+                if not page:
+                    text = "\n"
+                    if add_page_header:
+                        text = f"=== [Page {page_no}/{total}] ===\n" + text
+                    callback(page_no, total, text)
+                    continue
+
+                try:
+                    textpage = _pdfium.FPDFText_LoadPage(page)
+                    if not textpage:
+                        text = "\n"
+                        if add_page_header:
+                            text = f"=== [Page {page_no}/{total}] ===\n" + text
+                        callback(page_no, total, text)
+                        continue
+
+                    try:
+                        count = _pdfium.FPDFText_CountChars(textpage)
+                        if count > 0:
+                            # noinspection PyCallingNonCallable
+                            buf = (ctypes.c_uint16 * (count + 1))()
+                            extracted = _pdfium.FPDFText_GetText(textpage, 0, count, buf)
+                            raw = _decode_pdfium_buffer(buf, extracted) if extracted > 0 else ""
+                        else:
+                            raw = ""
+                    finally:
+                        _pdfium.FPDFText_ClosePage(textpage)
+                finally:
+                    _pdfium.FPDF_ClosePage(page)
+
+                # ✅ Add header (C#-aligned) before normalization so output still ends with \n\n
                 if add_page_header:
-                    text = f"=== [Page {page_no}/{total}] ===\n" + text
-                callback(page_no, total, text)
-                continue
+                    raw = f"=== [Page {page_no}/{total}] ===\n" + raw
 
-            textpage = _pdfium.FPDFText_LoadPage(page)
-            if not textpage:
-                _pdfium.FPDF_ClosePage(page)
-                text = "\n"
-                if add_page_header:
-                    text = f"=== [Page {page_no}/{total}] ===\n" + text
-                callback(page_no, total, text)
-                continue
+                callback(page_no, total, _normalize_page_text(raw))
 
-            count = _pdfium.FPDFText_CountChars(textpage)
-
-            if count > 0:
-                # noinspection PyCallingNonCallable
-                buf = (ctypes.c_uint16 * (count + 1))()
-                extracted = _pdfium.FPDFText_GetText(textpage, 0, count, buf)
-                raw = _decode_pdfium_buffer(buf, extracted) if extracted > 0 else ""
-            else:
-                raw = ""
-
-            _pdfium.FPDFText_ClosePage(textpage)
-            _pdfium.FPDF_ClosePage(page)
-
-            # ✅ Add header (C#-aligned) before normalization so output still ends with \n\n
-            if add_page_header:
-                raw = f"=== [Page {page_no}/{total}] ===\n" + raw
-
-            callback(page_no, total, _normalize_page_text(raw))
-
+        finally:
+            _pdfium.FPDF_CloseDocument(doc)
     finally:
-        _pdfium.FPDF_CloseDocument(doc)
         _pdfium.FPDF_DestroyLibrary()
 
 

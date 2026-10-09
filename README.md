@@ -14,6 +14,7 @@ using [OpenCC](https://github.com/BYVoid/OpenCC) algorithms.
 
 - Convert between Simplified, Traditional, Hong Kong, Taiwan, and Japanese Kanji variants with OpenCC-compatible
   configurations.
+- Small Seal Script conversion with `s2seal`, `t2seal`, `seal2s`, and `seal2t` (added in v0.12.0).
 - High-performance Rust + PyO3 backend for fast, memory-efficient Chinese text conversion in Python.
 - Python API with `OpenCC`, `OpenccConfig`, config validation helpers, punctuation conversion, and Chinese text variant
   detection.
@@ -25,7 +26,37 @@ using [OpenCC](https://github.com/BYVoid/OpenCC) algorithms.
 ## Supported Conversion Configurations
 
 - `s2t`, `t2s`, `s2tw`, `tw2s`, `s2twp`, `tw2sp`, `s2hk`, `hk2s`, `s2hkp`, `hk2sp`, `t2tw`, `tw2t`, `t2twp`,
-  `tw2tp`, `t2hk`, `t2hkp`, `hk2t`, `hk2tp`, `t2jp`, `jp2t`
+  `tw2tp`, `t2hk`, `t2hkp`, `hk2t`, `hk2tp`, `t2jp`, `jp2t`, `s2seal`, `t2seal`, `seal2s`, `seal2t`
+
+### Small Seal Script
+
+The four Seal configurations added in v0.12.0 convert between modern Chinese text and Small Seal Script:
+
+| Config   | Conversion                              |
+|:---------|:----------------------------------------|
+| `s2seal` | Simplified Chinese → Small Seal Script  |
+| `t2seal` | Traditional Chinese → Small Seal Script |
+| `seal2s` | Small Seal Script → Simplified Chinese  |
+| `seal2t` | Small Seal Script → Traditional Chinese |
+
+`s2seal` first converts Simplified to Traditional Chinese. Both forward configurations then bridge modern character
+variants to regular-script transcriptions and map those transcriptions to Seal characters. Reverse configurations map
+Seal characters to regular-script transcriptions, bridge them to standard Traditional forms, and, for `seal2s`, convert
+those forms to Simplified Chinese. Variant bridging preserves character identity rather than applying historical
+本字/假借 substitutions.
+
+```python
+from opencc_pyo3 import OpenCC, OpenccConfig
+
+seal = OpenCC(OpenccConfig.S2SEAL).convert("你好，小篆「国际编码18」")
+print(seal)  # 你𿒛，𽌠𽴖「𾇓𿭖𿛛碼18」
+print(OpenCC("t2seal").convert("你好，小篆「國際編碼18」"))  # Same Seal output
+print(OpenCC("seal2s").convert(seal))  # 你好，小篆「国际编码18」
+print(OpenCC(OpenccConfig.SEAL2T).convert(seal))  # 你好，小篆「國際編碼18」
+```
+
+Displaying Seal characters requires a font that covers them; conversion still returns Unicode text when the terminal
+or editor cannot display the glyphs.
 
 ## Installation
 
@@ -92,7 +123,7 @@ optional arguments:
   -o <file>, --output <file>
                         Write converted text to <file>. (default: None)
   -c <conversion>, --config <conversion>
-                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|t2hkp|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|hk2tp|jp2t|t2jp (default:
+                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|t2hkp|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|hk2tp|jp2t|t2jp|s2seal|t2seal|seal2s|seal2t (default:
                         None)
   -p, --punct           Enable punctuation conversion. (Default: False) (default: False)
   -n, --norm-compat     Normalize CJK Compatibility Ideographs before conversion. (Default: False) (default: False)
@@ -105,7 +136,7 @@ optional arguments:
                         Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times. Available slots: STC
                         haracters|STPhrases|STPunctuations|TSCharacters|TSPhrases|TSPunctuations|TWPhrases|TWPhrasesRev|HKPhrases|HKPhrasesRev|TWVariants|TWVar
                         iantsPhrases|TWVariantsRev|TWVariantsRevPhrases|HKVariants|HKVariantsPhrases|HKVariantsRev|HKVariantsRevPhrases|JPSCharacters|JPSCharac
-                        tersRev|JPSPhrases (default: None)
+                        tersRev|JPSPhrases|SealCharacters|SealCharactersRev|SealVariants|SealVariantsRev (default: None)
   --in-enc <encoding>   Encoding for input. (Default: UTF-8) (default: UTF-8)
   --out-enc <encoding>  Encoding for output files and redirected stdout. Interactive console output uses the terminal's Unicode stream. (Default: UTF-8)
                         (default: UTF-8)
@@ -129,7 +160,7 @@ optional arguments:
   -o <file>, --output <file>
                         Output Office document to <file>. (default: None)
   -c <conversion>, --config <conversion>
-                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|t2hkp|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|hk2tp|jp2t|t2jp (default:
+                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|t2hkp|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|hk2tp|jp2t|t2jp|s2seal|t2seal|seal2s|seal2t (default:
                         None)
   -p, --punct           Enable punctuation conversion. (Default: False) (default: False)
   -n, --norm-compat     Normalize CJK Compatibility Ideographs before conversion. (Default: False) (default: False)
@@ -145,7 +176,7 @@ optional arguments:
                         Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times. Available slots: STC
                         haracters|STPhrases|STPunctuations|TSCharacters|TSPhrases|TSPunctuations|TWPhrases|TWPhrasesRev|HKPhrases|HKPhrasesRev|TWVariants|TWVar
                         iantsPhrases|TWVariantsRev|TWVariantsRevPhrases|HKVariants|HKVariantsPhrases|HKVariantsRev|HKVariantsRevPhrases|JPSCharacters|JPSCharac
-                        tersRev|JPSPhrases (default: None)
+                        tersRev|JPSPhrases|SealCharacters|SealCharactersRev|SealVariants|SealVariantsRev (default: None)
 ```
 
 ---
@@ -174,7 +205,7 @@ optional arguments:
   -o <file>, --output <file>
                         Output text file (UTF-8). If omitted, defaults to "<input>_converted.txt". (default: None)
   -c <conversion>, --config <conversion>
-                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|t2hkp|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|hk2tp|jp2t|t2jp (default:
+                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|t2hkp|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|hk2tp|jp2t|t2jp|s2seal|t2seal|seal2s|seal2t (default:
                         None)
   -p, --punct           Enable punctuation conversion. (Default: False) (default: False)
   -H, --header          Preserve page-break-like gaps when reflowing CJK paragraphs (passed as add_pdf_page_header to reflow_cjk_paragraphs). (default: False)
@@ -192,7 +223,7 @@ optional arguments:
                         Load custom dictionary file. Format: slot:mode:path, e.g. STPhrases:append:custom.txt. Can be used multiple times. Available slots: STC
                         haracters|STPhrases|STPunctuations|TSCharacters|TSPhrases|TSPunctuations|TWPhrases|TWPhrasesRev|HKPhrases|HKPhrasesRev|TWVariants|TWVar
                         iantsPhrases|TWVariantsRev|TWVariantsRevPhrases|HKVariants|HKVariantsPhrases|HKVariantsRev|HKVariantsRevPhrases|JPSCharacters|JPSCharac
-                        tersRev|JPSPhrases (default: None)
+                        tersRev|JPSPhrases|SealCharacters|SealCharactersRev|SealVariants|SealVariantsRev (default: None)
 ```
 
 ```sh
@@ -213,6 +244,12 @@ python -m opencc_pyo3 office -c s2t --punct -i input.docx -o output.docx --keep-
 opencc-pyo3 office -c s2tw -p -i input.epub -o output.epub
 
 opencc-pyo3 pdf -i input.pdf -o output.txt -c s2t --punct --reflow --norm-compat
+
+opencc-pyo3 convert -i simplified.txt -o seal.txt -c s2seal
+
+opencc-pyo3 convert -i seal.txt -o traditional.txt -c seal2t
+
+opencc-pyo3 convert -i seal.txt -o traditional.txt -c seal2t -D SealCharacters:append:custom_seal.txt
 ```
 
 my_hk_dict.txt:
@@ -262,6 +299,10 @@ Available enum values:
 - `OpenccConfig.JP2T`
 - `OpenccConfig.S2HKP`
 - `OpenccConfig.HK2SP`
+- `OpenccConfig.S2SEAL`
+- `OpenccConfig.T2SEAL`
+- `OpenccConfig.SEAL2S`
+- `OpenccConfig.SEAL2T`
 
 ### `OpenCC`
 
@@ -297,7 +338,7 @@ Core converter class backed by the Rust extension module.
 - `OpenCC.is_valid_config(config: str) -> bool`
     - Validates a config string.
 - `OpenCC.available_slots() -> list[str]`
-    - Returns all 21 active canonical custom dictionary slot names.
+    - Returns all 25 active canonical custom dictionary slot names, including the four Seal slots.
 
 Example:
 
@@ -425,29 +466,33 @@ Example:
 Use canonical slot names without `.txt`, such as `STPhrases`, not `STPhrases.txt`. The Python wrapper may tolerate
 `.txt`, but the documented API uses canonical names only.
 
-| Slot                   | Purpose                                             | OpenCC dictionary file         |
-|:-----------------------|:----------------------------------------------------|:-------------------------------|
-| `STCharacters`         | Simplified → Traditional character mappings         | `STCharacters.txt`             |
-| `STPhrases`            | Simplified → Traditional phrase mappings            | `STPhrases.txt`                |
-| `STPunctuations`       | Simplified → Traditional punctuation mappings       | `STPunctuations.txt`           |
-| `TSCharacters`         | Traditional → Simplified character mappings         | `TSCharacters.txt`             |
-| `TSPhrases`            | Traditional → Simplified phrase mappings            | `TSPhrases.txt`                |
-| `TSPunctuations`       | Traditional → Simplified punctuation mappings       | `TSPunctuations.txt`           |
-| `TWPhrases`            | Traditional → Taiwan phrase mappings                | `TWPhrases.txt`                |
-| `TWPhrasesRev`         | Taiwan → Traditional reverse phrase mappings        | `TWPhrasesRev.txt`             |
-| `HKPhrases`            | Traditional → Hong Kong phrase mappings             | `HKPhrases.txt`                |
-| `HKPhrasesRev`         | Hong Kong → Traditional reverse phrase mappings     | `HKPhrasesRev.txt`             |
-| `TWVariants`           | Traditional → Taiwan regional character variants    | `TWVariants.txt`               |
-| `TWVariantsPhrases`    | Traditional → Taiwan regional phrase variants       | `TWVariantsPhrases.txt`        |
-| `TWVariantsRev`        | Taiwan → Traditional reverse character variants     | `TWVariantsRev.txt`            |
-| `TWVariantsRevPhrases` | Taiwan → Traditional reverse phrase variants        | `TWVariantsRevPhrases.txt`     |
-| `HKVariants`           | Traditional → Hong Kong regional character variants | `HKVariants.txt`               |
-| `HKVariantsPhrases`    | Traditional → Hong Kong regional phrase variants    | `HKVariantsPhrases.txt`        |
-| `HKVariantsRev`        | Hong Kong → Traditional reverse character variants  | `HKVariantsRev.txt`            |
-| `HKVariantsRevPhrases` | Hong Kong → Traditional reverse phrase variants     | `HKVariantsRevPhrases.txt`     |
-| `JPSCharacters`        | Japanese Shinjitai character mappings               | `JPShinjitaiCharacters.txt`    |
-| `JPSCharactersRev`     | Japanese Shinjitai reverse character mappings       | `JPShinjitaiCharactersRev.txt` |
-| `JPSPhrases`           | Japanese Shinjitai phrase mappings                  | `JPShinjitaiPhrases.txt`       |
+| Slot                   | Purpose                                              | OpenCC dictionary file         |
+|:-----------------------|:-----------------------------------------------------|:-------------------------------|
+| `STCharacters`         | Simplified → Traditional character mappings          | `STCharacters.txt`             |
+| `STPhrases`            | Simplified → Traditional phrase mappings             | `STPhrases.txt`                |
+| `STPunctuations`       | Simplified → Traditional punctuation mappings        | `STPunctuations.txt`           |
+| `TSCharacters`         | Traditional → Simplified character mappings          | `TSCharacters.txt`             |
+| `TSPhrases`            | Traditional → Simplified phrase mappings             | `TSPhrases.txt`                |
+| `TSPunctuations`       | Traditional → Simplified punctuation mappings        | `TSPunctuations.txt`           |
+| `TWPhrases`            | Traditional → Taiwan phrase mappings                 | `TWPhrases.txt`                |
+| `TWPhrasesRev`         | Taiwan → Traditional reverse phrase mappings         | `TWPhrasesRev.txt`             |
+| `HKPhrases`            | Traditional → Hong Kong phrase mappings              | `HKPhrases.txt`                |
+| `HKPhrasesRev`         | Hong Kong → Traditional reverse phrase mappings      | `HKPhrasesRev.txt`             |
+| `TWVariants`           | Traditional → Taiwan regional character variants     | `TWVariants.txt`               |
+| `TWVariantsPhrases`    | Traditional → Taiwan regional phrase variants        | `TWVariantsPhrases.txt`        |
+| `TWVariantsRev`        | Taiwan → Traditional reverse character variants      | `TWVariantsRev.txt`            |
+| `TWVariantsRevPhrases` | Taiwan → Traditional reverse phrase variants         | `TWVariantsRevPhrases.txt`     |
+| `HKVariants`           | Traditional → Hong Kong regional character variants  | `HKVariants.txt`               |
+| `HKVariantsPhrases`    | Traditional → Hong Kong regional phrase variants     | `HKVariantsPhrases.txt`        |
+| `HKVariantsRev`        | Hong Kong → Traditional reverse character variants   | `HKVariantsRev.txt`            |
+| `HKVariantsRevPhrases` | Hong Kong → Traditional reverse phrase variants      | `HKVariantsRevPhrases.txt`     |
+| `JPSCharacters`        | Japanese Shinjitai character mappings                | `JPShinjitaiCharacters.txt`    |
+| `JPSCharactersRev`     | Japanese Shinjitai reverse character mappings        | `JPShinjitaiCharactersRev.txt` |
+| `JPSPhrases`           | Japanese Shinjitai phrase mappings                   | `JPShinjitaiPhrases.txt`       |
+| `SealCharacters`       | Small Seal → regular-script transcriptions           | `SealCharacters.txt`           |
+| `SealCharactersRev`    | Regular-script transcriptions → Small Seal           | `SealCharactersRev.txt`        |
+| `SealVariants`         | Modern variants → regular-script transcriptions      | `SealVariants.txt`             |
+| `SealVariantsRev`      | Regular-script transcriptions → standard Traditional | `SealVariantsRev.txt`          |
 
 Custom dictionary behavior follows the same OpenCC dictionary-slot model. Choosing the wrong slot may have no effect or
 may affect a different conversion path. For `s2t`, use `STCharacters` or `STPhrases`. For `t2s`, use `TSCharacters` or
@@ -455,6 +500,35 @@ may affect a different conversion path. For `s2t`, use `STCharacters` or `STPhra
 `TWVariantsRev`, or `TWVariantsRevPhrases`. For Hong Kong regional behavior, use `HKPhrases`, `HKPhrasesRev`,
 `HKVariantsPhrases`, `HKVariants`, `HKVariantsRev`, or `HKVariantsRevPhrases`. For Japanese Shinjitai behavior, use
 `JPSCharacters`, `JPSCharactersRev`, or `JPSPhrases`.
+
+#### Custom Seal dictionaries
+
+For `s2seal` and `t2seal`, use `SealVariants` for variant bridging and `SealCharactersRev` for mappings to Seal
+characters. For `seal2s` and `seal2t`, use `SealCharacters` for mappings from Seal characters and `SealVariantsRev` for
+bridging to standard Traditional forms. Each slot is customized separately; changing one does not automatically update
+its reverse slot. Later conversion stages still apply to custom mapping results.
+
+For example, override the mapping for one Seal character while keeping the rest of the embedded dictionary:
+
+```python
+from opencc_pyo3 import OpenCC
+
+cc = OpenCC.from_dicts("seal2t", [{
+    "slot": "SealCharacters",
+    "mode": "append",
+    "pairs": [("𿒛", "佳")],
+}])
+print(cc.convert("你𿒛"))  # 你佳
+```
+
+The equivalent UTF-8 `custom_seal.txt` file contains a tab-separated mapping:
+
+```text
+𿒛	佳
+```
+
+Use it with `OpenCC.from_dict_files("seal2t", [{"slot": "SealCharacters", "mode": "append",
+"files": ["custom_seal.txt"]}])` or the CLI `-D SealCharacters:append:custom_seal.txt` example above.
 
 #### Typing helpers
 

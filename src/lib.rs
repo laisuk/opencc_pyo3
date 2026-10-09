@@ -2,7 +2,6 @@ mod cjk_text;
 mod punct_sets;
 mod reflow_helper;
 
-use opencc_fmmseg;
 use opencc_fmmseg::{
     CustomDictFileSpec, CustomDictMode, CustomDictSpec, DetofuLevel, DetofuMap, DictSlot,
     DictionaryMaxlength, OpenCC as _OpenCC, OpenccConfig,

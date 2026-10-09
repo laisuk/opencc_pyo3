@@ -133,7 +133,7 @@ pub fn contains_any_cjk_str(s: &str) -> bool {
 #[inline]
 pub fn is_digit_ascii_or_fullwidth(ch: char) -> bool {
     // ASCII digits
-    if ('0'..='9').contains(&ch) {
+    if ch.is_ascii_digit() {
         return true;
     }
     // FULLWIDTH digits
@@ -332,7 +332,7 @@ fn slice_inner_without_outer_pair(s: &str) -> Option<&str> {
     let after_first = first_ch.len_utf8();
 
     // byte index of last char start
-    let (last_start, _) = s.char_indices().rev().next()?;
+    let (last_start, _) = s.char_indices().next_back()?;
 
     if after_first > last_start {
         return None;

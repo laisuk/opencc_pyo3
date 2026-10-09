@@ -1,5 +1,6 @@
 import ctypes
 import os
+import platform
 import sys
 from pathlib import Path
 
@@ -10,7 +11,8 @@ def _detect_platform_folder() -> str:
     is_64bit = sys.maxsize > 2 ** 32
 
     if sys.platform.startswith(("win32", "cygwin")):
-        arch = "x64" if is_64bit else "x86"
+        machine = platform.machine().lower()
+        arch = "arm64" if is_64bit and machine in ("arm64", "aarch64") else ("x64" if is_64bit else "x86")
         return f"win-{arch}"
     elif sys.platform.startswith("linux"):
         machine = os.uname().machine

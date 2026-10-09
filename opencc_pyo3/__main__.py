@@ -1,6 +1,8 @@
 from __future__ import print_function
 
 import argparse
+import os
+import tempfile
 import sys
 
 from pathlib import Path
@@ -481,8 +483,26 @@ def subcommand_pdf(args) -> int:
     # ---------------------------------------------------------
     # Write Output
     # ---------------------------------------------------------
-    with open(output_path, "w", encoding="utf-8", newline="\n") as f:
-        f.write(text)
+    temp_output = None
+    try:
+        destination = Path(output_path)
+        with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", newline="\n",
+                prefix=f".{destination.name}.", suffix=".tmp",
+                dir=str(destination.absolute().parent), delete=False,
+        ) as f:
+            temp_output = Path(f.name)
+            f.write(text)
+        os.replace(str(temp_output), str(destination))
+    except OSError as ex:
+        print(f"❌ Failed to write PDF output: {ex}", file=sys.stderr)
+        return 1
+    finally:
+        if temp_output is not None:
+            try:
+                temp_output.unlink()
+            except OSError:
+                pass
 
     print(f"📄 Input : {p}")
     print(f"📁 Output: {output_path}")
@@ -836,6 +856,7 @@ def main():
 
     args = parser.parse_args()
     return args.func(args)
+
 
 if __name__ == "__main__":
     sys.exit(main())

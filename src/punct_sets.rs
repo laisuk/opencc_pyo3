@@ -181,8 +181,7 @@ pub fn ends_with_allowed_postfix_closer(s: &str) -> bool {
 
     // Last non-whitespace character
     s.chars()
-        .rev()
-        .next()
+        .next_back()
         .map_or(false, is_allowed_postfix_closer)
 }
 
@@ -225,7 +224,7 @@ pub fn is_colon_like(ch: char) -> bool {
 #[inline]
 pub fn ends_with_colon_like(s: &str) -> bool {
     let t = s.trim_end();
-    t.ends_with('：') || t.ends_with(":")
+    t.ends_with('：') || t.ends_with(':')
 }
 
 #[inline]
@@ -433,10 +432,7 @@ pub fn is_visual_divider_line(s: &str) -> bool {
 
 pub fn begins_with_dialog_opener(s: &str) -> bool {
     let trimmed = s.trim_start_matches(|ch| ch == ' ' || ch == '\u{3000}');
-    trimmed
-        .chars()
-        .next()
-        .is_some_and(|ch| is_dialog_opener(ch))
+    trimmed.chars().next().is_some_and(is_dialog_opener)
 }
 
 #[inline]
