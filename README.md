@@ -150,7 +150,7 @@ Support OpenOffice documents and Epub (`.docx`, `.xlsx`, `.pptx`, `.odt`, `.ods`
 
 ```
 python -m opencc_pyo3 office --help                                         
-usage: opencc-pyo3 office [-h] -i <file> [-o <file>] [-c <conversion>] [-p] [-n] [-E] [--detofu [<level>]] [--detofu-file <file>] [-f <format>] [-k]
+usage: opencc-pyo3 office [-h] -i <file> [-o <file>] [-c <conversion>] [-p] [-F] [-n] [-E] [--detofu [<level>]] [--detofu-file <file>] [-f <format>] [-k]        
                           [-D <slot:mode:path>]
 
 optional arguments:
@@ -160,9 +160,12 @@ optional arguments:
   -o <file>, --output <file>
                         Output Office document to <file>. (default: None)
   -c <conversion>, --config <conversion>
-                        Configuration: s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|t2hkp|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|hk2tp|jp2t|t2jp|s2seal|t2seal|seal2s|seal2t (default:
-                        None)
+                        Configuration:
+                        s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|t2hkp|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|hk2tp|jp2t|t2jp|s2seal|t2seal|seal2s|seal2t
+                        (default: None)
   -p, --punct           Enable punctuation conversion. (Default: False) (default: False)
+  -F, --convert-filename
+                        Convert the input filename stem when generating the default output filename. Ignored when --output is specified. (default: False)
   -n, --norm-compat     Normalize CJK Compatibility Ideographs before conversion. (Default: False) (default: False)
   -E, --norm-compat-extended
                         Normalize extended Unicode compatibility forms before conversion. (Default: False) (default: False)
