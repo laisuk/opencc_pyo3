@@ -257,6 +257,14 @@ def subcommand_convert(args):
 
 
 def subcommand_office(args):
+    """Convert an Office or EPUB document using OpenCC.
+
+    Reuse the shared Norm -> OpenCC -> DeToFu pipeline for document
+    contents and optionally for the generated output filename.
+
+    Custom OpenCC dictionaries are applied before conversion.
+    Explicit output filenames are never converted by -F.
+    """
     import os
     from .office_helper import OFFICE_FORMATS, convert_office_doc
 
@@ -268,62 +276,122 @@ def subcommand_office(args):
     input_file = args.input
     output_file = args.output
     office_format = args.format.lower() if args.format else None
-    config = args.config
     keep_font = getattr(args, "keep_font", False)
+    convert_filename = getattr(args, "convert_filename", False)
 
-    # Check for invalid input files
-    if not Path(input_file).is_file():
-        print(f"❌ Input file not found: {input_file}", file=sys.stderr)
+    # Validate input file.
+    if not input_file or not Path(input_file).is_file():
+        print(
+            f"❌ Input file not found: {input_file}",
+            file=sys.stderr,
+        )
         return 1
 
-    # Determine office format from file extension if not provided
-    if office_format:
-        if office_format not in OFFICE_FORMATS:
-            print(f"❌  Unsupported Office format: {args.format}", file=sys.stderr)
-            return 1
-    else:
-        file_ext = os.path.splitext(input_file)[1].lower().lstrip(".")
-        if file_ext not in OFFICE_FORMATS:
-            print(f"❌  Invalid Office file extension: .{file_ext or '(none)'}", file=sys.stderr)
-            print("   Valid extensions: .docx | .xlsx | .pptx | .odt | .ods | .odp | .epub", file=sys.stderr)
-            return 1
-        office_format = str(file_ext)
+    input_path = Path(input_file)
 
-    # If output file is not specified, generate one based on input file
-    if not output_file:
-        input_path = Path(input_file)
-        input_dir = input_path.parent if input_path.parent != Path("") else Path.cwd()
-        output_path = input_dir / f"{input_path.stem}_converted.{office_format}"
-        output_file = str(output_path)
-        print(f"ℹ️  Output file not specified. Using: {output_path}", file=sys.stderr)
+    # Resolve Office format from -f or the input extension.
+    if office_format is None:
+        office_format = input_path.suffix.lower().lstrip(".")
 
-    elif not os.path.splitext(output_file)[1]:
-        output_file += f".{office_format}"
-        print(f"ℹ️  Auto-extension applied: {output_file}", file=sys.stderr)
-
-    if paths_refer_to_same_file(input_file, output_file):
-        print("❌ Input and output files must be different.", file=sys.stderr)
+    if office_format not in OFFICE_FORMATS:
+        print(
+            f"❌ Unsupported Office format: {office_format or '(none)'}",
+            file=sys.stderr,
+        )
+        print(
+            f"   Supported formats: {', '.join(OFFICE_FORMATS)}",
+            file=sys.stderr,
+        )
         return 1
 
+    # Validate DeToFu argument dependencies.
     if not validate_detofu_args(args):
         return 1
 
+    # Validate custom dictionary specifications.
     try:
         specs = custom_dict_specs_from_args(args)
     except ValueError as ex:
-        print(f"❌ Invalid --custom-dict: {ex}", file=sys.stderr)
+        print(
+            f"❌ Invalid --custom-dict: {ex}",
+            file=sys.stderr,
+        )
         return 1
 
+    # Construct OpenCC with optional custom dictionaries.
     try:
-        opencc = OpenCC.from_dict_files(config, specs) if specs else OpenCC(config)
+        opencc = (
+            OpenCC.from_dict_files(config, specs)
+            if specs
+            else OpenCC(config)
+        )
     except (OSError, RuntimeError, ValueError) as ex:
-        print(f"❌ Failed to initialize OpenCC: {ex}", file=sys.stderr)
+        print(
+            f"❌ Failed to initialize OpenCC: {ex}",
+            file=sys.stderr,
+        )
         return 1
 
-    try:
-        office_text_converter = make_text_converter(opencc, args)
+    # Shared transformation pipeline:
+    # Norm -> OpenCC conversion -> DeToFu.
+    office_text_converter = make_text_converter(opencc, args)
 
-        # Perform Office document conversion using the shared text pipeline.
+    # Generate the default output filename.
+    if not output_file:
+        stem = input_path.stem
+
+        if convert_filename:
+            try:
+                stem = office_text_converter(stem)
+            except (OSError, RuntimeError, ValueError) as ex:
+                print(
+                    f"❌ Filename conversion failed: {ex}",
+                    file=sys.stderr,
+                )
+                return 1
+
+            # The converted stem must remain one valid filename component.
+            if (
+                    not stem
+                    or stem in (".", "..")
+                    or "/" in stem
+                    or "\\" in stem
+                    or "\x00" in stem
+            ):
+                print(
+                    "❌ Filename conversion produced an invalid filename.",
+                    file=sys.stderr,
+                )
+                return 1
+
+        output_path = input_path.with_name(
+            f"{stem}_converted.{office_format}"
+        )
+        output_file = str(output_path)
+
+        print(
+            f"ℹ️ Output file not specified. Using: {output_file}",
+            file=sys.stderr,
+        )
+
+    # Append the format extension to an explicit extensionless output.
+    elif not Path(output_file).suffix:
+        output_file += f".{office_format}"
+        print(
+            f"ℹ️ Auto-extension applied: {output_file}",
+            file=sys.stderr,
+        )
+
+    # Prevent accidental source-file overwrite.
+    if paths_refer_to_same_file(input_file, output_file):
+        print(
+            "❌ Input and output files must be different.",
+            file=sys.stderr,
+        )
+        return 1
+
+    # Convert the document using the existing Office helper.
+    try:
         success, message = convert_office_doc(
             input_file,
             output_file,
@@ -331,15 +399,26 @@ def subcommand_office(args):
             office_text_converter,
             keep_font,
         )
-        if success:
-            print(f"{message}\n📁  Output saved to: {os.path.abspath(output_file)}", file=sys.stderr)
-            return 0
-        else:
-            print(f"❌  Conversion failed: {message}", file=sys.stderr)
-            return 1
     except Exception as ex:
-        print(f"❌  Error during Office document conversion: {str(ex)}", file=sys.stderr)
+        print(
+            f"❌ Error during Office document conversion: {ex}",
+            file=sys.stderr,
+        )
         return 1
+
+    if not success:
+        print(
+            f"❌ Conversion failed: {message}",
+            file=sys.stderr,
+        )
+        return 1
+
+    print(
+        f"{message}\n"
+        f"📁 Output saved to: {os.path.abspath(output_file)}",
+        file=sys.stderr,
+    )
+    return 0
 
 
 def subcommand_pdf(args) -> int:
@@ -666,6 +745,15 @@ def main():
         action="store_true",
         default=False,
         help="Enable punctuation conversion. (Default: False)",
+    )
+    parser_office.add_argument(
+        "-F",
+        "--convert-filename",
+        action="store_true",
+        help=(
+            "Convert the input filename stem when generating the default "
+            "output filename. Ignored when --output is specified."
+        ),
     )
     parser_office.add_argument(
         "-n",
