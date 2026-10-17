@@ -20,7 +20,7 @@ from typing import Optional
 from maturin import (
     build_sdist as _build_sdist,
     build_wheel as _build_wheel,
-    get_requires_for_build_wheel,
+    get_requires_for_build_wheel as _get_requires_for_build_wheel,
     prepare_metadata_for_build_wheel as _prepare_metadata,
 )
 
@@ -64,6 +64,11 @@ def build_wheel(
         config_settings=config_settings,
         metadata_directory=metadata_directory,
     )
+
+
+def get_requires_for_build_wheel(config_settings=None):
+    """Return additional wheel build requirements from maturin."""
+    return _get_requires_for_build_wheel(config_settings)
 
 
 def prepare_metadata_for_build_wheel(
