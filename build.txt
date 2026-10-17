@@ -1,24 +1,95 @@
-create module folder in project root /opencc_pyo3 same name as stated in cargo.toml:
-[lib]
-name = "opencc_pyo3"
+opencc-pyo3 — Build and Installation Guide
+==========================================
 
-create pyproject.toml
+Requirements
+------------
+- Python 3.8 or newer.
+- A virtual environment is recommended for installation and development.
+- Building from source requires a Rust toolchain and a compatible Python build environment.
+- Direct maturin commands require maturin (for example: python -m pip install maturin).
+- Run source-build commands from the repository root.
 
-prepare files in module folder:
-__init__.py
-opencc_pyo3.pyi
+1. Install a prebuilt wheel from PyPI (recommended)
+---------------------------------------------------
+python -m pip install opencc-pyo3
 
-prepare .venv if needed
-maturin develop -r
-(This creates pyd into opencc_pyo3 folder, need venv, if any old pyd in the folder, delete it first)
+PyPI releases contain platform-specific wheels. No Rust compiler is required
+when a compatible prebuilt wheel is available. Each wheel bundles its matching
+PDFium native library.
 
-Exit .venv to Windows system Python env (Deactivate) (Optional)
-maturin build -r
-(whl created in ./target/wheels/
+2. Install directly from GitHub source
+--------------------------------------
+# Git checkout (Git must be installed):
+python -m pip install "git+https://github.com/laisuk/opencc_pyo3.git@master"
 
-Install Package (WHL file name may vary)
-Windows:
-pip install .\target\wheels\opencc_pyo3-0.8.2-cp38-abi3-win_amd64.whl --force-reinstall
+# Or GitHub ZIP archive (Git not required):
+python -m pip install "https://github.com/laisuk/opencc_pyo3/archive/refs/heads/master.zip"
 
-Linux:
-pip install ./target/wheels/opencc_pyo3-0.8.2-cp312-cp312-manylinux_2_34_x86_64.whl --break-system-packages --force-reinstall
+The custom PEP 517 build backend synchronizes the host platform's PDFium native
+library automatically, then delegates wheel building to maturin. Rust is
+required. No separate PDFium synchronization command is needed for these pip
+source installs.
+
+3. Clone and build locally with maturin
+---------------------------------------
+git clone https://github.com/laisuk/opencc_pyo3.git
+cd opencc_pyo3
+
+# Create and activate a virtual environment (recommended):
+python -m venv .venv
+
+# Windows PowerShell:
+# .\.venv\Scripts\Activate.ps1
+# Linux/macOS:
+# source .venv/bin/activate
+
+python -m pip install maturin
+
+# Direct maturin commands bypass the custom PEP 517 backend.
+# Stage the PDFium native library for this host before building:
+python tools/sync_pdfium_for_wheel.py --local
+
+# Build an optimized wheel:
+maturin build --release
+
+# Wheel output: target/wheels/
+# Install the wheel matching your Python ABI and operating system/architecture:
+python -m pip install path/to/your-built-wheel.whl
+
+4. Development installation
+---------------------------
+# Activate your virtual environment first (see section 3).
+python tools/sync_pdfium_for_wheel.py --local
+maturin develop --release
+
+# After Rust changes, rerun maturin develop --release to rebuild the extension.
+
+5. CI and cross-platform packaging
+----------------------------------
+GitHub Actions builds seven wheel targets:
+- Windows: x64, x86, ARM64
+- Linux: x64, ARM64
+- macOS: x64, ARM64
+
+CI explicitly stages the correct native library before invoking maturin-action:
+python tools/sync_pdfium_for_wheel.py --target <platform>
+
+Examples of <platform>: win-x64, linux-arm64, macos-arm64.
+The CI staging command is intentionally separate from the host-based --local
+workflow; cross-compilation must not rely on host architecture detection.
+
+Wheels use the CPython stable ABI (cp38-abi3) for Python 3.8+ where supported.
+Linux release wheels are built with the configured manylinux target. Wheel
+filenames vary by package version, architecture, and platform tag.
+
+PyPI publication uploads wheels only; a source distribution (.tar.gz) is not
+published. Source installation remains available through GitHub.
+
+Notes
+-----
+- PDFium is loaded on demand by the PDF helpers; ordinary text conversion does
+  not require importing the PDF module.
+- Use the wheel appropriate for the target system. Do not copy PDFium binaries
+  from a different operating system or architecture.
+- For additional packaging details, see pyproject.toml, build_backend.py,
+  tools/sync_pdfium_for_wheel.py, and .github/workflows/build.yml.
