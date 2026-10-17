@@ -11,6 +11,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
+    env:
+      OPENCC_PDFIUM_TARGET: ${{ matrix.pdfium_target }}
 
     strategy:
       fail-fast: false
