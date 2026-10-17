@@ -62,26 +62,56 @@ or editor cannot display the glyphs.
 
 ### 1. Install from PyPI
 
+Install the prebuilt platform-specific wheel:
+
 ```bash
 pip install opencc-pyo3
 ```
 
-### 2. Build and install the Python wheel using [maturin](https://github.com/PyO3/maturin):
+### 2. Install directly from GitHub
+
+Install the latest source from the `master` branch:
+
+```bash
+pip install "git+https://github.com/laisuk/opencc_pyo3.git@master"
+```
+
+Alternatively, install directly from the GitHub source archive:
+
+```bash
+pip install "https://github.com/laisuk/opencc_pyo3/archive/refs/heads/master.zip"
+```
+
+The custom PEP 517 build backend automatically bundles the appropriate PDFium native library for the host platform
+before building the wheel.
+
+**Requirements:** A working Rust toolchain and Python build environment are required for source installation.
+
+### 3. Build and install a Python wheel using [maturin](https://github.com/PyO3/maturin)
+
+For a local build, synchronize the PDFium native library before invoking maturin:
 
 ```sh
-# In project root
+# In the project root
+python tools/sync_pdfium_for_wheel.py --local
 maturin build --release
 pip install ./target/wheels/opencc_pyo3-<version>-cp<pyver>-abi3-<platform>.whl
 ```
 
-Or for development (May require venv):
+Or for development (a virtual environment is recommended):
 
 ```sh
+python tools/sync_pdfium_for_wheel.py --local
 maturin develop -r
 ```
 
-See [build.txt](https://github.com/laisuk/opencc_pyo3/blob/master/build.txt) for detailed build and install
+Each platform-specific wheel includes only its matching PDFium native library. PyPI releases provide prebuilt wheels
+without a source distribution.
+
+See [build.txt](https://github.com/laisuk/opencc_pyo3/blob/master/build.txt) for detailed build and installation
 instructions.
+
+---
 
 ## Usage
 
