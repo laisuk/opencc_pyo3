@@ -93,3 +93,36 @@ Notes
   from a different operating system or architecture.
 - For additional packaging details, see pyproject.toml, build_backend.py,
   tools/sync_pdfium_for_wheel.py, and .github/workflows/build.yml.
+
+6. Windows 7 source installation (legacy)
+-----------------------------------------
+Windows 7 is a legacy environment with these tested tool limits:
+- Python: 3.8.x maximum.
+- maturin: 1.5.1 (latest version verified working on Windows 7).
+- A compatible Rust toolchain (MSRV 1.75.0) and Windows build tools are still required.
+
+Create a virtual environment using Python 3.8 and activate it:
+
+# Windows PowerShell:
+py -3.8 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+# Install the Windows 7-compatible maturin version:
+python -m pip install "maturin==1.5.1"
+
+# IMPORTANT: Disable PEP 517 build isolation so pip uses maturin 1.5.1
+# from the active virtual environment instead of installing a newer version.
+python -m pip install --no-build-isolation "git+https://github.com/laisuk/opencc_pyo3.git@master"
+
+The custom PEP 517 backend still stages the matching PDFium native library
+for this Git source installation. No manual PDFium sync is needed.
+
+Without --no-build-isolation, pip may install a newer maturin in its temporary
+build environment. In the tested Windows 7 environment, maturin 1.15.0 failed
+at the metadata stage with exit code 3221225785 (0xC0000139,
+STATUS_ENTRYPOINT_NOT_FOUND).
+
+Verified on Windows 7 x64: source wheel build and installation succeeded with
+maturin 1.5.1; OpenCC s2t conversion succeeded; PDFium processed a 4,410-page
+PDF with CJK paragraph reflow enabled. This is a tested local configuration,
+not a guarantee that all future source revisions or toolchains support Windows 7.
