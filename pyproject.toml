@@ -1,6 +1,8 @@
 [build-system]
 requires = ["maturin>=1,<2"]
-#build-backend = "maturin"
+# Custom PEP 517 backend wraps maturin to automatically bundle the
+# platform-specific PDFium native library during pip source installs.
+# Direct maturin builds and CI workflows continue to work normally.
 build-backend = "build_backend"
 backend-path = ["."]
 
