@@ -85,7 +85,10 @@ pip install "https://github.com/laisuk/opencc_pyo3/archive/refs/heads/master.zip
 The custom PEP 517 build backend automatically bundles the appropriate PDFium native library for the host platform
 before building the wheel.
 
-**Requirements:** A working Rust toolchain and Python build environment are required for source installation.
+**Requirements:** A working `Rust toolchain` and `Python build environment` are required for source installation.
+
+**Note:** GitHub source installations build against the local system environment and do not apply the compatibility
+settings used for official release wheels (such as `Windows 7` support or `Linux manylinux` compatibility).
 
 ### 3. Build and install a Python wheel using [maturin](https://github.com/PyO3/maturin)
 
