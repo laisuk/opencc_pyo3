@@ -139,7 +139,7 @@ class TestOpenCC(unittest.TestCase):
                 self.assertEqual(
                     pdfium_loader._module_dir(),
                     tmp_path / "opencc_pyo3",
-                )
+                    )
 
     def test_pdfium_loader_falls_back_to_module_dir_when_needed(self):
         with TemporaryDirectory() as tmpdir:
@@ -326,6 +326,8 @@ class TestOpenCC(unittest.TestCase):
                 punct=False,
                 detofu=None,
                 detofu_file=str(custom_path),
+                norm_compat=False,
+                norm_compat_extended=False,
                 in_enc="UTF-8",
                 out_enc="UTF-8",
             ))
@@ -384,6 +386,8 @@ class TestOpenCC(unittest.TestCase):
                 punct=False,
                 detofu=detofu,
                 detofu_file=detofu_file,
+                norm_compat=False,
+                norm_compat_extended=False,
                 in_enc="UTF-8",
                 out_enc="UTF-8",
             ))

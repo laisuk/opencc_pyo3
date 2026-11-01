@@ -112,12 +112,11 @@ checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 [[package]]
 name = "opencc-fmmseg"
 version = "0.13.1"
-source = "git+https://github.com/laisuk/opencc-fmmseg.git?branch=master#61eb4c0566588c229e60083b69cd7493b595cf98"
+source = "git+https://github.com/laisuk/opencc-fmmseg.git?branch=master#529b2ed38b1542a5330550dcfe12a51dbcee1aa0"
 dependencies = [
  "rayon",
  "rayon-core",
  "regex",
- "rustc-hash",
  "serde",
  "serde_cbor",
 ]
@@ -275,12 +274,6 @@ name = "regex-syntax"
 version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
-
-[[package]]
-name = "rustc-hash"
-version = "2.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "357703d41365b4b27c590e3ed91eabb1b663f07c4c084095e60cbed4362dff0d"
 
 [[package]]
 name = "serde"
