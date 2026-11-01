@@ -160,8 +160,7 @@ def convert_office_doc(
                 converted = _apply_text_converter(office_text_converter, xml_content)
 
             if keep_font and font_map:
-                for marker, original in font_map.items():
-                    converted = converted.replace(marker, original)
+                converted = _restore_fonts(converted, font_map)
 
             full_path.write_text(converted, encoding="utf-8")
             converted_count += 1
@@ -204,6 +203,33 @@ def convert_office_doc(
                     pass
 
             shutil.rmtree(temp_dir, onerror=_onerror)
+
+
+def _restore_fonts(converted: str, font_map: Dict[str, str]) -> str:
+    """Restore markers in one pass without rescanning inserted font values."""
+    if not font_map:
+        return converted
+
+    prefix = "__F_O_N_T_"
+    chunks: List[str] = []
+    cursor = 0
+    while True:
+        start = converted.find(prefix, cursor)
+        if start < 0:
+            break
+        chunks.append(converted[cursor:start])
+        prefix_end = start + len(prefix)
+        end = converted.find("__", prefix_end)
+        font = font_map.get(converted[start:end + 2]) if end >= 0 else None
+        if font is not None:
+            chunks.append(font)
+            cursor = end + 2
+        else:
+            # Preserve unknown/incomplete markers and still find later known ones.
+            chunks.append(prefix)
+            cursor = prefix_end
+    chunks.append(converted[cursor:])
+    return "".join(chunks)
 
 
 def _normalized_temp_root() -> str:
