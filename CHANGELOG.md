@@ -7,21 +7,33 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
-## [0.12.1] -Unreleased
+## [0.12.1] - 2026-11-06
+
+### Added
+
+- Added `office -F` / `--convert-filename` for Office and EPUB conversion. It applies the document's text
+  conversion settings to the filename stem when generating the default output path.
+- Enabled `pip install` from the GitHub repository or source archive. The PEP 517 backend stages the
+  target PDFium library before building a wheel with maturin.
+
+### Changed
+
+- Updated `opencc-fmmseg` to 0.13.1 and refreshed the reflow dependencies.
+- Updated the Rust reflow engine to support optional custom heading detection internally. The Python
+  helper continues to use the built-in heading rules.
+- Updated wheel CI to use Python 3.12 for additional targets and pass the PDFium target explicitly.
+- Expanded the source installation and wheel build guides and clarified the public Python API documentation.
 
 ### Performance
 
-- Optimized font placeholder restoration during Office and EPUB document conversion.
-- Replaced repeated whole-document string replacements with a single-pass restoration algorithm, avoiding quadratic
-  performance degradation when processing documents containing numerous font declarations.
-- Reduced unnecessary string allocations and repeated scans of XML/XHTML content.
-- Preserved existing font declarations, placeholder formats, conversion behavior, and public APIs.
-- Improved performance for font-heavy documents, particularly large EPUB files with thousands of font declarations.
+- Restored font placeholders in a single pass during Office and EPUB conversion with `--keep-font`,
+  avoiding repeated scans of XML and XHTML in font-heavy documents.
 
 ### Tests
 
-- Added regression coverage for font placeholder restoration, including known and unknown placeholders and non-recursive
-  replacement behavior.
+- Added PDF regression tests for Windows architecture detection, PDFium cleanup and decoding,
+  unreadable page handles, and transactional CLI output.
+- Added a Rust test for custom heading detection in CJK reflow.
 
 ---
 
@@ -222,7 +234,7 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
-## [0.8.11] 2026-04-26
+## [0.8.11] - 2026-04-26
 
 ### Changed
 
@@ -395,7 +407,7 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
-## [0.7.0] – 2025-07-14
+## [0.7.0] - 2025-07-14
 
 ### Added
 
@@ -411,7 +423,7 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
-## [0.6.2] – 2025-06-19
+## [0.6.2] - 2025-06-19
 
 ### Added
 
@@ -426,7 +438,7 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ---
 
-## [0.6.1] – 2025-06-12
+## [0.6.1] - 2025-06-12
 
 ### Added
 
@@ -439,3 +451,30 @@ the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 - UTF-8 encoding handling with fallback for BOM detection.
 
 ---
+
+<!-- Version comparison links -->
+
+[0.12.1]: https://github.com/laisuk/opencc_pyo3/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/laisuk/opencc_pyo3/compare/v0.11.0...v0.12.0
+[0.11.0]: https://github.com/laisuk/opencc_pyo3/compare/v0.10.3...v0.11.0
+[0.10.3]: https://github.com/laisuk/opencc_pyo3/compare/v0.10.2...v0.10.3
+[0.10.2]: https://github.com/laisuk/opencc_pyo3/compare/v0.10.1...v0.10.2
+[0.10.1]: https://github.com/laisuk/opencc_pyo3/compare/v0.10.0...v0.10.1
+[0.10.0]: https://github.com/laisuk/opencc_pyo3/compare/v0.9.0...v0.10.0
+[0.9.0]: https://github.com/laisuk/opencc_pyo3/compare/v0.8.12...v0.9.0
+[0.8.12]: https://github.com/laisuk/opencc_pyo3/compare/v0.8.11...v0.8.12
+[0.8.11]: https://github.com/laisuk/opencc_pyo3/compare/v0.8.10...v0.8.11
+[0.8.10]: https://github.com/laisuk/opencc_pyo3/compare/v0.8.9...v0.8.10
+[0.8.9]: https://github.com/laisuk/opencc_pyo3/compare/v0.8.8...v0.8.9
+[0.8.8]: https://github.com/laisuk/opencc_pyo3/compare/v0.8.7...v0.8.8
+[0.8.7]: https://github.com/laisuk/opencc_pyo3/compare/v0.8.6...v0.8.7
+[0.8.6]: https://github.com/laisuk/opencc_pyo3/compare/v0.8.5...v0.8.6
+[0.8.5]: https://github.com/laisuk/opencc_pyo3/compare/v0.8.4...v0.8.5
+[0.8.4]: https://github.com/laisuk/opencc_pyo3/compare/v0.8.3...v0.8.4
+[0.8.3]: https://github.com/laisuk/opencc_pyo3/compare/v0.8.2...v0.8.3
+[0.8.2]: https://github.com/laisuk/opencc_pyo3/compare/v0.8.1...v0.8.2
+[0.8.1]: https://github.com/laisuk/opencc_pyo3/compare/v0.8.0...v0.8.1
+[0.8.0]: https://github.com/laisuk/opencc_pyo3/compare/v0.7.0...v0.8.0
+[0.7.0]: https://github.com/laisuk/opencc_pyo3/compare/v0.6.2...v0.7.0
+[0.6.2]: https://github.com/laisuk/opencc_pyo3/compare/v0.6.1...v0.6.2
+[0.6.1]: https://github.com/laisuk/opencc_pyo3/releases/tag/v0.6.1

@@ -10,19 +10,12 @@ use pyo3::{pyfunction, PyResult};
 use regex::Regex;
 use smallvec::SmallVec;
 
-/// Reflow CJK paragraphs from PDF-extracted text.
+/// Reflow CJK paragraphs in text extracted from a PDF.
 ///
-/// Mirrors the behavior of the original `reflow_cjk_paragraphs()` PyO3 function.
-/// - Normalizes CRLF/CR to LF
-/// - Merges artificial line breaks
-/// - Preserves headings / metadata / page markers / dialog structure
-///
-/// `add_pdf_page_header`:
-/// - If false, skips page-break-like blank lines not preceded by CJK punctuation.
-///
-/// `compact`:
-/// - If true, join paragraphs with "\n"
-/// - If false, join paragraphs with "\n\n"
+/// Merge wrapped lines while preserving logical boundaries such as headings
+/// and dialogue. Set add_pdf_page_header=True to retain page-like blank-line
+/// gaps that reflow would otherwise skip. Set compact=True to separate
+/// paragraphs with one newline. Set compact=False to use a blank line.
 #[pyfunction]
 pub fn reflow_cjk_paragraphs(
     text: &str,

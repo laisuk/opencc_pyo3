@@ -23,22 +23,11 @@ class CustomDictFileSpec(_CustomDictFileSpecRequired, total=False):
 
 
 class OpenCC:
-    """
-    Python binding for OpenCC text conversion.
+    """Convert Chinese text using OpenCC dictionaries.
 
-    Provides Chinese text conversion between Simplified, Traditional,
-    Hong Kong, Taiwan, and Japanese Kanji variants using OpenCC-compatible
-    configurations.
-
-    Args:
-        config (str): Optional conversion config (default: "s2t"). Must be one of:
-            "s2t", "t2s", "s2tw", "tw2s", "s2twp", "tw2sp", "s2hk", "hk2s",
-            "s2hkp", "hk2sp", "t2tw", "tw2t", "t2twp", "tw2tp", "t2hk",
-            "t2hkp", "hk2t", "hk2tp", "t2jp", "jp2t",
-            "s2seal", "t2seal", "seal2s", "seal2t".
-
-    Attributes:
-        config (str): Current OpenCC config string.
+    Select a case-insensitive configuration code. An unknown code falls
+    back to "s2t" and is reported by get_last_error(). Set preserve_ids=True
+    to protect characters inside Ideographic Description Sequences.
     """
 
     config: str
@@ -58,132 +47,93 @@ class OpenCC:
 
     @classmethod
     def from_dicts(cls, config: str = "s2t", specs: Optional[List[CustomDictSpec]] = None) -> "OpenCC":
-        """
-        Create an OpenCC instance with in-memory custom dictionaries.
+        """Create a converter from embedded dictionaries and in-memory mappings.
+
+        Each spec supplies a slot and a list of (source, target) pairs. The mode
+        defaults to "append". Use "override" to replace the entire slot.
+        Invalid slots or modes raise ValueError.
         """
         ...
 
     @classmethod
     def from_dict_files(cls, config: str = "s2t", specs: Optional[List[CustomDictFileSpec]] = None) -> "OpenCC":
-        """
-        Create an OpenCC instance with custom dictionary files.
+        """Create a converter from embedded dictionaries and UTF-8 dictionary files.
+
+        Each spec supplies a slot and a list of file paths. Each mapping uses
+        source<TAB>target. The mode defaults to "append". Use "override" to replace
+        the entire slot. Invalid slots, modes, or dictionary files raise ValueError.
         """
         ...
 
     def convert(self, input_text: str, punctuation: bool = False) -> str:
-        """
-        Convert Chinese text using the current OpenCC config.
-        :param input_text: Input text.
-        :param punctuation: Whether to convert punctuation.
-        :return str: Converted text.
+        """Convert input_text with the active configuration.
+
+        Set punctuation=True to apply the configuration's punctuation mappings.
         """
         ...
 
     def zho_check(self, input_text: str) -> int:
-        """
-        Detect the type of Chinese in the input text.
-        :param input_text: Input text.
-        :return int: Integer code representing detected Chinese type.
-                (1: Traditional, 2: Simplified, 0: Others)
+        """Estimate the Chinese script used in input_text.
+
+        Return 1 for Traditional Chinese, 2 for Simplified Chinese, or 0
+        when the script is undetermined.
         """
         ...
 
     def get_config(self) -> str:
-        """
-        Get the current conversion config.
-        :return: Current config string
-        """
+        """Return the active canonical configuration code."""
         ...
 
     def apply_config(self, config: str) -> None:
-        """
-        Set current config, reverts to "s2t" if invalid config value provided.
-        :param config: Config string to be changed.
+        """Set the active configuration from a case-insensitive code.
+
+        An unknown code selects "s2t" and records a message in get_last_error().
+        Applying a valid code clears that message.
         """
         ...
 
     @staticmethod
     def supported_configs() -> List[str]:
-        """
-        Get the supported Config list.
-        :return: List of supported config strings.
-        """
+        """Return all supported canonical configuration codes."""
         ...
 
     @staticmethod
     def is_valid_config(config: str) -> bool:
-        """
-        Check validity of the config string.
-        :param config: Config string to be checked.
-        """
+        """Return whether the configuration code is supported."""
         ...
 
     @staticmethod
     def available_slots() -> List[str]:
-        """
-        Return the canonical names of all supported custom dictionary slots.
-
-        The returned names can be used as the ``slot`` value in custom
-        dictionary specifications.
-
-        :return: List of canonical dictionary slot names
-        """
+        """Return canonical slot names for custom dictionary specifications."""
         ...
 
     def get_last_error(self) -> str:
-        """
-        Get the last error message from the converter.
-        :return str: Error message, or an empty string if no error occurred.
-        """
+        """Return the current configuration error message, or an empty string."""
         ...
 
     def normalize_compat(self, text: str) -> str:
-        """
-        Normalize CJK Compatibility Ideographs using the built-in Unicode table.
+        """Map CJK Compatibility Ideographs to their unified forms.
 
-        This is an optional Unicode compatibility normalization pre-pass. It does
-        not modify this OpenCC instance, its selected config, conversion
-        dictionaries, segmentation behavior, script detection, or punctuation
-        conversion.
-
-        Use this before ``convert()`` when input may contain CJK Compatibility
-        Ideographs such as ``金``. Unmapped compatibility ideographs remain
-        unchanged.
-
-        DeToFu is the opposite side of the pipeline: compatibility ideograph
-        normalization is a pre-processing step, while ``detofu()`` is an
-        optional post-processing display fallback.
-
-        :param text: Input text.
-        :return: Normalized text.
+        For example, "金" becomes "金". Apply this optional pass before convert()
+        when the input contains compatibility ideographs.
         """
         ...
 
     def normalize_compat_extended(self, text: str) -> str:
-        """
-        Normalize extended Unicode compatibility forms and CJK Compatibility
-        Ideographs using the built-in Unicode tables.
+        """Apply extended compatibility mappings and normalize CJK ideographs.
 
-        This is a superset of ``normalize_compat()``.
-
-        :param text: Input text.
-        :return: Extended-normalized text.
+        This optional pre-processing pass includes the mappings used by
+        normalize_compat().
         """
         ...
 
     def detofu(self, text: str, level: str = "all") -> str:
-        """
-        Convert non-BMP CJK extension characters to display-safe fallbacks.
+        """Replace mapped CJK extension characters with display fallbacks.
 
-        This is a display compatibility pass. It does not affect OpenCC
-        conversion dictionaries, phrase matching, regional variants, script
-        detection, or punctuation conversion.
-
-        :param text: Input text.
-        :param level: CJK extension threshold: "all", "ExtB", "ExtC", ..., "ExtI".
-                      Compact forms "B"..."I" are also accepted.
-                      "all"/"ExtB" replaces ExtB and above; "ExtI" replaces ExtI only.
-        :return: Display-safe text.
+        The level selects the first extension block to process. "all" starts
+        at ExtB. ExtB through ExtI and their short forms B through I are
+        case-insensitive and accept hyphens or underscores.
+        An unsupported level raises ValueError.
         """
         ...
 
@@ -193,15 +143,12 @@ class OpenCC:
             level: str = "all",
             path: str = ...,
     ) -> str:
-        """
-        Convert non-BMP CJK extension characters using built-in detofu mappings
-        plus a custom UTF-8 fallback file.
+        """Apply DeTofu with custom mappings from a UTF-8 file.
 
-        File format:
-            tofu_char<TAB>fallback_char<TAB>extension
-
-        Example:
-            𣭲    氄    B
+        Each line contains a source character, a fallback character, and an
+        extension label separated by tabs. Custom entries take precedence over
+        built-in entries for the same source character. File errors raise OSError.
+        A missing path or an unsupported level raises ValueError.
         """
         ...
 
@@ -211,12 +158,11 @@ class OpenCC:
             level: str = "all",
             pairs: List[Tuple[str, str]] = ...,
     ) -> str:
-        """
-        Convert non-BMP CJK extension characters using built-in detofu mappings
-        plus custom fallback character pairs.
+        """Apply DeTofu with custom (source, fallback) character pairs.
 
-        Example:
-            cc.detofu_with_custom_pairs("𣭲毛", "all", [("𣭲", "氄")])
+        Supply pairs as a list of tuples containing single-character strings.
+        Custom entries take precedence over built-in entries for the same source
+        character. Missing pairs or an unsupported level raises ValueError.
         """
         ...
 

@@ -179,7 +179,15 @@ optional arguments:
 
 #### office
 
-Support OpenOffice documents and Epub (`.docx`, `.xlsx`, `.pptx`, `.odt`, `.ods`, `.odp`, `.epub`)
+Convert Microsoft Office, OpenDocument, and EPUB files (`.docx`, `.xlsx`, `.pptx`, `.odt`, `.ods`, `.odp`, `.epub`).
+
+Use `-F` to apply the document's conversion settings to the filename stem when the CLI generates the output path.
+For example, the following command writes `漢字_converted.docx` beside the input file. An explicit `--output`
+takes precedence over filename conversion.
+
+```sh
+opencc-pyo3 office -i "汉字.docx" -c s2t --convert-filename
+```
 
 ```
 python -m opencc_pyo3 office --help                                         
@@ -313,6 +321,9 @@ cc = OpenCC(OpenccConfig.S2TW)
 print(cc.convert("汉字"))  # 漢字
 ```
 
+Use `OpenccConfig.parse("S2TW")` to look up a code case-insensitively. Unknown codes raise `ValueError`.
+Use `to_canonical_name()` to get the lowercase code.
+
 Available enum values:
 
 - `OpenccConfig.S2T`
@@ -345,7 +356,7 @@ Available enum values:
 Core converter class backed by the Rust extension module.
 
 - `OpenCC(config: str | OpenccConfig = "s2t", preserve_ids: bool = False)`
-    - `config`: OpenCC conversion configuration. Invalid values fall back to `s2t`.
+    - `config`: OpenCC conversion configuration. Codes are case-insensitive. Unknown codes select `s2t` and set a message in `get_last_error()`.
     - `preserve_ids`: Preserve characters inside Unicode IDS (Ideographic Description Sequence) structures such as `⿰`,
       `⿱`, and `⿲` during conversion. Default is `False`.
 - `OpenCC.from_dicts(config="s2t", specs=None) -> OpenCC`
@@ -353,15 +364,21 @@ Core converter class backed by the Rust extension module.
 - `OpenCC.from_dict_files(config="s2t", specs=None) -> OpenCC`
     - Creates a converter with OpenCC-style custom dictionary files.
 - `convert(input_text: str, punctuation: bool = False) -> str`
-    - Converts text using the current config.
+    - Converts text using the current configuration. Set `punctuation=True` to apply its punctuation mappings.
+- `normalize_compat(text: str) -> str`
+    - Maps CJK Compatibility Ideographs to their unified forms, such as `金` to `金`.
+- `normalize_compat_extended(text: str) -> str`
+    - Applies the CJK ideograph mappings and additional Unicode compatibility mappings.
+      Use either normalization method before `convert()`.
 - `detofu(text: str, level: str = "all") -> str`
     - Replaces rare CJK extension characters with display-safe fallback characters.
-- `detofu_with_custom_file(text: str, level: str = "all", path: str) -> str`
+- `detofu_with_custom_file(text: str, level: str = "all", path: str | None = None) -> str`
     - Applies DeTofu with additional UTF-8 fallback mappings from a file.
-- `detofu_with_custom_pairs(text: str, level: str = "all", pairs: list[tuple[str, str]]) -> str`
+- `detofu_with_custom_pairs(text: str, level: str = "all", pairs: list[tuple[str, str]] | None = None) -> str`
     - Applies DeTofu with additional in-memory fallback character pairs.
 - `set_config(config: str | OpenccConfig) -> None`
-    - Changes the active config.
+    - Changes the active configuration. A valid code clears the configuration error. An unknown code selects `s2t`
+      and records an error message. The `config` property and `apply_config()` provide the same behavior.
 - `get_config() -> str`
     - Returns the current canonical config name.
 - `get_last_error() -> str`
@@ -371,7 +388,7 @@ Core converter class backed by the Rust extension module.
     - `1` = Traditional Chinese, `2` = Simplified Chinese, `0` = other / undetermined
 - `OpenCC.supported_configs() -> list[str]`
     - Returns all supported config names.
-- `OpenCC.is_valid_config(config: str) -> bool`
+- `OpenCC.is_valid_config(config: str | OpenccConfig) -> bool`
     - Validates a config string.
 - `OpenCC.available_slots() -> list[str]`
     - Returns all 25 active canonical custom dictionary slot names, including the four Seal slots.
@@ -404,9 +421,12 @@ print(OpenCC.is_valid_config("s2hk"))  # True
 ### DeTofu Display Fallbacks
 
 DeTofu can replace rare CJK extension characters with more widely displayable fallback characters after normal OpenCC
-conversion. The canonical argument order is always input text, level, then custom source. `level="all"` is equivalent to
-`ExtB` and replaces ExtB and later extension characters; compact and CLI-friendly spellings such as `B`, `ExtC`, and
-`ext-c` are accepted.
+conversion. The level selects the first extension block to process. `"all"` starts at ExtB. Use ExtB through ExtI
+or their short forms B through I. Levels are case-insensitive and accept hyphens or underscores. An unsupported
+level raises `ValueError`.
+
+Supply `path` or `pairs` for the corresponding custom method, even when using the default level. Each pair contains
+two single-character strings. Custom mappings take precedence over built-in mappings for the same character.
 
 ```python
 from opencc_pyo3 import OpenCC
@@ -428,14 +448,10 @@ Custom DeTofu files use one mapping per line:
 
 ### Custom Dictionaries
 
-`OpenCC("s2t")` remains the recommended API for normal use and continues to use the built-in embedded dictionaries. Use
-custom dictionaries only when you need project-specific terms or overrides.
-
-Custom dictionaries are applied during construction. The backend first loads the default embedded zstd dictionaries,
-then applies post-load customization with `DictionaryMaxlength::from_zstd()?.with_custom_dicts(...)` or
-`DictionaryMaxlength::from_zstd()?.with_custom_dict_files(...)`. The final `OpenCC` instance remains immutable and
-optimized after construction. Runtime hot reload is not supported; rebuild a new `OpenCC` instance if dictionaries need
-to change.
+Both factories start with the embedded dictionaries and apply custom entries at construction. To change the
+dictionaries, create a new converter. To switch the active configuration on a factory result, assign
+`cc.config = "t2s"` or call `cc.apply_config("t2s")`. Both factories return the native converter, whose public
+configuration methods are `apply_config()` and `get_config()`.
 
 #### In-memory custom dictionaries
 
@@ -494,8 +510,8 @@ Example:
 
 #### Merge modes
 
-- `append`: add custom entries to the existing dictionary slot. Duplicate keys follow the backend "last wins" behavior.
-- `override`: replace the entire target dictionary slot with the custom entries or files.
+- `append` (default) adds custom entries to the existing dictionary slot. Duplicate keys follow the backend "last wins" behavior.
+- `override` replaces the entire target dictionary slot with the custom entries or files.
 
 #### Supported dictionary slots
 
@@ -585,16 +601,7 @@ specs: List[CustomDictSpec] = [
 cc = OpenCC.from_dicts("s2t", specs)
 ```
 
-Notes:
-
-- Custom dictionaries are loaded at construction time.
-- Existing `OpenCC` objects are immutable after construction.
-- Runtime hot reload is not supported.
-- Rebuild a new `OpenCC` instance if dictionaries need to change.
-- Invalid slots, invalid modes, malformed lines, or unreadable files raise errors.
-- `OpenCC("s2t")` remains the recommended API for normal users.
-- Use `from_dicts()` for programmatic or in-memory custom terms.
-- Use `from_dict_files()` for OpenCC-style dictionary files.
+Invalid slots, invalid modes, malformed dictionary lines, and unreadable dictionary files raise `ValueError`.
 
 ---
 
@@ -602,8 +609,8 @@ Notes:
 
 - `reflow_cjk_paragraphs(text: str, add_pdf_page_header: bool, compact: bool) -> str`
     - Reflows PDF-extracted CJK text by merging broken line wraps while preserving paragraph structure.
-    - `add_pdf_page_header=True` keeps explicit page-gap style boundaries.
-    - `compact=True` uses single newlines between paragraphs.
+    - `add_pdf_page_header=True` retains page-like blank-line gaps that reflow would otherwise skip.
+    - `compact=True` uses single newlines between paragraphs. Use `False` for blank lines.
 
 Example:
 
@@ -620,13 +627,18 @@ The package exposes PDFium-based PDF extraction helpers in `opencc_pyo3.pdfium_h
 
 Import from `opencc_pyo3.pdfium_helper`:
 
-- `extract_pdf_pages_with_callback_pdfium(path: str, callback, add_page_header: bool = False) -> None`
+- `extract_pdf_pages_with_callback_pdfium(path: str, callback, /, add_page_header: bool = False) -> None`
 - `extract_pdf_text_pdfium_progress(path: str) -> str`
 - `extract_pdf_text_pdfium_silent(path: str) -> str`
-- `extract_pdf_text_pages_pdfium(path: str) -> list[str]`
-- `extract_pdf_text_pages_pdfium_progress(path: str) -> list[str]`
+- `extract_pdf_text_pages_pdfium(path: str, /) -> list[str]`
+- `extract_pdf_text_pages_pdfium_progress(path: str, /) -> list[str]`
 - `make_progress_collector() -> tuple[callback, list[str]]`
 - `make_silent_collector() -> tuple[callback, list[str]]`
+
+The callback receives `(page_number, total_pages, text)` with one-based page numbers. Page text is trimmed
+and normalized to LF. Blank or unreadable pages contribute separators. Set `add_page_header=True` to include
+page markers, or use one of the progress helpers to print extraction progress. PDFium raises a `RuntimeError`
+through these helpers if it cannot open the document.
 
 Example:
 
@@ -638,6 +650,22 @@ from opencc_pyo3.pdfium_helper import extract_pdf_text_pdfium_silent
 raw = extract_pdf_text_pdfium_silent("input.pdf")
 text = reflow_cjk_paragraphs(raw, add_pdf_page_header=False, compact=False)
 converted = OpenCC("s2t").convert(text, punctuation=True)
+```
+
+### Office and EPUB conversion API
+
+Import `convert_office_doc` from `opencc_pyo3.office_helper` to convert a document with a text callback.
+Pass the format code, such as `"docx"` or `"epub"`, and a callable that receives a string and returns
+its replacement. Passing `None` as the output path creates a sibling file with `_converted` appended
+to its stem. The helper validates the resulting archive before replacing an existing output file.
+
+```python
+from opencc_pyo3 import OpenCC
+from opencc_pyo3.office_helper import convert_office_doc
+
+cc = OpenCC("s2t")
+ok, message = convert_office_doc("input.docx", None, "docx", cc.convert, keep_font=True)
+print(message)
 ```
 
 ## Development

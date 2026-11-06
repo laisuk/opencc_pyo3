@@ -168,25 +168,15 @@ def extract_pdf_pages_with_callback_pdfium(
         /,
         add_page_header: bool = False,  # ✅ new
 ):
-    """
-    Extract text from a PDF file page-by-page using PDFium,
-    replicating the behavior of C# PdfiumNative.GetText().
+    """Extract PDF text and call callback(page_number, total_pages, text).
 
-    callback(page_number, total_pages, text)
-        page_number : 1-based page index
-        total_pages : total pages in PDF
-        text        : extracted Unicode text for the page (page-break-safe)
+    Page numbers are one-based. Text is trimmed, uses LF line endings, and
+    ends with a blank line. A blank page without a header or a page that
+    cannot be read contributes a newline separator. Set add_page_header=True
+    to prefix page chunks with a marker such as "=== [Page 1/3] ===".
 
-    Notes
-    -----
-    • Works for complex CJK fonts (Identity-H, CIDType0, missing ToUnicode).
-    • Decodes PDFium text as UTF-16LE.
-    • Removes the trailing NUL terminator and preserves embedded NUL characters.
-    • This function **does not** perform reflow; it only extracts text.
-    • IMPORTANT: Each callback `text` is guaranteed to end with a blank-line
-      separator so page boundaries are never lost when concatenated.
-    • If add_page_header=True, each page is prefixed with:
-      === [Page i/total] ===
+    A document that PDFium cannot open raises RuntimeError. Paragraph reflow
+    is a separate step.
     """
 
     def _normalize_page_text(s: str) -> str:
